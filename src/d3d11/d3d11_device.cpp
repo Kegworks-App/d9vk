@@ -1836,7 +1836,7 @@ namespace dxvk {
       Logger::warn("D3D11Device::CreateShaderModule: Class linkage not supported");
     
     try {
-      *pShaderModule = m_shaderModules.GetShaderModule(
+      *pShaderModule = m_shaderModules.GetShaderModule(m_dxvkDevice.ptr(),
         &m_dxbcOptions, pShaderBytecode, BytecodeLength, ProgramType);
       return S_OK;
     } catch (const DxvkError& e) {

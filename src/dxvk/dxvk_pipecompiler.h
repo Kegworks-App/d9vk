@@ -33,16 +33,19 @@ namespace dxvk {
      * graphics pipeline instances asynchronously.
      * \param [in] pipeline The pipeline object
      * \param [in] instance The pipeline instance
+     * \param [in] 
      */
     void queueCompilation(
       const Rc<DxvkGraphicsPipeline>&         pipeline,
-      const Rc<DxvkGraphicsPipelineInstance>& instance);
+      const Rc<DxvkGraphicsPipelineInstance>& instance,
+            bool                              doInsert);
     
   private:
     
     struct PipelineEntry {
       Rc<DxvkGraphicsPipeline>         pipeline;
       Rc<DxvkGraphicsPipelineInstance> instance;
+      bool                             doInsert;
     };
     
     std::atomic<bool>           m_compilerStop = { false };

@@ -1,4 +1,5 @@
 #include "dxvk_shader.h"
+#include "dxvk_hash.h"
 
 namespace dxvk {
   
@@ -108,6 +109,46 @@ namespace dxvk {
   
   void DxvkShader::read(std::istream& inputStream) {
     m_code = SpirvCodeBuffer(inputStream);
+  }
+  
+  
+  DxvkShaderKey DxvkShader::key() const {
+    return DxvkShaderKey(m_stage, Sha1Hash::compute(
+      reinterpret_cast<const uint8_t*>(m_code.data()), m_code.size()));
+  }
+  
+  
+  bool DxvkShaderKey::operator == (const DxvkShaderKey& other) const {
+    return m_type == other.m_type && m_hash == other.m_hash;
+  }
+  
+  
+  bool DxvkShaderKey::operator != (const DxvkShaderKey& other) const {
+    return !this->operator == (other);
+  }
+  
+  
+  size_t DxvkShaderKey::hash() const {
+    DxvkHashState result;
+    result.add(uint32_t(m_type));
+    
+    for (uint32_t i = 0; i < 5; i++)
+      result.add(m_hash.dword(i));
+    return result;
+  }
+  
+  
+  std::istream& DxvkShaderKey::read(std::istream& stream) {
+    stream.read(reinterpret_cast<char*>(&m_type), sizeof(m_type));
+    stream.read(reinterpret_cast<char*>(&m_hash), sizeof(m_hash));
+    return stream;
+  }
+  
+  
+  std::ostream& DxvkShaderKey::write(std::ostream& stream) const {
+    stream.write(reinterpret_cast<const char*>(&m_type), sizeof(m_type));
+    stream.write(reinterpret_cast<const char*>(&m_hash), sizeof(m_hash));
+    return stream;
   }
   
 }

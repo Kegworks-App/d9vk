@@ -92,6 +92,7 @@ namespace dxvk {
   
   
   D3D11ShaderModule D3D11ShaderModuleSet::GetShaderModule(
+          DxvkDevice*     pDevice,
     const DxbcOptions*    pDxbcOptions,
     const void*           pShaderBytecode,
           size_t          BytecodeLength,
@@ -120,6 +121,7 @@ namespace dxvk {
         return status.first->second;
     }
     
+    pDevice->provideShader(module.GetShader());
     return module;
   }
   

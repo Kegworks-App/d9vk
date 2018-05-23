@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iostream>
 #include <vector>
 
 #include "dxvk_include.h"
@@ -10,6 +11,7 @@
 namespace dxvk {
   
   class DxvkShader;
+  class DxvkShaderKey;
   
   /**
    * \brief Shader interface slots
@@ -186,6 +188,12 @@ namespace dxvk {
       return m_debugName;
     }
     
+    /**
+     * \brief Shader key
+     * \returns Shader key
+     */
+    DxvkShaderKey key() const;
+    
   private:
     
     VkShaderStageFlagBits m_stage;
@@ -195,6 +203,46 @@ namespace dxvk {
     std::vector<size_t>           m_idOffsets;
     DxvkInterfaceSlots            m_interface;
     std::string                   m_debugName;
+    
+  };
+  
+  
+  /**
+   * \brief Shader key
+   * 
+   * Stores the shader type and the SHA-1 hash
+   * of the SPIR-V binary. Can be used to look
+   * up shader objects in data structures.
+   */
+  class DxvkShaderKey {
+    
+  public:
+    
+    DxvkShaderKey()
+    : m_type(0),
+      m_hash(Sha1Digest()) { }
+    
+    DxvkShaderKey(
+            VkShaderStageFlags  type,
+      const Sha1Hash&           hash)
+    : m_type(type), m_hash(hash) { }
+    
+    bool isDefined() const {
+      return m_type != 0;
+    }
+    
+    bool operator == (const DxvkShaderKey& other) const;
+    bool operator != (const DxvkShaderKey& other) const;
+    
+    size_t hash() const;
+    
+    std::istream& read (std::istream& stream);
+    std::ostream& write(std::ostream& stream) const;
+    
+  private:
+    
+    VkShaderStageFlags m_type;
+    Sha1Hash           m_hash;
     
   };
   

@@ -228,6 +228,15 @@ namespace dxvk {
             uint32_t                  queryCount);
     
     /**
+     * \brief Creates a render pass object
+     * 
+     * \param [in] format Render pass format
+     * \returns The new render pass object
+     */
+    Rc<DxvkRenderPass> createRenderPass(
+      const DxvkRenderPassFormat&     format);
+    
+    /**
      * \brief Creates a sampler object
      * 
      * \param [in] createInfo Sampler parameters
@@ -298,6 +307,15 @@ namespace dxvk {
      */
     VkResult presentSwapImage(
       const VkPresentInfoKHR&         presentInfo);
+    
+    /**
+     * \brief Offers a shader object to the system
+     * 
+     * Call this when creating a new shader.
+     * \param [in] shader The shader object
+     */
+    void provideShader(
+      const Rc<DxvkShader>&         shader);
     
     /**
      * \brief Submits a command list

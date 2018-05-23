@@ -62,8 +62,10 @@ namespace dxvk {
      || InterfaceName == __uuidof(ID3D10Device1)) {
       Logger::warn("DXGI: CheckInterfaceSupport: No D3D10 support");
       
-      if (env::getEnvVar(L"DXVK_FAKE_DX10_SUPPORT") == "1")
+      if (env::getEnvVar(L"DXVK_FAKE_DX10_SUPPORT") == "1") {
+        Logger::info("DXGI: Faking D3D10 support");
         return S_OK;
+      }
     }
     
     Logger::err("DXGI: CheckInterfaceSupport: Unsupported interface");

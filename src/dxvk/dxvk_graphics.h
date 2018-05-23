@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iostream>
 #include <mutex>
 
 #include "dxvk_binding.h"
@@ -15,6 +16,8 @@
 namespace dxvk {
   
   class DxvkDevice;
+  class DxvkGraphicsPipelineStateKey;
+  class DxvkStateCache;
   
   /**
    * \brief Graphics pipeline state info
@@ -104,7 +107,7 @@ namespace dxvk {
     DxvkGraphicsPipelineInstance(
       const Rc<vk::DeviceFn>&               vkd,
       const DxvkGraphicsPipelineStateInfo&  stateVector,
-            VkRenderPass                    renderPass,
+      const DxvkRenderPass&                 renderPass,
             VkPipeline                      basePipeline);
     
     ~DxvkGraphicsPipelineInstance();
@@ -156,6 +159,7 @@ namespace dxvk {
     const Rc<vk::DeviceFn> m_vkd;
     
     DxvkGraphicsPipelineStateInfo m_stateVector;
+    DxvkRenderPassFormat          m_renderPassFormat;
     VkRenderPass                  m_renderPass;
     
     std::atomic<VkPipeline> m_basePipeline;
@@ -179,11 +183,13 @@ namespace dxvk {
       const DxvkDevice*               device,
       const Rc<DxvkPipelineCache>&    cache,
       const Rc<DxvkPipelineCompiler>& compiler,
+      const Rc<DxvkStateCache>&       stateCache,
       const Rc<DxvkShader>&           vs,
       const Rc<DxvkShader>&           tcs,
       const Rc<DxvkShader>&           tes,
       const Rc<DxvkShader>&           gs,
       const Rc<DxvkShader>&           fs);
+    
     ~DxvkGraphicsPipeline();
     
     /**
@@ -216,11 +222,28 @@ namespace dxvk {
     /**
      * \brief Compiles optimized pipeline
      * 
-     * Compiles an optimized version of a pipeline
-     * and makes it available to the system.
+     * Compiles an optimized version of a pipeline and makes
+     * it available to the system. This method can fail if
+     * another thread finished compiling an optimized pipeline
+     * for the same instance before the calling thread.
      * \param [in] instance The pipeline instance
+     * \param [in] doInsert \c true if the pipeline is standalone
+     * \returns \c true on success
      */
-    void compileInstance(
+    bool compileInstance(
+      const Rc<DxvkGraphicsPipelineInstance>& instance,
+            bool                              doInsert);
+    
+    /**
+     * \brief Computes the state key for a given instance
+     * 
+     * The pipeline state key contains the shader keys and
+     * a copy of the full state vector of the instance. It
+     * is used for the pipeline state cache.
+     * \param [in] instance The pipeline instance
+     * \returns The pipeline state key
+     */
+    DxvkGraphicsPipelineStateKey getInstanceKey(
       const Rc<DxvkGraphicsPipelineInstance>& instance);
     
   private:
@@ -236,6 +259,7 @@ namespace dxvk {
     
     Rc<DxvkPipelineCache>     m_cache;
     Rc<DxvkPipelineCompiler>  m_compiler;
+    Rc<DxvkStateCache>        m_stateCache;
     Rc<DxvkPipelineLayout>    m_layout;
     
     Rc<DxvkShaderModule>  m_vs;
@@ -257,6 +281,9 @@ namespace dxvk {
     std::atomic<VkPipeline> m_basePipelineBase = { VK_NULL_HANDLE };
     std::atomic<VkPipeline> m_fastPipelineBase = { VK_NULL_HANDLE };
     
+    DxvkShaderKey getShaderKey(
+      const Rc<DxvkShaderModule>&          module) const;
+    
     DxvkGraphicsPipelineInstance* findInstance(
       const DxvkGraphicsPipelineStateInfo& state,
             VkRenderPass                   renderPass) const;
@@ -273,6 +300,66 @@ namespace dxvk {
     void logPipelineState(
             LogLevel                       level,
       const DxvkGraphicsPipelineStateInfo& state) const;
+    
+  };
+  
+  
+  /**
+   * \brief Graphics pipeline key
+   * 
+   * Stores keys for all shaders that are part
+   * of a graphics pipeline, as well as the full
+   * state vector.
+   */
+  class DxvkGraphicsPipelineStateKey {
+    
+  public:
+    
+    DxvkGraphicsPipelineStateKey() { }
+    DxvkGraphicsPipelineStateKey(
+      const DxvkShaderKey&                  vsKey,
+      const DxvkShaderKey&                  tcsKey,
+      const DxvkShaderKey&                  tesKey,
+      const DxvkShaderKey&                  gsKey,
+      const DxvkShaderKey&                  psKey,
+      const DxvkGraphicsPipelineStateInfo&  state,
+      const DxvkRenderPassFormat&           format)
+    : m_vs(vsKey), m_tcs(tcsKey), m_tes(tesKey),
+      m_gs(gsKey), m_ps(psKey), m_state(state),
+      m_format(format) { }
+    
+    DxvkShaderKey vsKey () const { return m_vs;  }
+    DxvkShaderKey tcsKey() const { return m_tcs; }
+    DxvkShaderKey tesKey() const { return m_tes; }
+    DxvkShaderKey gsKey () const { return m_gs;  }
+    DxvkShaderKey psKey () const { return m_ps;  }
+    
+    const DxvkRenderPassFormat& renderPassFormat() const {
+      return m_format;
+    }
+    
+    const DxvkGraphicsPipelineStateInfo& stateVector() const {
+      return m_state;
+    }
+    
+    bool operator == (const DxvkGraphicsPipelineStateKey& other) const;
+    bool operator != (const DxvkGraphicsPipelineStateKey& other) const;
+    
+    size_t hash() const;
+    
+    std::istream& read (std::istream& stream);
+    std::ostream& write(std::ostream& stream) const;
+    
+  private:
+    
+    DxvkShaderKey m_vs;
+    DxvkShaderKey m_tcs;
+    DxvkShaderKey m_tes;
+    DxvkShaderKey m_gs;
+    DxvkShaderKey m_ps;
+    
+    DxvkGraphicsPipelineStateInfo m_state;
+    DxvkRenderPassFormat          m_format;
     
   };
   

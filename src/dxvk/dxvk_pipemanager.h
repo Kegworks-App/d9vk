@@ -6,6 +6,7 @@
 #include "dxvk_compute.h"
 #include "dxvk_graphics.h"
 #include "dxvk_pipecompiler.h"
+#include "dxvk_state_cache.h"
 
 namespace dxvk {
   
@@ -60,7 +61,7 @@ namespace dxvk {
     
   public:
     
-    DxvkPipelineManager(const DxvkDevice* device);
+    DxvkPipelineManager(DxvkDevice* device);
     ~DxvkPipelineManager();
     
     /**
@@ -95,11 +96,23 @@ namespace dxvk {
       const Rc<DxvkShader>&         gs,
       const Rc<DxvkShader>&         fs);
     
+    /**
+     * \brief Offers a shader object to the system
+     * 
+     * Adds the shader to the state cache and starts
+     * compiling pipelines asynchronously before they
+     * are needed by the application.
+     * \param [in] shader The shader object
+     */
+    void provideShader(
+      const Rc<DxvkShader>&         shader);
+    
   private:
     
-    const DxvkDevice*         m_device;
+    DxvkDevice*               m_device;
     Rc<DxvkPipelineCache>     m_cache;
     Rc<DxvkPipelineCompiler>  m_compiler;
+    Rc<DxvkStateCache>        m_stateCache;
     
     std::mutex m_mutex;
     

@@ -3,6 +3,7 @@
 
 #include "dxvk_device.h"
 #include "dxvk_graphics.h"
+#include "dxvk_state_cache.h"
 
 namespace dxvk {
   
@@ -37,13 +38,14 @@ namespace dxvk {
   DxvkGraphicsPipelineInstance::DxvkGraphicsPipelineInstance(
     const Rc<vk::DeviceFn>&               vkd,
     const DxvkGraphicsPipelineStateInfo&  stateVector,
-          VkRenderPass                    renderPass,
+    const DxvkRenderPass&                 renderPass,
           VkPipeline                      basePipeline)
-  : m_vkd         (vkd),
-    m_stateVector (stateVector),
-    m_renderPass  (renderPass),
-    m_basePipeline(basePipeline),
-    m_fastPipeline(VK_NULL_HANDLE) {
+  : m_vkd             (vkd),
+    m_stateVector     (stateVector),
+    m_renderPassFormat(renderPass.format()),
+    m_renderPass      (renderPass.getDefaultHandle()),
+    m_basePipeline    (basePipeline),
+    m_fastPipeline    (VK_NULL_HANDLE) {
     
   }
   
@@ -58,13 +60,15 @@ namespace dxvk {
     const DxvkDevice*               device,
     const Rc<DxvkPipelineCache>&    cache,
     const Rc<DxvkPipelineCompiler>& compiler,
+    const Rc<DxvkStateCache>&       stateCache,
     const Rc<DxvkShader>&           vs,
     const Rc<DxvkShader>&           tcs,
     const Rc<DxvkShader>&           tes,
     const Rc<DxvkShader>&           gs,
     const Rc<DxvkShader>&           fs)
   : m_device(device), m_vkd(device->vkd()),
-    m_cache(cache), m_compiler(compiler) {
+    m_cache(cache), m_compiler(compiler),
+    m_stateCache(stateCache) {
     DxvkDescriptorSlotMapping slotMapping;
     if (vs  != nullptr) vs ->defineResourceSlots(slotMapping);
     if (tcs != nullptr) tcs->defineResourceSlots(slotMapping);
@@ -124,8 +128,8 @@ namespace dxvk {
       newPipelineBase);
     
     Rc<DxvkGraphicsPipelineInstance> newPipeline =
-      new DxvkGraphicsPipelineInstance(m_device->vkd(), state,
-        renderPassHandle, newPipelineHandle);
+      new DxvkGraphicsPipelineInstance(m_device->vkd(),
+        state, renderPass, newPipelineHandle);
     
     { std::lock_guard<sync::Spinlock> lock(m_mutex);
       
@@ -149,28 +153,65 @@ namespace dxvk {
     
     // Compile optimized pipeline asynchronously
     if (m_compiler != nullptr)
-      m_compiler->queueCompilation(this, newPipeline);
+      m_compiler->queueCompilation(this, newPipeline, false);
     
+    m_stateCache->cachePipelineInstance(this, newPipeline);
     return newPipelineHandle;
   }
   
   
-  void DxvkGraphicsPipeline::compileInstance(
-    const Rc<DxvkGraphicsPipelineInstance>& instance) {
+  bool DxvkGraphicsPipeline::compileInstance(
+    const Rc<DxvkGraphicsPipelineInstance>& instance,
+          bool                              doInsert) {
     // Compile an optimized version of the pipeline
     VkPipeline newPipelineBase   = m_fastPipelineBase.load();
     VkPipeline newPipelineHandle = this->compilePipeline(
       instance->m_stateVector, instance->m_renderPass,
       0, m_fastPipelineBase);
     
+    // If an optimized version has been compiled
+    // in the meantime, discard the new pipeline
+    if (!instance->setFastPipeline(newPipelineHandle)) {
+      m_vkd->vkDestroyPipeline(m_vkd->device(), newPipelineHandle, nullptr);
+      return false;
+    }
+    
+    // If the pipeline instance needs to be inserted
+    // into the vector, make sure we have no duplicates
+    { std::lock_guard<sync::Spinlock> lock(m_mutex);
+      
+      auto existing = this->findInstance(
+            instance->m_stateVector,
+            instance->m_renderPass);
+      
+      if (existing != nullptr)
+        return false;
+      
+      m_pipelines.push_back(instance);
+    }
+    
     // Use the new pipeline as the base pipeline for derivative pipelines
     if (newPipelineBase == VK_NULL_HANDLE && newPipelineHandle != VK_NULL_HANDLE)
       m_fastPipelineBase.compare_exchange_strong(newPipelineBase, newPipelineHandle);
     
-    // If an optimized version has been compiled
-    // in the meantime, discard the new pipeline
-    if (!instance->setFastPipeline(newPipelineHandle))
-      m_vkd->vkDestroyPipeline(m_vkd->device(), newPipelineHandle, nullptr);
+    return true;
+  }
+  
+  
+  DxvkGraphicsPipelineStateKey DxvkGraphicsPipeline::getInstanceKey(
+    const Rc<DxvkGraphicsPipelineInstance>& instance) {
+    return DxvkGraphicsPipelineStateKey(
+      getShaderKey(m_vs), getShaderKey(m_tcs), getShaderKey(m_tes),
+      getShaderKey(m_gs), getShaderKey(m_fs), instance->m_stateVector,
+      instance->m_renderPassFormat);
+  }
+  
+  
+  DxvkShaderKey DxvkGraphicsPipeline::getShaderKey(
+    const Rc<DxvkShaderModule>& module) const {
+    return module != nullptr
+      ? module->shader()->key()
+      : DxvkShaderKey();
   }
   
   
@@ -418,6 +459,55 @@ namespace dxvk {
     if (m_fs  != nullptr) Logger::log(level, str::format("  fs  : ", m_fs ->shader()->debugName()));
     
     // TODO log more pipeline state
+  }
+  
+  
+  bool DxvkGraphicsPipelineStateKey::operator == (const DxvkGraphicsPipelineStateKey& other) const {
+    return m_vs == other.m_vs && m_tcs == other.m_tcs && m_tes == other.m_tes
+        && m_gs == other.m_gs && m_ps == other.m_ps && m_state == other.m_state;
+  }
+  
+  
+  bool DxvkGraphicsPipelineStateKey::operator != (const DxvkGraphicsPipelineStateKey& other) const {
+    return !this->operator == (other);
+  }
+  
+  
+  size_t DxvkGraphicsPipelineStateKey::hash() const {
+    DxvkHashState result;
+    result.add(m_vs.hash());
+    result.add(m_tcs.hash());
+    result.add(m_tes.hash());
+    result.add(m_gs.hash());
+    result.add(m_ps.hash());
+    // TODO hash the state vector?
+    return result;
+  }
+  
+  
+  std::istream& DxvkGraphicsPipelineStateKey::read(std::istream& stream) {
+    m_vs.read(stream);
+    m_tcs.read(stream);
+    m_tes.read(stream);
+    m_gs.read(stream);
+    m_ps.read(stream);
+    
+    stream.read(reinterpret_cast<char*>(&m_state), sizeof(m_state));
+    stream.read(reinterpret_cast<char*>(&m_format), sizeof(m_format));
+    return stream;
+  }
+  
+  
+  std::ostream& DxvkGraphicsPipelineStateKey::write(std::ostream& stream) const {
+    m_vs.write(stream);
+    m_tcs.write(stream);
+    m_tes.write(stream);
+    m_gs.write(stream);
+    m_ps.write(stream);
+    
+    stream.write(reinterpret_cast<const char*>(&m_state), sizeof(m_state));
+    stream.write(reinterpret_cast<const char*>(&m_format), sizeof(m_format));
+    return stream;
   }
   
 }

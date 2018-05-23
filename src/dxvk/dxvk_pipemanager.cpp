@@ -38,13 +38,14 @@ namespace dxvk {
   }
   
   
-  DxvkPipelineManager::DxvkPipelineManager(const DxvkDevice* device)
-  : m_device  (device),
-    m_cache   (new DxvkPipelineCache(device->vkd())),
-    m_compiler(nullptr) {
-    // Async shader compilation is opt-in for now
-    if (env::getEnvVar(L"DXVK_USE_PIPECOMPILER") == "1")
-      m_compiler = new DxvkPipelineCompiler();
+  DxvkPipelineManager::DxvkPipelineManager(DxvkDevice* device)
+  : m_device    (device),
+    m_cache     (new DxvkPipelineCache(device->vkd())),
+    m_compiler  (new DxvkPipelineCompiler()),
+    m_stateCache(new DxvkStateCache(m_device, m_compiler.ptr(), this)) {
+//     // Async shader compilation is opt-in for now
+//     if (env::getEnvVar(L"DXVK_USE_PIPECOMPILER") == "1")
+//       m_compiler = new DxvkPipelineCompiler();
   }
   
   
@@ -98,10 +99,16 @@ namespace dxvk {
       return pair->second;
     
     Rc<DxvkGraphicsPipeline> pipeline = new DxvkGraphicsPipeline(
-      m_device, m_cache, m_compiler, vs, tcs, tes, gs, fs);
+      m_device, m_cache, m_compiler, m_stateCache, vs, tcs, tes, gs, fs);
     
     m_graphicsPipelines.insert(std::make_pair(key, pipeline));
     return pipeline;
+  }
+  
+  
+  void DxvkPipelineManager::provideShader(
+    const Rc<DxvkShader>&         shader) {
+    m_stateCache->provideShader(shader);
   }
   
 }

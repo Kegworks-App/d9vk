@@ -118,7 +118,7 @@ namespace dxvk {
       m_properties.limits.maxFramebufferLayers };
     
     auto renderPassFormat = DxvkFramebuffer::getRenderPassFormat(renderTargets);
-    auto renderPassObject = m_renderPassPool->getRenderPass(renderPassFormat);
+    auto renderPassObject = this->createRenderPass(renderPassFormat);
     
     return new DxvkFramebuffer(m_vkd,
       renderPassObject, renderTargets, defaultSize);
@@ -157,6 +157,12 @@ namespace dxvk {
           VkQueryType               queryType,
           uint32_t                  queryCount) {
     return new DxvkQueryPool(m_vkd, queryType, queryCount);
+  }
+  
+  
+  Rc<DxvkRenderPass> DxvkDevice::createRenderPass(
+    const DxvkRenderPassFormat&     format) {
+    return m_renderPassPool->getRenderPass(format);
   }
   
   
@@ -216,6 +222,12 @@ namespace dxvk {
       m_statCounters.addCtr(DxvkStatCounter::QueuePresentCount, 1);
       return m_vkd->vkQueuePresentKHR(m_presentQueue.queueHandle, &presentInfo);
     }
+  }
+  
+  
+  void DxvkDevice::provideShader(
+    const Rc<DxvkShader>&         shader) {
+    m_pipelineManager->provideShader(shader);
   }
   
   

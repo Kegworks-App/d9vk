@@ -126,7 +126,7 @@ namespace dxvk {
       *ppDevice = m_device.ref();
     }
     
-    Rc<DxvkShader> STDMETHODCALLTYPE GetShader() const {
+    Rc<DxvkShader> GetShader() const {
       return m_module.GetShader();
     }
     
@@ -165,6 +165,7 @@ namespace dxvk {
     ~D3D11ShaderModuleSet();
     
     D3D11ShaderModule GetShaderModule(
+            DxvkDevice*     pDevice,
       const DxbcOptions*    pDxbcOptions,
       const void*           pShaderBytecode,
             size_t          BytecodeLength,
