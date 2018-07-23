@@ -82,8 +82,9 @@ namespace dxvk {
     
     /**
      * \brief Renders back buffer to the screen
+     * \param [in] SyncInterval Vsync interval
      */
-    void PresentImage();
+    void PresentImage(UINT SyncInterval, const Rc<DxvkEvent>& SyncEvent);
     
     /**
      * \brief Sets new back buffer
@@ -135,6 +136,9 @@ namespace dxvk {
     
     Rc<DxvkSurface>         m_surface;
     Rc<DxvkSwapchain>       m_swapchain;
+
+    Rc<DxvkShader>          m_vertShader;
+    Rc<DxvkShader>          m_fragShader;
     
     Rc<DxvkSampler>         m_samplerFitting;
     Rc<DxvkSampler>         m_samplerScaling;
@@ -148,7 +152,12 @@ namespace dxvk {
     Rc<DxvkImageView>       m_gammaTextureView;
     
     Rc<hud::Hud>            m_hud;
-    
+
+    DxvkInputAssemblyState  m_iaState;
+    DxvkRasterizerState     m_rsState;
+    DxvkMultisampleState    m_msState;
+    DxvkDepthStencilState   m_dsState;
+    DxvkLogicOpState        m_loState;
     DxvkBlendMode           m_blendMode;
     DxvkSwapchainProperties m_options;
     

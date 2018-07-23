@@ -12,6 +12,18 @@ dxvk_shaders = files([
   'shaders/dxvk_clear_image3d_u.comp',
   'shaders/dxvk_clear_image3d_f.comp',
   
+  'shaders/dxvk_mipgen_vert.vert',
+  'shaders/dxvk_mipgen_geom.geom',
+  'shaders/dxvk_mipgen_frag_1d.frag',
+  'shaders/dxvk_mipgen_frag_2d.frag',
+  'shaders/dxvk_mipgen_frag_3d.frag',
+  
+  'shaders/dxvk_resolve_vert.vert',
+  'shaders/dxvk_resolve_geom.geom',
+  'shaders/dxvk_resolve_frag_f.frag',
+  'shaders/dxvk_resolve_frag_i.frag',
+  'shaders/dxvk_resolve_frag_u.frag',
+
   'hud/shaders/hud_line.frag',
   'hud/shaders/hud_text.frag',
   'hud/shaders/hud_vert.vert',
@@ -41,7 +53,9 @@ dxvk_src = files([
   'dxvk_main.cpp',
   'dxvk_memory.cpp',
   'dxvk_meta_clear.cpp',
+  'dxvk_meta_mipgen.cpp',
   'dxvk_meta_resolve.cpp',
+  'dxvk_openvr.cpp',
   'dxvk_pipecache.cpp',
   'dxvk_pipecompiler.cpp',
   'dxvk_pipelayout.cpp',
@@ -54,6 +68,7 @@ dxvk_src = files([
   'dxvk_resource.cpp',
   'dxvk_sampler.cpp',
   'dxvk_shader.cpp',
+  'dxvk_spec_const.cpp',
   'dxvk_staging.cpp',
   'dxvk_state_cache.cpp',
   'dxvk_stats.cpp',
@@ -78,7 +93,7 @@ dxvk_src = files([
 
 thread_dep = dependency('threads')
 
-dxvk_lib = static_library('dxvk', dxvk_src, glsl_generator.process(dxvk_shaders),
+dxvk_lib = static_library('dxvk', dxvk_src, glsl_generator.process(dxvk_shaders), dxvk_version,
   link_with           : [ util_lib, spirv_lib ],
   dependencies        : [ thread_dep, lib_vulkan ],
   include_directories : [ dxvk_include_path ],

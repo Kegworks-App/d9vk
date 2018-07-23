@@ -16,13 +16,14 @@ namespace dxvk {
     AllowMapFlagNoWait = 0,
     
     /**
-     * \brief Ignore D3D11_ASYNC_GETDATA_DONOTFLUSH
+     * \brief Fakes stream output support
      * 
-     * This can cause significant slowdowns, but some games
-     * expect the implementation to flush the context even
-     * when passing the \c DONOTFLUSH flag.
+     * Temporary hack that fixes issues in some games
+     * which technically need stream output but work
+     * well enough without it. Will be removed once
+     * Stream Output is properly supported in DXVK.
      */
-    DisableGetDataFlagDoNotFlush = 1,
+    FakeStreamOutSupport = 63,
   };
   
   using D3D11OptionSet = Flags<D3D11Option>;

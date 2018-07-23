@@ -6,10 +6,12 @@ For the current status of the project, please refer to the [project wiki](https:
 
 For binary releases, see the [releases](https://github.com/doitsujin/dxvk/releases) page.
 
+For Direct3D 10 support, check out [DXUP](https://github.com/Joshua-Ashton/dxup), which can be used together with DXVK.
+
 ## Build instructions
 
 ### Requirements:
-- [wine 3.5](https://www.winehq.org/) or newer
+- [wine 3.10](https://www.winehq.org/) or newer
 - [Meson](http://mesonbuild.com/) build system (at least version 0.43)
 - [MinGW64](http://mingw-w64.org/) compiler and headers (requires threading support)
 - [glslang](https://github.com/KhronosGroup/glslang) front end and validator
@@ -72,6 +74,7 @@ The `DXVK_HUD` environment variable controls a HUD which can display the framera
 - `drawcalls`: Shows the number of draw calls and render passes per frame.
 - `pipelines`: Shows the total number of graphics and compute pipelines.
 - `memory`: Shows the amount of device memory allocated and used.
+- `version`: Shows DXVK version.
 
 Additionally, `DXVK_HUD=1` has the same effect as `DXVK_HUD=devinfo,fps`.
 

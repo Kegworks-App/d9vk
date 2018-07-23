@@ -2,7 +2,7 @@
 
 namespace dxvk {
   
-  DxbcIsgn::DxbcIsgn(DxbcReader reader) {
+  DxbcIsgn::DxbcIsgn(DxbcReader reader, DxbcTag tag) {
     uint32_t elementCount = reader.readu32();
     reader.skip(sizeof(uint32_t));
     
@@ -13,13 +13,14 @@ namespace dxvk {
     
     for (uint32_t i = 0; i < elementCount; i++) {
       DxbcSgnEntry entry;
+      entry.streamId        = tag == "OSG5" ? reader.readu32() : 0;
       entry.semanticName    = reader.clone(reader.readu32()).readString();
       entry.semanticIndex   = reader.readu32();
       entry.systemValue     = static_cast<DxbcSystemValue>(reader.readu32());
       entry.componentType   = componentTypes.at(reader.readu32());
       entry.registerId      = reader.readu32();
       entry.componentMask   = bit::extract(reader.readu32(), 0, 3);
-      
+
       m_entries.push_back(entry);
     }
   }
@@ -42,9 +43,11 @@ namespace dxvk {
   
   const DxbcSgnEntry* DxbcIsgn::find(
     const std::string& semanticName,
-          uint32_t     semanticIndex) const {
+          uint32_t     semanticIndex,
+          uint32_t     streamId) const {
     for (auto e = this->begin(); e != this->end(); e++) {
       if (e->semanticIndex == semanticIndex
+       && e->streamId      == streamId
        && compareSemanticNames(semanticName, e->semanticName))
         return &(*e);
     }
@@ -53,6 +56,19 @@ namespace dxvk {
   }
   
   
+  DxbcRegMask DxbcIsgn::regMask(
+          uint32_t     registerId) const {
+    DxbcRegMask mask;
+
+    for (auto e = this->begin(); e != this->end(); e++) {
+      if (e->registerId == registerId)
+        mask |= e->componentMask;
+    }
+
+    return mask;
+  }
+
+
   bool DxbcIsgn::compareSemanticNames(
     const std::string& a, const std::string& b) const {
     if (a.size() != b.size())

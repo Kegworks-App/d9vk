@@ -8,10 +8,24 @@ namespace dxvk {
           DxvkMemoryAllocator&  memAlloc,
           VkMemoryPropertyFlags memFlags)
   : m_vkd(vkd), m_info(createInfo), m_memFlags(memFlags) {
+
+    // Copy the compatible view formats to a persistent array
+    m_viewFormats.resize(createInfo.viewFormatCount);
+    for (uint32_t i = 0; i < createInfo.viewFormatCount; i++)
+      m_viewFormats[i] = createInfo.viewFormats[i];
+    m_info.viewFormats = m_viewFormats.data();
+
+    // If defined, we should provide a format list, which
+    // allows some drivers to enable image compression
+    VkImageFormatListCreateInfoKHR formatList;
+    formatList.sType           = VK_STRUCTURE_TYPE_IMAGE_FORMAT_LIST_CREATE_INFO_KHR;
+    formatList.pNext           = nullptr;
+    formatList.viewFormatCount = createInfo.viewFormatCount;
+    formatList.pViewFormats    = createInfo.viewFormats;
     
     VkImageCreateInfo info;
     info.sType                 = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    info.pNext                 = nullptr;
+    info.pNext                 = &formatList;
     info.flags                 = createInfo.flags;
     info.imageType             = createInfo.type;
     info.format                = createInfo.format;
@@ -46,17 +60,38 @@ namespace dxvk {
     // alignment on non-linear images in order not to violate the
     // bufferImageGranularity limit, which may be greater than the
     // required resource memory alignment on some GPUs.
-    VkMemoryRequirements memReq;
+    VkMemoryDedicatedRequirementsKHR dedicatedRequirements;
+    dedicatedRequirements.sType                       = VK_STRUCTURE_TYPE_MEMORY_DEDICATED_REQUIREMENTS_KHR;
+    dedicatedRequirements.pNext                       = VK_NULL_HANDLE;
+    dedicatedRequirements.prefersDedicatedAllocation  = VK_FALSE;
+    dedicatedRequirements.requiresDedicatedAllocation = VK_FALSE;
     
-    m_vkd->vkGetImageMemoryRequirements(
-      m_vkd->device(), m_image, &memReq);
+    VkMemoryRequirements2KHR memReq;
+    memReq.sType = VK_STRUCTURE_TYPE_MEMORY_REQUIREMENTS_2_KHR;
+    memReq.pNext = &dedicatedRequirements;
     
+    VkImageMemoryRequirementsInfo2KHR memReqInfo;
+    memReqInfo.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_REQUIREMENTS_INFO_2_KHR;
+    memReqInfo.image = m_image;
+    memReqInfo.pNext = VK_NULL_HANDLE;
+
+    VkMemoryDedicatedAllocateInfoKHR dedMemoryAllocInfo;
+    dedMemoryAllocInfo.sType  = VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO_KHR;
+    dedMemoryAllocInfo.pNext  = VK_NULL_HANDLE;
+    dedMemoryAllocInfo.buffer = VK_NULL_HANDLE;
+    dedMemoryAllocInfo.image  = m_image;
+    
+    m_vkd->vkGetImageMemoryRequirements2KHR(
+      m_vkd->device(), &memReqInfo, &memReq);
+ 
     if (info.tiling != VK_IMAGE_TILING_LINEAR) {
-      memReq.size      = align(memReq.size,       memAlloc.bufferImageGranularity());
-      memReq.alignment = align(memReq.alignment , memAlloc.bufferImageGranularity());
+      memReq.memoryRequirements.size      = align(memReq.memoryRequirements.size,       memAlloc.bufferImageGranularity());
+      memReq.memoryRequirements.alignment = align(memReq.memoryRequirements.alignment , memAlloc.bufferImageGranularity());
     }
-    
-    m_memory = memAlloc.alloc(memReq, memFlags);
+
+    bool useDedicated = dedicatedRequirements.prefersDedicatedAllocation;
+    m_memory = memAlloc.alloc(&memReq.memoryRequirements,
+      useDedicated ? &dedMemoryAllocInfo : nullptr, memFlags);
     
     // Try to bind the allocated memory slice to the image
     if (m_vkd->vkBindImageMemory(m_vkd->device(),
@@ -143,10 +178,15 @@ namespace dxvk {
     subresourceRange.levelCount     = m_info.numLevels;
     subresourceRange.baseArrayLayer = m_info.minLayer;
     subresourceRange.layerCount     = numLayers;
+
+    VkImageViewUsageCreateInfoKHR viewUsage;
+    viewUsage.sType           = VK_STRUCTURE_TYPE_IMAGE_VIEW_USAGE_CREATE_INFO_KHR;
+    viewUsage.pNext           = nullptr;
+    viewUsage.usage           = m_info.usage;
     
     VkImageViewCreateInfo viewInfo;
     viewInfo.sType            = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    viewInfo.pNext            = nullptr;
+    viewInfo.pNext            = &viewUsage;
     viewInfo.flags            = 0;
     viewInfo.image            = m_image->handle();
     viewInfo.viewType         = type;

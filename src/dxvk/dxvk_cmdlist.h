@@ -231,12 +231,14 @@ namespace dxvk {
     
     
     void cmdBindDescriptorSet(
-          VkPipelineBindPoint       pipeline,
-          VkPipelineLayout          pipelineLayout,
-          VkDescriptorSet           descriptorSet) {
+            VkPipelineBindPoint       pipeline,
+            VkPipelineLayout          pipelineLayout,
+            VkDescriptorSet           descriptorSet,
+            uint32_t                  dynamicOffsetCount,
+      const uint32_t*                 pDynamicOffsets) {
       m_vkd->vkCmdBindDescriptorSets(m_execBuffer,
         pipeline, pipelineLayout, 0, 1,
-        &descriptorSet, 0, nullptr);
+        &descriptorSet, dynamicOffsetCount, pDynamicOffsets);
     }
     
     
@@ -516,6 +518,17 @@ namespace dxvk {
       m_vkd->vkCmdSetBlendConstants(m_execBuffer, blendConstants);
     }
     
+
+    void cmdSetDepthBias(
+            float                   depthBiasConstantFactor,
+            float                   depthBiasClamp,
+            float                   depthBiasSlopeFactor) {
+      m_vkd->vkCmdSetDepthBias(m_execBuffer,
+        depthBiasConstantFactor,
+        depthBiasClamp,
+        depthBiasSlopeFactor);
+    }
+
     
     void cmdSetScissor(
             uint32_t                firstScissor,

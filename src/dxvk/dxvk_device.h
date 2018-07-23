@@ -26,6 +26,14 @@
 namespace dxvk {
   
   class DxvkInstance;
+
+  /**
+   * \brief Device options
+   */
+  struct DxvkDeviceOptions {
+    uint32_t maxNumDynamicUniformBuffers = 0;
+    uint32_t maxNumDynamicStorageBuffers = 0;
+  };
   
   /**
    * \brief Device queue
@@ -98,7 +106,7 @@ namespace dxvk {
     Rc<DxvkAdapter> adapter() const {
       return m_adapter;
     }
-    
+
     /**
      * \brief Enabled device extensions
      * \returns Enabled device extensions
@@ -114,6 +122,12 @@ namespace dxvk {
     const VkPhysicalDeviceFeatures& features() const {
       return m_features;
     }
+    
+    /**
+     * \brief Retrieves device options
+     * \returns Device options
+     */
+    DxvkDeviceOptions options() const;
     
     /**
      * \brief Allocates a physical buffer
@@ -351,6 +365,17 @@ namespace dxvk {
     void unlockSubmission() {
       m_submissionLock.unlock();
     }
+
+    /**
+     * \brief Number of pending submissions
+     * 
+     * A return value of 0 indicates
+     * that the GPU is currently idle.
+     * \returns Pending submission count
+     */
+    uint32_t pendingSubmissions() const {
+      return m_submissionQueue.pendingSubmissions();
+    }
     
     /**
      * \brief Waits until the device becomes idle
@@ -374,6 +399,8 @@ namespace dxvk {
     Rc<DxvkRenderPassPool>      m_renderPassPool;
     Rc<DxvkPipelineManager>     m_pipelineManager;
     Rc<DxvkMetaClearObjects>    m_metaClearObjects;
+    Rc<DxvkMetaMipGenObjects>   m_metaMipGenObjects;
+    Rc<DxvkMetaResolveObjects>  m_metaResolveObjects;
     
     DxvkUnboundResources        m_unboundResources;
     

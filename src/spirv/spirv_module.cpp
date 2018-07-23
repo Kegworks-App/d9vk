@@ -340,6 +340,19 @@ namespace dxvk {
   }
     
   
+  uint32_t SpirvModule::specConst32(
+          uint32_t                typeId,
+          uint32_t                value) {
+    uint32_t resultId = this->allocateId();
+    
+    m_typeConstDefs.putIns  (spv::OpSpecConstant, 4);
+    m_typeConstDefs.putWord (typeId);
+    m_typeConstDefs.putWord (resultId);
+    m_typeConstDefs.putWord (value);
+    return resultId;
+  }
+  
+  
   void SpirvModule::decorate(
           uint32_t                object,
           spv::Decoration         decoration) {
@@ -2370,6 +2383,19 @@ namespace dxvk {
     m_code.putWord(resultId);
     m_code.putWord(m_instExtGlsl450);
     m_code.putWord(spv::GLSLstd450Trunc);
+    m_code.putWord(operand);
+    return resultId;
+  }
+  
+  
+  uint32_t SpirvModule::opFConvert(
+          uint32_t                resultType,
+          uint32_t                operand) {
+    uint32_t resultId = this->allocateId();
+
+    m_code.putIns (spv::OpFConvert, 4);
+    m_code.putWord(resultType);
+    m_code.putWord(resultId);
     m_code.putWord(operand);
     return resultId;
   }

@@ -42,32 +42,22 @@ namespace dxvk {
     
     // Set up context state. The shader bindings and the
     // constant state objects will never be modified.
-    DxvkInputAssemblyState iaState;
-    iaState.primitiveTopology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
-    iaState.primitiveRestart  = VK_FALSE;
-    iaState.patchVertexCount  = 0;
-    m_context->setInputAssemblyState(iaState);
+    m_iaState.primitiveTopology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+    m_iaState.primitiveRestart  = VK_FALSE;
+    m_iaState.patchVertexCount  = 0;
     
-    m_context->setInputLayout(
-      0, nullptr, 0, nullptr);
+    m_rsState.polygonMode        = VK_POLYGON_MODE_FILL;
+    m_rsState.cullMode           = VK_CULL_MODE_BACK_BIT;
+    m_rsState.frontFace          = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+    m_rsState.depthClampEnable   = VK_FALSE;
+    m_rsState.depthBiasEnable    = VK_FALSE;
+    m_rsState.depthBiasConstant  = 0.0f;
+    m_rsState.depthBiasClamp     = 0.0f;
+    m_rsState.depthBiasSlope     = 0.0f;
     
-    DxvkRasterizerState rsState;
-    rsState.enableDepthClamp   = VK_FALSE;
-    rsState.enableDiscard      = VK_FALSE;
-    rsState.polygonMode        = VK_POLYGON_MODE_FILL;
-    rsState.cullMode           = VK_CULL_MODE_BACK_BIT;
-    rsState.frontFace          = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-    rsState.depthBiasEnable    = VK_FALSE;
-    rsState.depthBiasConstant  = 0.0f;
-    rsState.depthBiasClamp     = 0.0f;
-    rsState.depthBiasSlope     = 0.0f;
-    m_context->setRasterizerState(rsState);
-    
-    DxvkMultisampleState msState;
-    msState.sampleMask            = 0xffffffff;
-    msState.enableAlphaToCoverage = VK_FALSE;
-    msState.enableAlphaToOne      = VK_FALSE;
-    m_context->setMultisampleState(msState);
+    m_msState.sampleMask            = 0xffffffff;
+    m_msState.enableAlphaToCoverage = VK_FALSE;
+    m_msState.enableAlphaToOne      = VK_FALSE;
     
     VkStencilOpState stencilOp;
     stencilOp.failOp      = VK_STENCIL_OP_KEEP;
@@ -78,22 +68,15 @@ namespace dxvk {
     stencilOp.writeMask   = 0xFFFFFFFF;
     stencilOp.reference   = 0;
     
-    DxvkDepthStencilState dsState;
-    dsState.enableDepthTest   = VK_FALSE;
-    dsState.enableDepthWrite  = VK_FALSE;
-    dsState.enableDepthBounds = VK_FALSE;
-    dsState.enableStencilTest = VK_FALSE;
-    dsState.depthCompareOp    = VK_COMPARE_OP_ALWAYS;
-    dsState.stencilOpFront    = stencilOp;
-    dsState.stencilOpBack     = stencilOp;
-    dsState.depthBoundsMin    = 0.0f;
-    dsState.depthBoundsMax    = 1.0f;
-    m_context->setDepthStencilState(dsState);
+    m_dsState.enableDepthTest   = VK_FALSE;
+    m_dsState.enableDepthWrite  = VK_FALSE;
+    m_dsState.enableStencilTest = VK_FALSE;
+    m_dsState.depthCompareOp    = VK_COMPARE_OP_ALWAYS;
+    m_dsState.stencilOpFront    = stencilOp;
+    m_dsState.stencilOpBack     = stencilOp;
     
-    DxvkLogicOpState loState;
-    loState.enableLogicOp = VK_FALSE;
-    loState.logicOp       = VK_LOGIC_OP_NO_OP;
-    m_context->setLogicOpState(loState);
+    m_loState.enableLogicOp = VK_FALSE;
+    m_loState.logicOp       = VK_LOGIC_OP_NO_OP;
     
     m_blendMode.enableBlending  = VK_FALSE;
     m_blendMode.colorSrcFactor  = VK_BLEND_FACTOR_ONE;
@@ -106,14 +89,9 @@ namespace dxvk {
                                 | VK_COLOR_COMPONENT_G_BIT
                                 | VK_COLOR_COMPONENT_B_BIT
                                 | VK_COLOR_COMPONENT_A_BIT;
-    
-    m_context->bindShader(
-      VK_SHADER_STAGE_VERTEX_BIT,
-      CreateVertexShader());
-    
-    m_context->bindShader(
-      VK_SHADER_STAGE_FRAGMENT_BIT,
-      CreateFragmentShader());
+
+    m_vertShader = CreateVertexShader();
+    m_fragShader = CreateFragmentShader();
     
     m_hud = hud::Hud::createHud(m_device);
   }
@@ -143,85 +121,102 @@ namespace dxvk {
   }
   
   
-  void DxgiVkPresenter::PresentImage() {
-    if (m_hud != nullptr) {
-      m_hud->render({
-        m_options.preferredBufferSize.width,
-        m_options.preferredBufferSize.height,
-      });
-    }
+  void DxgiVkPresenter::PresentImage(UINT SyncInterval, const Rc<DxvkEvent>& SyncEvent) {
+    if (m_hud != nullptr)
+      m_hud->update();
     
+    // Wait for frame event to be signaled. This is used
+    // to enforce the device's frame latency requirement.
+    SyncEvent->wait();
+    
+    // Check whether the back buffer size is the same
+    // as the window size, in which case we should use
+    // VK_FILTER_NEAREST to avoid blurry output
     const bool fitSize =
         m_backBuffer->info().extent.width  == m_options.preferredBufferSize.width
      && m_backBuffer->info().extent.height == m_options.preferredBufferSize.height;
     
-    m_context->beginRecording(
-      m_device->createCommandList());
-    
-    VkImageSubresourceLayers resolveSubresources;
-    resolveSubresources.aspectMask      = VK_IMAGE_ASPECT_COLOR_BIT;
-    resolveSubresources.mipLevel        = 0;
-    resolveSubresources.baseArrayLayer  = 0;
-    resolveSubresources.layerCount      = 1;
-    
-    if (m_backBufferResolve != nullptr) {
-      m_context->resolveImage(
-        m_backBufferResolve, resolveSubresources,
-        m_backBuffer,        resolveSubresources,
-        VK_FORMAT_UNDEFINED);
-    }
-    
-    auto swapSemas = m_swapchain->getSemaphorePair();
-    auto swapImage = m_swapchain->getImageView(swapSemas.acquireSync);
-    
-    DxvkRenderTargets renderTargets;
-    renderTargets.color[0].view   = swapImage;
-    renderTargets.color[0].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    m_context->bindRenderTargets(renderTargets);
-    
-    VkViewport viewport;
-    viewport.x        = 0.0f;
-    viewport.y        = 0.0f;
-    viewport.width    = float(swapImage->imageInfo().extent.width);
-    viewport.height   = float(swapImage->imageInfo().extent.height);
-    viewport.minDepth = 0.0f;
-    viewport.maxDepth = 1.0f;
-    
-    VkRect2D scissor;
-    scissor.offset.x      = 0;
-    scissor.offset.y      = 0;
-    scissor.extent.width  = swapImage->imageInfo().extent.width;
-    scissor.extent.height = swapImage->imageInfo().extent.height;
-    
-    m_context->setViewports(1, &viewport, &scissor);
-    
-    m_context->bindResourceSampler(BindingIds::Sampler,
-      fitSize ? m_samplerFitting : m_samplerScaling);
-    
-    m_blendMode.enableBlending = VK_FALSE;
-    m_context->setBlendMode(0, m_blendMode);
-    
-    m_context->bindResourceView(BindingIds::Texture, m_backBufferView, nullptr);
-    m_context->draw(4, 1, 0, 0);
-    
-    m_context->bindResourceSampler(BindingIds::GammaSmp, m_gammaSampler);
-    m_context->bindResourceView   (BindingIds::GammaTex, m_gammaTextureView, nullptr);
-    
-    if (m_hud != nullptr) {
-      m_blendMode.enableBlending = VK_TRUE;
+    for (uint32_t i = 0; i < SyncInterval || i < 1; i++) {
+      m_context->beginRecording(
+        m_device->createCommandList());
+      
+      // Resolve back buffer if it is multisampled. We
+      // only have to do it only for the first frame.
+      if (m_backBufferResolve != nullptr && i == 0) {
+        VkImageSubresourceLayers resolveSubresources;
+        resolveSubresources.aspectMask      = VK_IMAGE_ASPECT_COLOR_BIT;
+        resolveSubresources.mipLevel        = 0;
+        resolveSubresources.baseArrayLayer  = 0;
+        resolveSubresources.layerCount      = 1;
+        
+        m_context->resolveImage(
+          m_backBufferResolve, resolveSubresources,
+          m_backBuffer,        resolveSubresources,
+          VK_FORMAT_UNDEFINED);
+      }
+      
+      auto swapSemas = m_swapchain->getSemaphorePair();
+      auto swapImage = m_swapchain->getImageView(swapSemas.acquireSync);
+      
+      m_context->bindShader(VK_SHADER_STAGE_VERTEX_BIT,   m_vertShader);
+      m_context->bindShader(VK_SHADER_STAGE_FRAGMENT_BIT, m_fragShader);
+      
+      DxvkRenderTargets renderTargets;
+      renderTargets.color[0].view   = swapImage;
+      renderTargets.color[0].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+      m_context->bindRenderTargets(renderTargets, false);
+      
+      VkViewport viewport;
+      viewport.x        = 0.0f;
+      viewport.y        = 0.0f;
+      viewport.width    = float(swapImage->imageInfo().extent.width);
+      viewport.height   = float(swapImage->imageInfo().extent.height);
+      viewport.minDepth = 0.0f;
+      viewport.maxDepth = 1.0f;
+      
+      VkRect2D scissor;
+      scissor.offset.x      = 0;
+      scissor.offset.y      = 0;
+      scissor.extent.width  = swapImage->imageInfo().extent.width;
+      scissor.extent.height = swapImage->imageInfo().extent.height;
+      
+      m_context->setViewports(1, &viewport, &scissor);
+      
+      m_context->setRasterizerState(m_rsState);
+      m_context->setMultisampleState(m_msState);
+      m_context->setDepthStencilState(m_dsState);
+      m_context->setLogicOpState(m_loState);
       m_context->setBlendMode(0, m_blendMode);
       
-      m_context->bindResourceView(BindingIds::Texture, m_hud->texture(), nullptr);
+      m_context->setInputAssemblyState(m_iaState);
+      m_context->setInputLayout(0, nullptr, 0, nullptr);
+
+      m_context->bindResourceSampler(BindingIds::Sampler, fitSize ? m_samplerFitting : m_samplerScaling);
+      m_context->bindResourceSampler(BindingIds::GammaSmp, m_gammaSampler);
+
+      m_context->bindResourceView(BindingIds::Texture, m_backBufferView, nullptr);
+      m_context->bindResourceView(BindingIds::GammaTex, m_gammaTextureView, nullptr);
+
       m_context->draw(4, 1, 0, 0);
+      
+      if (m_hud != nullptr)
+        m_hud->render(m_context, m_options.preferredBufferSize);
+      
+      if (i == SyncInterval - 1) {
+        DxvkEventRevision eventRev;
+        eventRev.event    = SyncEvent;
+        eventRev.revision = SyncEvent->reset();
+        m_context->signalEvent(eventRev);
+      }
+      
+      m_device->submitCommandList(
+        m_context->endRecording(),
+        swapSemas.acquireSync,
+        swapSemas.presentSync);
+      
+      m_swapchain->present(
+        swapSemas.presentSync);
     }
-    
-    m_device->submitCommandList(
-      m_context->endRecording(),
-      swapSemas.acquireSync,
-      swapSemas.presentSync);
-    
-    m_swapchain->present(
-      swapSemas.presentSync);
   }
   
   
@@ -261,6 +256,7 @@ namespace dxvk {
     DxvkImageViewCreateInfo viewInfo;
     viewInfo.type       = VK_IMAGE_VIEW_TYPE_2D;
     viewInfo.format     = Image->info().format;
+    viewInfo.usage      = VK_IMAGE_USAGE_SAMPLED_BIT;
     viewInfo.aspect     = VK_IMAGE_ASPECT_COLOR_BIT;
     viewInfo.minLevel   = 0;
     viewInfo.numLevels  = 1;
@@ -422,6 +418,7 @@ namespace dxvk {
     DxvkImageViewCreateInfo info;
     info.type         = VK_IMAGE_VIEW_TYPE_1D;
     info.format       = VK_FORMAT_R16G16B16A16_UNORM;
+    info.usage        = VK_IMAGE_USAGE_SAMPLED_BIT;
     info.aspect       = VK_IMAGE_ASPECT_COLOR_BIT;
     info.minLevel     = 0;
     info.numLevels    = 1;

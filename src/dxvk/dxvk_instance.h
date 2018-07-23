@@ -2,6 +2,7 @@
 
 #include "dxvk_adapter.h"
 #include "dxvk_device.h"
+#include "dxvk_openvr.h"
 
 namespace dxvk {
   
@@ -36,19 +37,26 @@ namespace dxvk {
     }
     
     /**
-     * \brief Retrieves a list of adapters
-     * \returns List of adapter objects
+     * \brief Retrieves an adapter
+     * 
+     * \param [in] index Adapter index
+     * \returns The adapter, or \c nullptr.
      */
-    std::vector<Rc<DxvkAdapter>> enumAdapters();
+    Rc<DxvkAdapter> enumAdapters(
+            uint32_t      index) const;
     
   private:
     
     Rc<vk::LibraryFn>   m_vkl;
     Rc<vk::InstanceFn>  m_vki;
+
+    std::vector<Rc<DxvkAdapter>> m_adapters;
     
     VkInstance createInstance();
+
+    std::vector<Rc<DxvkAdapter>> queryAdapters();
     
-    void logNameList(const vk::NameList& names);
+    static void logNameList(const vk::NameList& names);
     
   };
   

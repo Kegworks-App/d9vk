@@ -40,11 +40,10 @@ namespace dxvk {
    * rasterizer, including the depth bias.
    */
   struct DxvkRasterizerState {
-    VkBool32            enableDepthClamp;
-    VkBool32            enableDiscard;
     VkPolygonMode       polygonMode;
     VkCullModeFlags     cullMode;
     VkFrontFace         frontFace;
+    VkBool32            depthClampEnable;
     VkBool32            depthBiasEnable;
     float               depthBiasConstant;
     float               depthBiasClamp;
@@ -74,13 +73,10 @@ namespace dxvk {
   struct DxvkDepthStencilState {
     VkBool32            enableDepthTest;
     VkBool32            enableDepthWrite;
-    VkBool32            enableDepthBounds;
     VkBool32            enableStencilTest;
     VkCompareOp         depthCompareOp;
     VkStencilOpState    stencilOpFront;
     VkStencilOpState    stencilOpBack;
-    float               depthBoundsMin;
-    float               depthBoundsMax;
   };
   
   

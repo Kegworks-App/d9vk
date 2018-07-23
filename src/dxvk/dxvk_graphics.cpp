@@ -4,6 +4,7 @@
 #include "dxvk_device.h"
 #include "dxvk_graphics.h"
 #include "dxvk_state_cache.h"
+#include "dxvk_spec_const.h"
 
 namespace dxvk {
   
@@ -75,6 +76,10 @@ namespace dxvk {
     if (tes != nullptr) tes->defineResourceSlots(slotMapping);
     if (gs  != nullptr) gs ->defineResourceSlots(slotMapping);
     if (fs  != nullptr) fs ->defineResourceSlots(slotMapping);
+    
+    slotMapping.makeDescriptorsDynamic(
+      device->options().maxNumDynamicUniformBuffers,
+      device->options().maxNumDynamicStorageBuffers);
     
     m_layout = new DxvkPipelineLayout(m_vkd,
       slotMapping.bindingCount(),
@@ -237,26 +242,25 @@ namespace dxvk {
       this->logPipelineState(LogLevel::Debug, state);
     }
     
-    std::array<VkDynamicState, 4> dynamicStates = {
+    std::array<VkDynamicState, 5> dynamicStates = {
       VK_DYNAMIC_STATE_VIEWPORT,
       VK_DYNAMIC_STATE_SCISSOR,
+      VK_DYNAMIC_STATE_DEPTH_BIAS,
       VK_DYNAMIC_STATE_BLEND_CONSTANTS,
       VK_DYNAMIC_STATE_STENCIL_REFERENCE,
     };
     
-    std::array<VkBool32,                 MaxNumActiveBindings> specData;
-    std::array<VkSpecializationMapEntry, MaxNumActiveBindings> specMap;
+    DxvkSpecConstantData specData;
+    specData.rasterizerSampleCount = uint32_t(state.msSampleCount);
     
-    for (uint32_t i = 0; i < MaxNumActiveBindings; i++) {
-      specData[i] = state.bsBindingState.isBound(i) ? VK_TRUE : VK_FALSE;
-      specMap [i] = { i, static_cast<uint32_t>(sizeof(VkBool32)) * i, sizeof(VkBool32) };
-    }
+    for (uint32_t i = 0; i < MaxNumActiveBindings; i++)
+      specData.activeBindings[i] = state.bsBindingState.isBound(i) ? VK_TRUE : VK_FALSE;
     
     VkSpecializationInfo specInfo;
-    specInfo.mapEntryCount        = specMap.size();
-    specInfo.pMapEntries          = specMap.data();
-    specInfo.dataSize             = specData.size() * sizeof(VkBool32);
-    specInfo.pData                = specData.data();
+    specInfo.mapEntryCount        = g_specConstantMap.mapEntryCount();
+    specInfo.pMapEntries          = g_specConstantMap.mapEntryData();
+    specInfo.dataSize             = sizeof(specData);
+    specInfo.pData                = &specData;
     
     std::vector<VkPipelineShaderStageCreateInfo> stages;
     
@@ -296,7 +300,7 @@ namespace dxvk {
     if (viDivisorCount == 0)
       viInfo.pNext = viDivisorInfo.pNext;
     
-    // TODO make this extension required when widely supported
+    // TODO remove this once the extension is widely supported
     if (!m_device->extensions().extVertexAttributeDivisor.enabled())
       viInfo.pNext = viDivisorInfo.pNext;
     
@@ -326,15 +330,15 @@ namespace dxvk {
     rsInfo.sType                  = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
     rsInfo.pNext                  = nullptr;
     rsInfo.flags                  = 0;
-    rsInfo.depthClampEnable       = state.rsEnableDepthClamp;
-    rsInfo.rasterizerDiscardEnable= state.rsEnableDiscard;
+    rsInfo.depthClampEnable       = state.rsDepthClampEnable;
+    rsInfo.rasterizerDiscardEnable= VK_FALSE;
     rsInfo.polygonMode            = state.rsPolygonMode;
     rsInfo.cullMode               = state.rsCullMode;
     rsInfo.frontFace              = state.rsFrontFace;
     rsInfo.depthBiasEnable        = state.rsDepthBiasEnable;
-    rsInfo.depthBiasConstantFactor= state.rsDepthBiasConstant;
-    rsInfo.depthBiasClamp         = state.rsDepthBiasClamp;
-    rsInfo.depthBiasSlopeFactor   = state.rsDepthBiasSlope;
+    rsInfo.depthBiasConstantFactor= 0.0f;
+    rsInfo.depthBiasClamp         = 0.0f;
+    rsInfo.depthBiasSlopeFactor   = 0.0f;
     rsInfo.lineWidth              = 1.0f;
     
     VkPipelineMultisampleStateCreateInfo msInfo;
@@ -355,12 +359,12 @@ namespace dxvk {
     dsInfo.depthTestEnable        = state.dsEnableDepthTest;
     dsInfo.depthWriteEnable       = state.dsEnableDepthWrite;
     dsInfo.depthCompareOp         = state.dsDepthCompareOp;
-    dsInfo.depthBoundsTestEnable  = state.dsEnableDepthBounds;
+    dsInfo.depthBoundsTestEnable  = VK_FALSE;
     dsInfo.stencilTestEnable      = state.dsEnableStencilTest;
     dsInfo.front                  = state.dsStencilOpFront;
     dsInfo.back                   = state.dsStencilOpBack;
-    dsInfo.minDepthBounds         = state.dsDepthBoundsMin;
-    dsInfo.maxDepthBounds         = state.dsDepthBoundsMax;
+    dsInfo.minDepthBounds         = 0.0f;
+    dsInfo.maxDepthBounds         = 1.0f;
     
     VkPipelineColorBlendStateCreateInfo cbInfo;
     cbInfo.sType                  = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;

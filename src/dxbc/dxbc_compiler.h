@@ -9,8 +9,8 @@
 #include "dxbc_chunk_isgn.h"
 #include "dxbc_decoder.h"
 #include "dxbc_defs.h"
+#include "dxbc_modinfo.h"
 #include "dxbc_names.h"
-#include "dxbc_options.h"
 #include "dxbc_util.h"
 
 namespace dxvk {
@@ -97,6 +97,34 @@ namespace dxvk {
   
   
   /**
+   * \brief Specialization constant properties
+   * 
+   * Stores the name, data type and initial
+   * value of a specialization constant.
+   */
+  struct DxbcSpecConstant {
+    DxbcScalarType  ctype;
+    uint32_t        ccount;
+    uint32_t        value;
+    const char*     name;
+  };
+  
+  
+  /**
+   * \brief Helper struct for conditional execution
+   * 
+   * Stores a set of labels required to implement either
+   * an if-then block or an if-then-else block. This is
+   * not used to implement control flow instructions.
+   */
+  struct DxbcConditional {
+    uint32_t labelIf   = 0;
+    uint32_t labelElse = 0;
+    uint32_t labelEnd  = 0;
+  };
+  
+  
+  /**
    * \brief Vertex shader-specific structure
    */
   struct DxbcCompilerVsPart {
@@ -137,6 +165,9 @@ namespace dxvk {
     uint32_t builtinSampleMaskIn  = 0;
     uint32_t builtinSampleMaskOut = 0;
     uint32_t builtinLayer         = 0;
+    uint32_t builtinViewportId    = 0;
+    
+    uint32_t killState            = 0;
   };
   
   
@@ -298,6 +329,18 @@ namespace dxvk {
     uint32_t stride;
   };
   
+
+  /**
+   * \brief SPIR-V extension set
+   * 
+   * Keeps track of which optional SPIR-V extensions
+   * are enabled so that any required setup code is
+   * only run once. 
+   */
+  struct DxbcSpirvExtensions {
+    bool shaderViewportIndexLayer = false;
+  };
+
   
   /**
    * \brief DXBC to SPIR-V shader compiler
@@ -312,7 +355,7 @@ namespace dxvk {
     
     DxbcCompiler(
       const std::string&        fileName,
-      const DxbcOptions&        options,
+      const DxbcModuleInfo&     moduleInfo,
       const DxbcProgramVersion& version,
       const Rc<DxbcIsgn>&       isgn,
       const Rc<DxbcIsgn>&       osgn,
@@ -334,7 +377,7 @@ namespace dxvk {
     
   private:
     
-    DxbcOptions         m_options;
+    DxbcModuleInfo      m_moduleInfo;
     DxbcProgramVersion  m_version;
     SpirvModule         m_module;
     
@@ -361,15 +404,19 @@ namespace dxvk {
     ///////////////////////////////////////////////////////////
     // v# registers as defined by the shader. The type of each
     // of these inputs is either float4 or an array of float4.
-    std::array<uint32_t, DxbcMaxInterfaceRegs> m_vRegs;
-    std::vector<DxbcSvMapping>                 m_vMappings;
+    std::array<
+      DxbcRegisterPointer,
+      DxbcMaxInterfaceRegs>     m_vRegs;
+    std::vector<DxbcSvMapping>  m_vMappings;
     
     //////////////////////////////////////////////////////////
     // o# registers as defined by the shader. In the fragment
     // shader stage, these registers are typed by the signature,
     // in all other stages, they are float4 registers or arrays.
-    std::array<uint32_t, DxbcMaxInterfaceRegs> m_oRegs;
-    std::vector<DxbcSvMapping>                 m_oMappings;
+    std::array<
+      DxbcRegisterPointer,
+      DxbcMaxInterfaceRegs>     m_oRegs;
+    std::vector<DxbcSvMapping>  m_oMappings;
     
     //////////////////////////////////////////////////////
     // Shader resource variables. These provide access to
@@ -383,6 +430,13 @@ namespace dxvk {
     // Control flow information. Stores labels for
     // currently active if-else blocks and loops.
     std::vector<DxbcCfgBlock> m_controlFlowBlocks;
+    
+    ///////////////////////////////////////////////
+    // Specialization constants. These are defined
+    // as needed by the getSpecConstant method.
+    std::array<DxbcRegisterValue,
+      uint32_t(DxvkSpecConstantId::SpecConstantIdMax) -
+      uint32_t(DxvkSpecConstantId::SpecConstantIdMin) + 1> m_specConstants;
     
     ///////////////////////////////////////////////////////////
     // Array of input values. Since v# registers are indexable
@@ -435,6 +489,10 @@ namespace dxvk {
     DxbcCompilerGsPart m_gs;
     DxbcCompilerPsPart m_ps;
     DxbcCompilerCsPart m_cs;
+
+    /////////////////////////////
+    // Enabled SPIR-V extensions
+    DxbcSpirvExtensions m_extensions;
     
     /////////////////////////////////////////////////////
     // Shader interface and metadata declaration methods
@@ -589,6 +647,9 @@ namespace dxvk {
       const DxbcShaderInstruction&  ins);
     
     void emitConvertFloat16(
+      const DxbcShaderInstruction&  ins);
+    
+    void emitConvertFloat64(
       const DxbcShaderInstruction&  ins);
     
     void emitHullShaderPhase(
@@ -848,6 +909,14 @@ namespace dxvk {
       const DxbcRegister&           reg,
             DxbcRegisterValue       value);
     
+    ////////////////////////////////////////
+    // Spec constant declaration and access
+    DxbcRegisterValue getSpecConstant(
+            DxvkSpecConstantId      specId);
+    
+    DxbcSpecConstant getSpecConstantProperties(
+            DxvkSpecConstantId      specId);
+    
     ////////////////////////////
     // Input/output preparation
     void emitInputSetup();
@@ -910,6 +979,11 @@ namespace dxvk {
     void emitClipCullLoad(
             DxbcSystemValue         sv,
             uint32_t                srcArray);
+    
+    ///////////////////////////////
+    // Some state checking methods
+    uint32_t emitUavWriteTest(
+      const DxbcBufferInfo&         uav);
     
     //////////////////////////////////////
     // Common function definition methods
@@ -996,6 +1070,10 @@ namespace dxvk {
     
     uint32_t emitBuiltinTessLevelInner(
             spv::StorageClass storageClass);
+
+    ////////////////////////////////
+    // Extension enablement methods
+    void enableShaderViewportIndexLayer();
     
     ////////////////
     // Misc methods
@@ -1028,6 +1106,9 @@ namespace dxvk {
             bool              isUav) const;
     
     spv::ImageFormat getScalarImageFormat(
+            DxbcScalarType type) const;
+    
+    bool isDoubleType(
             DxbcScalarType type) const;
     
     ///////////////////////////

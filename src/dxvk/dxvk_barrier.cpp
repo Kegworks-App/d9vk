@@ -11,13 +11,12 @@ namespace dxvk {
           VkAccessFlags             srcAccess,
           VkPipelineStageFlags      dstStages,
           VkAccessFlags             dstAccess) {
-    const DxvkResourceAccessTypes accessTypes
-      = this->getAccessTypes(srcAccess);
+    DxvkAccessFlags access = this->getAccessTypes(srcAccess);
     
     m_srcStages |= srcStages;
     m_dstStages |= dstStages;
     
-    if (accessTypes.test(DxvkResourceAccessType::Write)) {
+    if (access.test(DxvkAccess::Write)) {
       VkBufferMemoryBarrier barrier;
       barrier.sType               = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
       barrier.pNext               = nullptr;
@@ -30,6 +29,8 @@ namespace dxvk {
       barrier.size                = bufSlice.length();
       m_bufBarriers.push_back(barrier);
     }
+
+    m_bufSlices.push_back({ bufSlice, access });
   }
   
   
@@ -42,13 +43,15 @@ namespace dxvk {
           VkImageLayout             dstLayout,
           VkPipelineStageFlags      dstStages,
           VkAccessFlags             dstAccess) {
-    const DxvkResourceAccessTypes accessTypes
-      = this->getAccessTypes(srcAccess);
-    
+    DxvkAccessFlags access = this->getAccessTypes(srcAccess);
+
     m_srcStages |= srcStages;
     m_dstStages |= dstStages;
     
-    if ((srcLayout != dstLayout) || accessTypes.test(DxvkResourceAccessType::Write)) {
+    if (srcLayout != dstLayout)
+      access.set(DxvkAccess::Write);
+    
+    if (access.test(DxvkAccess::Write)) {
       VkImageMemoryBarrier barrier;
       barrier.sType                       = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
       barrier.pNext                       = nullptr;
@@ -63,9 +66,45 @@ namespace dxvk {
       barrier.subresourceRange.aspectMask = image->formatInfo()->aspectMask;
       m_imgBarriers.push_back(barrier);
     }
+
+    m_imgSlices.push_back({ image.ptr(), subresources, access });
   }
   
   
+  bool DxvkBarrierSet::isBufferDirty(
+    const DxvkPhysicalBufferSlice&  bufSlice,
+          DxvkAccessFlags           bufAccess) {
+    bool result = false;
+
+    for (uint32_t i = 0; i < m_bufSlices.size() && !result; i++) {
+      result = (bufSlice.overlaps(m_bufSlices[i].slice))
+            && (bufAccess | m_bufSlices[i].access).test(DxvkAccess::Write);
+    }
+
+    return result;
+  }
+
+
+  bool DxvkBarrierSet::isImageDirty(
+    const Rc<DxvkImage>&            image,
+    const VkImageSubresourceRange&  imgSubres,
+          DxvkAccessFlags           imgAccess) {
+    bool result = false;
+
+    for (uint32_t i = 0; i < m_imgSlices.size() && !result; i++) {
+      const VkImageSubresourceRange& dstSubres = m_imgSlices[i].subres;
+
+      result = (image == m_imgSlices[i].image) && (imgAccess | m_imgSlices[i].access).test(DxvkAccess::Write)
+            && imgSubres.baseArrayLayer < dstSubres.baseArrayLayer + dstSubres.layerCount
+            && imgSubres.baseArrayLayer + imgSubres.layerCount     > dstSubres.baseArrayLayer
+            && imgSubres.baseMipLevel   < dstSubres.baseMipLevel   + dstSubres.levelCount
+            && imgSubres.baseMipLevel   + imgSubres.levelCount     > dstSubres.baseMipLevel;
+    }
+
+    return result;
+  }
+  
+
   void DxvkBarrierSet::recordCommands(const Rc<DxvkCommandList>& commandList) {
     if ((m_srcStages | m_dstStages) != 0) {
       VkPipelineStageFlags srcFlags = m_srcStages;
@@ -92,10 +131,13 @@ namespace dxvk {
     m_memBarriers.resize(0);
     m_bufBarriers.resize(0);
     m_imgBarriers.resize(0);
+
+    m_bufSlices.resize(0);
+    m_imgSlices.resize(0);
   }
   
   
-  DxvkResourceAccessTypes DxvkBarrierSet::getAccessTypes(VkAccessFlags flags) const {
+  DxvkAccessFlags DxvkBarrierSet::getAccessTypes(VkAccessFlags flags) const {
     const VkAccessFlags rflags
       = VK_ACCESS_INDIRECT_COMMAND_READ_BIT
       | VK_ACCESS_INDEX_READ_BIT
@@ -117,9 +159,9 @@ namespace dxvk {
       | VK_ACCESS_HOST_WRITE_BIT
       | VK_ACCESS_MEMORY_WRITE_BIT;
     
-    DxvkResourceAccessTypes result;
-    if (flags & rflags) result.set(DxvkResourceAccessType::Read);
-    if (flags & wflags) result.set(DxvkResourceAccessType::Write);
+    DxvkAccessFlags result;
+    if (flags & rflags) result.set(DxvkAccess::Read);
+    if (flags & wflags) result.set(DxvkAccess::Write);
     return result;
   }
   

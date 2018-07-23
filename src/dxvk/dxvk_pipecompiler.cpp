@@ -13,8 +13,8 @@ namespace dxvk {
     m_compilerThreads.resize(threadCount);
     
     for (uint32_t i = 0; i < threadCount; i++) {
-      m_compilerThreads.at(i) = std::thread(
-        [this, i] { this->runCompilerThread(i); });
+      m_compilerThreads.at(i) = dxvk::thread(
+        [this] { this->runCompilerThread(); });
     }
   }
   
@@ -40,9 +40,8 @@ namespace dxvk {
   }
   
   
-  void DxvkPipelineCompiler::runCompilerThread(uint32_t workerId) {
-    Logger::debug(str::format(
-      "DxvkPipelineCompiler: Worker #", workerId, " started"));
+  void DxvkPipelineCompiler::runCompilerThread() {
+    env::setThreadName(L"dxvk-pcompiler");
     
     while (!m_compilerStop.load()) {
       PipelineEntry entry;
@@ -63,9 +62,6 @@ namespace dxvk {
       if (entry.pipeline != nullptr && entry.instance != nullptr)
         entry.pipeline->compileInstance(entry.instance, entry.doInsert);
     }
-    
-    Logger::debug(str::format(
-      "DxvkPipelineCompiler: Worker #", workerId, " stopped"));
   }
   
 }

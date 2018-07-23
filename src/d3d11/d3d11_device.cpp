@@ -382,6 +382,7 @@ namespace dxvk {
       viewInfo.format  = formatInfo.Format;
       viewInfo.aspect  = formatInfo.Aspect;
       viewInfo.swizzle = formatInfo.Swizzle;
+      viewInfo.usage   = VK_IMAGE_USAGE_SAMPLED_BIT;
       
       // Shaders expect the stencil value in the G component
       if (viewInfo.aspect == VK_IMAGE_ASPECT_STENCIL_BIT) {
@@ -594,6 +595,7 @@ namespace dxvk {
       viewInfo.format  = formatInfo.Format;
       viewInfo.aspect  = formatInfo.Aspect;
       viewInfo.swizzle = formatInfo.Swizzle;
+      viewInfo.usage   = VK_IMAGE_USAGE_STORAGE_BIT;
       
       switch (desc.ViewDimension) {
         case D3D11_UAV_DIMENSION_TEXTURE1D:
@@ -713,6 +715,7 @@ namespace dxvk {
     DxvkImageViewCreateInfo viewInfo;
     viewInfo.format = m_dxgiAdapter->LookupFormat(desc.Format, DXGI_VK_FORMAT_MODE_COLOR).Format;
     viewInfo.aspect = imageFormatInfo(viewInfo.format)->aspectMask;
+    viewInfo.usage  = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
     
     switch (desc.ViewDimension) {
       case D3D11_RTV_DIMENSION_TEXTURE1D:
@@ -846,6 +849,7 @@ namespace dxvk {
     DxvkImageViewCreateInfo viewInfo;
     viewInfo.format = m_dxgiAdapter->LookupFormat(desc.Format, DXGI_VK_FORMAT_MODE_DEPTH).Format;
     viewInfo.aspect = imageFormatInfo(viewInfo.format)->aspectMask;
+    viewInfo.usage  = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
     
     switch (desc.ViewDimension) {
       case D3D11_DSV_DIMENSION_TEXTURE1D:
@@ -942,26 +946,28 @@ namespace dxvk {
       DxbcModule dxbcModule(dxbcReader);
       
       const Rc<DxbcIsgn> inputSignature = dxbcModule.isgn();
+
+      uint32_t attrMask = 0;
+      uint32_t bindMask = 0;
       
-      std::vector<DxvkVertexAttribute> attributes;
-      std::vector<DxvkVertexBinding>   bindings;
+      std::array<DxvkVertexAttribute, D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT> attrList;
+      std::array<DxvkVertexBinding,   D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT> bindList;
       
       for (uint32_t i = 0; i < NumElements; i++) {
         const DxbcSgnEntry* entry = inputSignature->find(
           pInputElementDescs[i].SemanticName,
-          pInputElementDescs[i].SemanticIndex);
+          pInputElementDescs[i].SemanticIndex, 0);
         
         if (entry == nullptr) {
           Logger::debug(str::format(
             "D3D11Device: No such vertex shader semantic: ",
             pInputElementDescs[i].SemanticName,
             pInputElementDescs[i].SemanticIndex));
-          continue;
         }
         
         // Create vertex input attribute description
         DxvkVertexAttribute attrib;
-        attrib.location = entry->registerId;
+        attrib.location = entry != nullptr ? entry->registerId : 0;
         attrib.binding  = pInputElementDescs[i].InputSlot;
         attrib.format   = m_dxgiAdapter->LookupFormat(
           pInputElementDescs[i].Format, DXGI_VK_FORMAT_MODE_COLOR).Format;
@@ -975,7 +981,7 @@ namespace dxvk {
           attrib.offset = 0;
           
           for (uint32_t j = 1; j <= i; j++) {
-            const DxvkVertexAttribute& prev = attributes.at(i - j);
+            const DxvkVertexAttribute& prev = attrList.at(i - j);
             
             if (prev.binding == attrib.binding) {
               const DxvkFormatInfo* formatInfo = imageFormatInfo(prev.format);
@@ -984,8 +990,8 @@ namespace dxvk {
             }
           }
         }
-        
-        attributes.push_back(attrib);
+
+        attrList.at(i) = attrib;
         
         // Create vertex input binding description. The
         // stride is dynamic state in D3D11 and will be
@@ -994,18 +1000,19 @@ namespace dxvk {
         binding.binding   = pInputElementDescs[i].InputSlot;
         binding.fetchRate = pInputElementDescs[i].InstanceDataStepRate;
         binding.inputRate = pInputElementDescs[i].InputSlotClass == D3D11_INPUT_PER_INSTANCE_DATA
-          ? VK_VERTEX_INPUT_RATE_INSTANCE
-          : VK_VERTEX_INPUT_RATE_VERTEX;
+          ? VK_VERTEX_INPUT_RATE_INSTANCE : VK_VERTEX_INPUT_RATE_VERTEX;
         
         // Check if the binding was already defined. If so, the
         // parameters must be identical (namely, the input rate).
         bool bindingDefined = false;
         
-        for (const auto& existingBinding : bindings) {
-          if (binding.binding == existingBinding.binding) {
+        for (uint32_t j = 0; j < i; j++) {
+          uint32_t bindingId = attrList.at(j).binding;
+
+          if (binding.binding == bindingId) {
             bindingDefined = true;
             
-            if (binding.inputRate != existingBinding.inputRate) {
+            if (binding.inputRate != bindList.at(bindingId).inputRate) {
               Logger::err(str::format(
                 "D3D11Device: Conflicting input rate for binding ",
                 binding.binding));
@@ -1013,19 +1020,29 @@ namespace dxvk {
             }
           }
         }
-        
+
         if (!bindingDefined)
-          bindings.push_back(binding);
+          bindList.at(binding.binding) = binding;
+        
+        if (entry != nullptr) {
+          attrMask |= 1u << i;
+          bindMask |= 1u << binding.binding;
+        }
       }
-      
+
+      // Compact the attribute and binding lists to filter
+      // out attributes and bindings not used by the shader
+      uint32_t attrCount = CompactSparseList(attrList.data(), attrMask);
+      uint32_t bindCount = CompactSparseList(bindList.data(), bindMask);
+
       // Check if there are any semantics defined in the
       // shader that are not included in the current input
       // layout.
       for (auto i = inputSignature->begin(); i != inputSignature->end(); i++) {
         bool found = i->systemValue != DxbcSystemValue::None;
         
-        for (uint32_t j = 0; j < attributes.size() && !found; j++)
-          found = attributes.at(j).location == i->registerId;
+        for (uint32_t j = 0; j < attrCount && !found; j++)
+          found = attrList.at(j).location == i->registerId;
         
         if (!found) {
           Logger::warn(str::format(
@@ -1035,20 +1052,13 @@ namespace dxvk {
         }
       }
       
-      std::sort(bindings.begin(), bindings.end(),
-        [] (const DxvkVertexBinding& a, const DxvkVertexBinding& b) {
-          return a.binding < b.binding;
-        });
-      
       // Create the actual input layout object
       // if the application requests it.
       if (ppInputLayout != nullptr) {
         *ppInputLayout = ref(
           new D3D11InputLayout(this,
-            attributes.size(),
-            attributes.data(),
-            bindings.size(),
-            bindings.data()));
+            attrCount, attrList.data(),
+            bindCount, bindList.data()));
       }
       
       return S_OK;
@@ -1066,17 +1076,19 @@ namespace dxvk {
           ID3D11VertexShader**        ppVertexShader) {
     InitReturnPtr(ppVertexShader);
     D3D11ShaderModule module;
+
+    DxbcModuleInfo moduleInfo;
+    moduleInfo.options = m_dxbcOptions;
     
     if (FAILED(this->CreateShaderModule(&module,
         pShaderBytecode, BytecodeLength, pClassLinkage,
-        DxbcProgramType::VertexShader)))
+        &moduleInfo, DxbcProgramType::VertexShader)))
       return E_INVALIDARG;
     
     if (ppVertexShader == nullptr)
       return S_FALSE;
     
-    *ppVertexShader = ref(new D3D11VertexShader(
-      this, module));
+    *ppVertexShader = ref(new D3D11VertexShader(this, module));
     return S_OK;
   }
   
@@ -1089,16 +1101,18 @@ namespace dxvk {
     InitReturnPtr(ppGeometryShader);
     D3D11ShaderModule module;
     
+    DxbcModuleInfo moduleInfo;
+    moduleInfo.options = m_dxbcOptions;
+
     if (FAILED(this->CreateShaderModule(&module,
         pShaderBytecode, BytecodeLength, pClassLinkage,
-        DxbcProgramType::GeometryShader)))
+        &moduleInfo, DxbcProgramType::GeometryShader)))
       return E_INVALIDARG;
     
     if (ppGeometryShader == nullptr)
       return S_FALSE;
     
-    *ppGeometryShader = ref(new D3D11GeometryShader(
-      this, module));
+    *ppGeometryShader = ref(new D3D11GeometryShader(this, module));
     return S_OK;
   }
   
@@ -1115,7 +1129,10 @@ namespace dxvk {
           ID3D11GeometryShader**      ppGeometryShader) {
     InitReturnPtr(ppGeometryShader);
     Logger::err("D3D11Device::CreateGeometryShaderWithStreamOutput: Not implemented");
-    return E_NOTIMPL;
+    
+    // Returning S_OK instead of an error fixes some issues
+    // with Overwatch until this is properly implemented
+    return m_d3d11Options.test(D3D11Option::FakeStreamOutSupport) ? S_OK : E_NOTIMPL;
   }
   
   
@@ -1127,16 +1144,18 @@ namespace dxvk {
     InitReturnPtr(ppPixelShader);
     D3D11ShaderModule module;
     
+    DxbcModuleInfo moduleInfo;
+    moduleInfo.options = m_dxbcOptions;
+
     if (FAILED(this->CreateShaderModule(&module,
         pShaderBytecode, BytecodeLength, pClassLinkage,
-        DxbcProgramType::PixelShader)))
+        &moduleInfo, DxbcProgramType::PixelShader)))
       return E_INVALIDARG;
     
     if (ppPixelShader == nullptr)
       return S_FALSE;
     
-    *ppPixelShader = ref(new D3D11PixelShader(
-      this, module));
+    *ppPixelShader = ref(new D3D11PixelShader(this, module));
     return S_OK;
   }
   
@@ -1149,16 +1168,18 @@ namespace dxvk {
     InitReturnPtr(ppHullShader);
     D3D11ShaderModule module;
     
+    DxbcModuleInfo moduleInfo;
+    moduleInfo.options = m_dxbcOptions;
+
     if (FAILED(this->CreateShaderModule(&module,
         pShaderBytecode, BytecodeLength, pClassLinkage,
-        DxbcProgramType::HullShader)))
+        &moduleInfo, DxbcProgramType::HullShader)))
       return E_INVALIDARG;
     
     if (ppHullShader == nullptr)
       return S_FALSE;
     
-    *ppHullShader = ref(new D3D11HullShader(
-      this, module));
+    *ppHullShader = ref(new D3D11HullShader(this, module));
     return S_OK;
   }
   
@@ -1171,16 +1192,18 @@ namespace dxvk {
     InitReturnPtr(ppDomainShader);
     D3D11ShaderModule module;
     
+    DxbcModuleInfo moduleInfo;
+    moduleInfo.options = m_dxbcOptions;
+
     if (FAILED(this->CreateShaderModule(&module,
         pShaderBytecode, BytecodeLength, pClassLinkage,
-        DxbcProgramType::DomainShader)))
+        &moduleInfo, DxbcProgramType::DomainShader)))
       return E_INVALIDARG;
     
     if (ppDomainShader == nullptr)
       return S_FALSE;
     
-    *ppDomainShader = ref(new D3D11DomainShader(
-      this, module));
+    *ppDomainShader = ref(new D3D11DomainShader(this, module));
     return S_OK;
   }
   
@@ -1193,16 +1216,18 @@ namespace dxvk {
     InitReturnPtr(ppComputeShader);
     D3D11ShaderModule module;
     
+    DxbcModuleInfo moduleInfo;
+    moduleInfo.options = m_dxbcOptions;
+
     if (FAILED(this->CreateShaderModule(&module,
         pShaderBytecode, BytecodeLength, pClassLinkage,
-        DxbcProgramType::ComputeShader)))
+        &moduleInfo, DxbcProgramType::ComputeShader)))
       return E_INVALIDARG;
     
     if (ppComputeShader == nullptr)
       return S_FALSE;
     
-    *ppComputeShader = ref(new D3D11ComputeShader(
-      this, module));
+    *ppComputeShader = ref(new D3D11ComputeShader(this, module));
     return S_OK;
   }
   
@@ -1384,8 +1409,8 @@ namespace dxvk {
           ID3D11Counter**             ppCounter) {
     InitReturnPtr(ppCounter);
     
-    Logger::err("D3D11Device::CreateCounter: Not implemented");
-    return E_NOTIMPL;
+    Logger::err(str::format("D3D11: Unsupported counter: ", pCounterDesc->Counter));
+    return E_INVALIDARG;
   }
   
   
@@ -1497,7 +1522,10 @@ namespace dxvk {
   
   
   void STDMETHODCALLTYPE D3D11Device::CheckCounterInfo(D3D11_COUNTER_INFO* pCounterInfo) {
-    Logger::err("D3D11Device::CheckCounterInfo: Not implemented");
+    // We basically don't support counters
+    pCounterInfo->LastDeviceDependentCounter  = D3D11_COUNTER(0);
+    pCounterInfo->NumSimultaneousCounters     = 0;
+    pCounterInfo->NumDetectableParallelUnits  = 0;
   }
   
   
@@ -1511,8 +1539,8 @@ namespace dxvk {
           UINT*               pUnitsLength,
           LPSTR               szDescription,
           UINT*               pDescriptionLength) {
-    Logger::err("D3D11Device::CheckCounter: Not implemented");
-    return E_NOTIMPL;
+    Logger::err("D3D11: Counters not supported");
+    return E_INVALIDARG;
   }
   
   
@@ -1537,8 +1565,10 @@ namespace dxvk {
         if (FeatureSupportDataSize != sizeof(D3D11_FEATURE_DATA_DOUBLES))
           return E_INVALIDARG;
         
+        const VkPhysicalDeviceFeatures& features = m_dxvkDevice->features();
+
         auto info = static_cast<D3D11_FEATURE_DATA_DOUBLES*>(pFeatureSupportData);
-        info->DoublePrecisionFloatShaderOps = FALSE;
+        info->DoublePrecisionFloatShaderOps = features.shaderFloat64 && features.shaderInt64;
       } return S_OK;
       
       case D3D11_FEATURE_FORMAT_SUPPORT: {
@@ -1693,6 +1723,13 @@ namespace dxvk {
   }
   
   
+  DXGI_VK_FORMAT_FAMILY D3D11Device::LookupFamily(
+          DXGI_FORMAT           Format,
+          DXGI_VK_FORMAT_MODE   Mode) const {
+    return m_dxgiAdapter->LookupFormatFamily(Format, Mode);
+  }
+  
+  
   DxvkBufferSlice D3D11Device::AllocateCounterSlice() {
     std::lock_guard<std::mutex> lock(m_counterMutex);
     
@@ -1804,6 +1841,8 @@ namespace dxvk {
       enabled.shaderFloat64                         = supported.shaderFloat64;
       enabled.shaderInt64                           = supported.shaderInt64;
       enabled.tessellationShader                    = VK_TRUE;
+      // TODO enable unconditionally once RADV gains support
+      enabled.shaderStorageImageMultisample         = supported.shaderStorageImageMultisample;
       enabled.shaderStorageImageReadWithoutFormat   = supported.shaderStorageImageReadWithoutFormat;
       enabled.shaderStorageImageWriteWithoutFormat  = VK_TRUE;
     }
@@ -1822,13 +1861,14 @@ namespace dxvk {
     const void*                   pShaderBytecode,
           size_t                  BytecodeLength,
           ID3D11ClassLinkage*     pClassLinkage,
+    const DxbcModuleInfo*         pModuleInfo,
           DxbcProgramType         ProgramType) {
     if (pClassLinkage != nullptr)
       Logger::warn("D3D11Device::CreateShaderModule: Class linkage not supported");
     
     try {
       *pShaderModule = m_shaderModules.GetShaderModule(m_dxvkDevice.ptr(),
-        &m_dxbcOptions, pShaderBytecode, BytecodeLength, ProgramType);
+        pModuleInfo, pShaderBytecode, BytecodeLength, ProgramType);
       return S_OK;
     } catch (const DxvkError& e) {
       Logger::err(e.message());

@@ -42,10 +42,8 @@ namespace dxvk {
   
   
   void D3D11CommandList::AddChunk(
-            Rc<DxvkCsChunk>&&   Chunk,
-            UINT                DrawCount) {
+            Rc<DxvkCsChunk>&&   Chunk) {
     m_chunks.push_back(std::move(Chunk));
-    m_drawCount += DrawCount;
   }
   
   
@@ -55,13 +53,24 @@ namespace dxvk {
     for (const auto& chunk : m_chunks)
       cmdList->m_chunks.push_back(chunk);
     
-    cmdList->m_drawCount += m_drawCount;
+    MarkSubmitted();
   }
   
   
   void D3D11CommandList::EmitToCsThread(DxvkCsThread* CsThread) {
     for (const auto& chunk : m_chunks)
       CsThread->dispatchChunk(Rc<DxvkCsChunk>(chunk));
+    
+    MarkSubmitted();
+  }
+  
+  
+  void D3D11CommandList::MarkSubmitted() {
+    if (m_submitted.exchange(true) && !m_warned.exchange(true)) {
+      Logger::warn(
+        "D3D11: Command list submitted multiple times.\n"
+        "       This is currently not supported.");
+    }
   }
   
 }

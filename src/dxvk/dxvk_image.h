@@ -3,6 +3,7 @@
 #include "dxvk_format.h"
 #include "dxvk_memory.h"
 #include "dxvk_resource.h"
+#include "dxvk_util.h"
 
 namespace dxvk {
   
@@ -49,6 +50,11 @@ namespace dxvk {
     
     /// Common image layout
     VkImageLayout layout;
+
+    // Image view formats that can
+    // be used with this image
+    uint32_t        viewFormatCount = 0;
+    const VkFormat* viewFormats     = nullptr;
   };
   
   
@@ -64,6 +70,9 @@ namespace dxvk {
     
     /// Pixel format
     VkFormat format = VK_FORMAT_UNDEFINED;
+
+    /// Image view usage flags
+    VkImageUsageFlags usage = 0;
     
     /// Subresources to use in the view
     VkImageAspectFlags aspect = 0;
@@ -216,6 +225,21 @@ namespace dxvk {
       return m_info.layout == VK_IMAGE_LAYOUT_GENERAL
         ? VK_IMAGE_LAYOUT_GENERAL : layout;
     }
+
+    /**
+     * \brief Checks whether a subresource is entirely covered
+     * 
+     * This can be used to determine whether an image can or
+     * should be initialized with \c VK_IMAGE_LAYOUT_UNDEFINED.
+     * \param [in] subresource The image subresource
+     * \param [in] extent Image extent to check
+     */
+    bool isFullSubresource(
+      const VkImageSubresourceLayers& subresource,
+            VkExtent3D                extent) const {
+      return subresource.aspectMask == this->formatInfo()->aspectMask
+          && extent == this->mipLevelExtent(subresource.mipLevel);
+    }
     
   private:
     
@@ -224,6 +248,8 @@ namespace dxvk {
     VkMemoryPropertyFlags m_memFlags;
     DxvkMemory            m_memory;
     VkImage               m_image = VK_NULL_HANDLE;
+
+    std::vector<VkFormat> m_viewFormats;
     
   };
   
@@ -286,6 +312,14 @@ namespace dxvk {
     }
     
     /**
+     * \brief Image handle
+     * \returns Image handle
+     */
+    VkImage imageHandle() const {
+      return m_image->handle();
+    }
+    
+    /**
      * \brief Image properties
      * \returns Image properties
      */
@@ -302,8 +336,8 @@ namespace dxvk {
     }
     
     /**
-     * \brief Image
-     * \returns Image
+     * \brief Image object
+     * \returns Image object
      */
     Rc<DxvkImage> image() const {
       return m_image;

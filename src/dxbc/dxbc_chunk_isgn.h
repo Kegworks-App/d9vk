@@ -22,6 +22,7 @@ namespace dxvk {
     DxbcRegMask       componentMask;
     DxbcScalarType    componentType;
     DxbcSystemValue   systemValue;
+    uint32_t          streamId;
   };
   
   /**
@@ -34,7 +35,7 @@ namespace dxvk {
     
   public:
     
-    DxbcIsgn(DxbcReader reader);
+    DxbcIsgn(DxbcReader reader, DxbcTag tag);
     ~DxbcIsgn();
     
     auto begin() const { return m_entries.cbegin(); }
@@ -45,7 +46,11 @@ namespace dxvk {
     
     const DxbcSgnEntry* find(
       const std::string& semanticName,
-            uint32_t     semanticIndex) const;
+            uint32_t     semanticIndex,
+            uint32_t     streamIndex) const;
+    
+    DxbcRegMask regMask(
+            uint32_t     registerId) const;
     
   private:
     

@@ -286,6 +286,12 @@ namespace dxvk {
     if (Flags & DXGI_PRESENT_TEST)
       return S_OK;
     
+    // Higher values are not allowed according to the Microsoft documentation:
+    // 
+    //   "1 through 4 - Synchronize presentation after the nth vertical blank."
+    //   https://msdn.microsoft.com/en-us/library/windows/desktop/bb174576(v=vs.85).aspx
+    SyncInterval = std::min<UINT>(SyncInterval, 4);
+    
     try {
       // If in fullscreen mode, apply any updated gamma curve
       // if it has been changed since the last present call.
@@ -301,7 +307,7 @@ namespace dxvk {
       // Submit pending rendering commands
       // before recording the present code.
       m_presentDevice->FlushRenderingCommands();
-      
+
       // Update swap chain properties. This will not only set
       // up vertical synchronization properly, but also apply
       // changes that were made to the window size even if the
@@ -309,9 +315,9 @@ namespace dxvk {
       VkPresentModeKHR presentMode = SyncInterval == 0
         ? VK_PRESENT_MODE_IMMEDIATE_KHR
         : VK_PRESENT_MODE_FIFO_KHR;
-        
+      
       m_presenter->RecreateSwapchain(m_desc.Format, presentMode, GetWindowSize());
-      m_presenter->PresentImage();
+      m_presenter->PresentImage(SyncInterval, m_device->GetFrameSyncEvent());
       return S_OK;
     } catch (const DxvkError& err) {
       Logger::err(err.message());
@@ -546,11 +552,9 @@ namespace dxvk {
     ::GetWindowRect(m_window, &m_windowState.rect);
     
     if (m_desc.Flags & DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH) {
-      auto windowRect = m_windowState.rect;
-      
       DXGI_MODE_DESC displayMode;
-      displayMode.Width            = windowRect.right - windowRect.left;
-      displayMode.Height           = windowRect.bottom - windowRect.top;
+      displayMode.Width            = m_desc.Width;
+      displayMode.Height           = m_desc.Height;
       displayMode.RefreshRate      = m_descFs.RefreshRate;
       displayMode.Format           = m_desc.Format;
       displayMode.ScanlineOrdering = m_descFs.ScanlineOrdering;

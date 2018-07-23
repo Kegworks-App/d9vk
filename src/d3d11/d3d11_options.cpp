@@ -5,8 +5,12 @@
 namespace dxvk {
   
   const static std::unordered_map<std::string, D3D11OptionSet> g_d3d11AppOptions = {{
-    { "Dishonored2.exe", D3D11OptionSet(D3D11Option::AllowMapFlagNoWait) },
-    { "Fallout4.exe",    D3D11OptionSet(D3D11Option::DisableGetDataFlagDoNotFlush) },
+    { "Dishonored2.exe", D3D11OptionSet(D3D11Option::AllowMapFlagNoWait)           },
+    { "FarCry5.exe",     D3D11OptionSet(D3D11Option::AllowMapFlagNoWait)           },
+    { "ffxv_s.exe",      D3D11OptionSet(D3D11Option::FakeStreamOutSupport)         },
+    { "Overwatch.exe",   D3D11OptionSet(D3D11Option::FakeStreamOutSupport)         },
+    { "F1_2015.exe",     D3D11OptionSet(D3D11Option::FakeStreamOutSupport)         },
+    { "Mafia3.exe",      D3D11OptionSet(D3D11Option::FakeStreamOutSupport)         },
   }};
   
   

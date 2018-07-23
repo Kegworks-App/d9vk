@@ -8,17 +8,19 @@ namespace dxvk {
     const Rc<vk::DeviceFn>&         vkd,
     const Rc<DxvkDeviceExtensions>& extensions,
     const VkPhysicalDeviceFeatures& features)
-  : m_adapter         (adapter),
-    m_vkd             (vkd),
-    m_extensions      (extensions),
-    m_features        (features),
-    m_properties      (adapter->deviceProperties()),
-    m_memory          (new DxvkMemoryAllocator  (adapter, vkd)),
-    m_renderPassPool  (new DxvkRenderPassPool   (vkd)),
-    m_pipelineManager (new DxvkPipelineManager  (this)),
-    m_metaClearObjects(new DxvkMetaClearObjects (vkd)),
-    m_unboundResources(this),
-    m_submissionQueue (this) {
+  : m_adapter           (adapter),
+    m_vkd               (vkd),
+    m_extensions        (extensions),
+    m_features          (features),
+    m_properties        (adapter->deviceProperties()),
+    m_memory            (new DxvkMemoryAllocator    (adapter, vkd)),
+    m_renderPassPool    (new DxvkRenderPassPool     (vkd)),
+    m_pipelineManager   (new DxvkPipelineManager    (this)),
+    m_metaClearObjects  (new DxvkMetaClearObjects   (vkd)),
+    m_metaMipGenObjects (new DxvkMetaMipGenObjects  (vkd)),
+    m_metaResolveObjects(new DxvkMetaResolveObjects (vkd)),
+    m_unboundResources  (this),
+    m_submissionQueue   (this) {
     m_graphicsQueue.queueFamily = m_adapter->graphicsQueueFamily();
     m_presentQueue.queueFamily  = m_adapter->presentQueueFamily();
     
@@ -36,6 +38,14 @@ namespace dxvk {
     // Wait for all pending Vulkan commands to be
     // executed before we destroy any resources.
     m_vkd->vkDeviceWaitIdle(m_vkd->device());
+  }
+
+
+  DxvkDeviceOptions DxvkDevice::options() const {
+    DxvkDeviceOptions options;
+    options.maxNumDynamicUniformBuffers = m_properties.limits.maxDescriptorSetUniformBuffersDynamic;
+    options.maxNumDynamicStorageBuffers = m_properties.limits.maxDescriptorSetStorageBuffersDynamic;
+    return options;
   }
   
   
@@ -106,7 +116,9 @@ namespace dxvk {
   Rc<DxvkContext> DxvkDevice::createContext() {
     return new DxvkContext(this,
       m_pipelineManager,
-      m_metaClearObjects);
+      m_metaClearObjects,
+      m_metaMipGenObjects,
+      m_metaResolveObjects);
   }
   
   

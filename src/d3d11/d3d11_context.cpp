@@ -12,9 +12,10 @@ namespace dxvk {
   D3D11DeviceContext::D3D11DeviceContext(
           D3D11Device*    pParent,
     const Rc<DxvkDevice>& Device)
-  : m_parent  (pParent),
-    m_device  (Device),
-    m_csChunk (new DxvkCsChunk()) {
+  : m_parent    (pParent),
+    m_annotation(this),
+    m_device    (Device),
+    m_csChunk   (new DxvkCsChunk()) {
     // Create default state objects. We won't ever return them
     // to the application, but we'll use them to apply state.
     Com<ID3D11BlendState>         defaultBlendState;
@@ -50,8 +51,10 @@ namespace dxvk {
       return S_OK;
     }
     
-    if (riid == __uuidof(ID3DUserDefinedAnnotation))
-      return E_NOINTERFACE;
+    if (riid == __uuidof(ID3DUserDefinedAnnotation)) {
+      *ppvObject = ref(&m_annotation);
+      return S_OK;
+    }
   
     Logger::warn("D3D11DeviceContext::QueryInterface: Unknown interface query");
     Logger::warn(str::format(riid));
@@ -59,18 +62,27 @@ namespace dxvk {
   }
   
   void STDMETHODCALLTYPE D3D11DeviceContext::DiscardResource(ID3D11Resource * pResource) {
-    Logger::err("D3D11DeviceContext::DiscardResource: Not implemented");
+    static bool s_errorShown = false;
+    
+    if (!std::exchange(s_errorShown, true))
+      Logger::err("D3D11DeviceContext::DiscardResource: Not implemented");
   }
 
   void STDMETHODCALLTYPE D3D11DeviceContext::DiscardView(ID3D11View * pResourceView) {
-    Logger::err("D3D11DeviceContext::DiscardView: Not implemented");
+    static bool s_errorShown = false;
+    
+    if (!std::exchange(s_errorShown, true))
+      Logger::err("D3D11DeviceContext::DiscardView: Not implemented");
   }
 
   void STDMETHODCALLTYPE D3D11DeviceContext::DiscardView1(
           ID3D11View*              pResourceView, 
     const D3D11_RECT*              pRects, 
           UINT                     NumRects) {
-    Logger::err("D3D11DeviceContext::DiscardView1: Not implemented");
+    static bool s_errorShown = false;
+    
+    if (!std::exchange(s_errorShown, true))
+      Logger::err("D3D11DeviceContext::DiscardView1: Not implemented");
   }
 
   void STDMETHODCALLTYPE D3D11DeviceContext::SwapDeviceContextState(
@@ -221,47 +233,6 @@ namespace dxvk {
         });
       }
     }
-  }
-  
-  
-  HRESULT STDMETHODCALLTYPE D3D11DeviceContext::GetData(
-          ID3D11Asynchronous*               pAsync,
-          void*                             pData,
-          UINT                              DataSize,
-          UINT                              GetDataFlags) {
-    // Make sure that we can safely write to the memory
-    // location pointed to by pData if it is specified.
-    if (DataSize == 0)
-      pData = nullptr;
-    
-    if (pData != nullptr && pAsync->GetDataSize() != DataSize) {
-      Logger::err(str::format(
-        "D3D11: GetData: Data size mismatch",
-        "\n  Expected: ", pAsync->GetDataSize(),
-        "\n  Got:      ", DataSize));
-      return E_INVALIDARG;
-    }
-    
-    // Fallout 4 never actually calls this function without
-    // D3D11_ASYNC_GETDATA_DONOTFLUSH set, which may cause
-    // the game to freeze in certain situations.
-    if (m_parent->TestOption(D3D11Option::DisableGetDataFlagDoNotFlush))
-      GetDataFlags &= ~D3D11_ASYNC_GETDATA_DONOTFLUSH;
-    
-    // Flush in order to make sure the query commands get dispatched
-    if ((GetDataFlags & D3D11_ASYNC_GETDATA_DONOTFLUSH) == 0)
-      Flush();
-    
-    // This method handles various different but incompatible interfaces,
-    // so we have to find out what we are actually dealing with
-    Com<ID3D11Query> query;
-    
-    if (SUCCEEDED(pAsync->QueryInterface(__uuidof(ID3D11Query), reinterpret_cast<void**>(&query))))
-      return static_cast<D3D11Query*>(query.ptr())->GetData(pData, GetDataFlags);
-    
-    // The interface is not supported
-    Logger::err("D3D11: GetData: Unsupported Async type");
-    return E_INVALIDARG;
   }
   
   
@@ -636,24 +607,12 @@ namespace dxvk {
     clearValue.color.float32[2] = ColorRGBA[2];
     clearValue.color.float32[3] = ColorRGBA[3];
     
-    VkClearRect clearRect;
-    clearRect.rect.offset.x       = 0;
-    clearRect.rect.offset.y       = 0;
-    clearRect.rect.extent.width   = view->mipLevelExtent(0).width;
-    clearRect.rect.extent.height  = view->mipLevelExtent(0).height;
-    clearRect.baseArrayLayer      = 0;
-    clearRect.layerCount          = view->info().numLayers;
-    
-    if (m_parent->GetFeatureLevel() < D3D_FEATURE_LEVEL_10_0)
-      clearRect.layerCount        = 1;
-    
     EmitCs([
       cClearValue = clearValue,
-      cClearRect  = clearRect,
       cImageView  = view
     ] (DxvkContext* ctx) {
       ctx->clearRenderTarget(
-        cImageView, cClearRect,
+        cImageView,
         VK_IMAGE_ASPECT_COLOR_BIT,
         cClearValue);
     });
@@ -819,26 +778,15 @@ namespace dxvk {
     clearValue.depthStencil.depth   = Depth;
     clearValue.depthStencil.stencil = Stencil;
     
-    VkClearRect clearRect;
-    clearRect.rect.offset.x       = 0;
-    clearRect.rect.offset.y       = 0;
-    clearRect.rect.extent.width   = view->mipLevelExtent(0).width;
-    clearRect.rect.extent.height  = view->mipLevelExtent(0).height;
-    clearRect.baseArrayLayer      = 0;
-    clearRect.layerCount          = view->info().numLayers;
-    
-    if (m_parent->GetFeatureLevel() < D3D_FEATURE_LEVEL_10_0)
-      clearRect.layerCount        = 1;
-    
     EmitCs([
       cClearValue = clearValue,
-      cClearRect  = clearRect,
       cAspectMask = aspectMask,
       cImageView  = view
     ] (DxvkContext* ctx) {
       ctx->clearRenderTarget(
-        cImageView, cClearRect,
-        cAspectMask, cClearValue);
+        cImageView,
+        cAspectMask,
+        cClearValue);
     });
   }
   
@@ -856,9 +804,7 @@ namespace dxvk {
     if (view->GetResourceType() != D3D11_RESOURCE_DIMENSION_BUFFER) {
       EmitCs([cDstImageView = view->GetImageView()]
       (DxvkContext* ctx) {
-        ctx->generateMipmaps(
-          cDstImageView->image(),
-          cDstImageView->subresources());
+        ctx->generateMipmaps(cDstImageView);
       });
     } else {
       Logger::err("D3D11: GenerateMips called on a buffer");
@@ -1056,13 +1002,16 @@ namespace dxvk {
     const DXGI_VK_FORMAT_INFO dstFormatInfo = m_parent->LookupFormat(dstDesc.Format, DXGI_VK_FORMAT_MODE_ANY);
     const DXGI_VK_FORMAT_INFO srcFormatInfo = m_parent->LookupFormat(srcDesc.Format, DXGI_VK_FORMAT_MODE_ANY);
     
+    auto dstVulkanFormatInfo = imageFormatInfo(dstFormatInfo.Format);
+    auto srcVulkanFormatInfo = imageFormatInfo(srcFormatInfo.Format);
+    
     const VkImageSubresource dstSubresource =
       dstTextureInfo->GetSubresourceFromIndex(
-        dstFormatInfo.Aspect, DstSubresource);
+        dstVulkanFormatInfo->aspectMask, DstSubresource);
     
     const VkImageSubresource srcSubresource =
       srcTextureInfo->GetSubresourceFromIndex(
-        srcFormatInfo.Aspect, SrcSubresource);
+        srcVulkanFormatInfo->aspectMask, SrcSubresource);
     
     const VkImageSubresourceLayers dstSubresourceLayers = {
       dstSubresource.aspectMask,
@@ -1119,8 +1068,6 @@ namespace dxvk {
         VertexCount, 1,
         StartVertexLocation, 0);
     });
-    
-    m_drawCount += 1;
   }
   
   
@@ -1134,8 +1081,6 @@ namespace dxvk {
         StartIndexLocation,
         BaseVertexLocation, 0);
     });
-    
-    m_drawCount += 1;
   }
   
   
@@ -1151,8 +1096,6 @@ namespace dxvk {
         StartVertexLocation,
         StartInstanceLocation);
     });
-    
-    m_drawCount += 1;
   }
   
   
@@ -1170,8 +1113,6 @@ namespace dxvk {
         BaseVertexLocation,
         StartInstanceLocation);
     });
-    
-    m_drawCount += 1;
   }
   
   
@@ -1185,8 +1126,6 @@ namespace dxvk {
       ctx->drawIndexedIndirect(
         bufferSlice, 1, 0);
     });
-    
-    m_drawCount += 1;
   }
   
   
@@ -1199,8 +1138,6 @@ namespace dxvk {
     (DxvkContext* ctx) {
       ctx->drawIndirect(bufferSlice, 1, 0);
     });
-    
-    m_drawCount += 1;
   }
   
   
@@ -1214,8 +1151,6 @@ namespace dxvk {
         ThreadGroupCountY,
         ThreadGroupCountZ);
     });
-    
-    m_drawCount += 1;
   }
   
   
@@ -1228,8 +1163,6 @@ namespace dxvk {
     (DxvkContext* ctx) {
       ctx->dispatchIndirect(bufferSlice);
     });
-    
-    m_drawCount += 1;
   }
   
   
@@ -1237,8 +1170,18 @@ namespace dxvk {
     auto inputLayout = static_cast<D3D11InputLayout*>(pInputLayout);
     
     if (m_state.ia.inputLayout != inputLayout) {
+      bool equal = false;
+      
+      // Some games (e.g. Grim Dawn) create lots and lots of
+      // identical input layouts, so we'll only apply the state
+      // if the input layouts has actually changed between calls.
+      if (m_state.ia.inputLayout != nullptr && inputLayout != nullptr)
+        equal = m_state.ia.inputLayout->Compare(inputLayout);
+      
       m_state.ia.inputLayout = inputLayout;
-      ApplyInputLayout();
+      
+      if (!equal)
+        ApplyInputLayout();
     }
   }
   
@@ -2115,20 +2058,8 @@ namespace dxvk {
           UINT                              NumViews,
           ID3D11RenderTargetView* const*    ppRenderTargetViews,
           ID3D11DepthStencilView*           pDepthStencilView) {
-    // Native D3D11 does not change the render targets if
-    // the parameters passed to this method are invalid.
-    if (!ValidateRenderTargets(NumViews, ppRenderTargetViews, pDepthStencilView))
-      return;
-    
-    for (UINT i = 0; i < m_state.om.renderTargetViews.size(); i++) {
-      m_state.om.renderTargetViews.at(i) = i < NumViews
-        ? static_cast<D3D11RenderTargetView*>(ppRenderTargetViews[i])
-        : nullptr;
-    }
-    
-    m_state.om.depthStencilView = static_cast<D3D11DepthStencilView*>(pDepthStencilView);
-    
-    BindFramebuffer();
+    SetRenderTargets(NumViews, ppRenderTargetViews, pDepthStencilView);
+    BindFramebuffer(std::exchange(m_state.om.isUavRendering, false));
   }
   
   
@@ -2140,10 +2071,18 @@ namespace dxvk {
           UINT                              NumUAVs,
           ID3D11UnorderedAccessView* const* ppUnorderedAccessViews,
     const UINT*                             pUAVInitialCounts) {
+    bool spillOnBind = m_state.om.isUavRendering;
+
     if (NumRTVs != D3D11_KEEP_RENDER_TARGETS_AND_DEPTH_STENCIL)
-      OMSetRenderTargets(NumRTVs, ppRenderTargetViews, pDepthStencilView);
+      SetRenderTargets(NumRTVs, ppRenderTargetViews, pDepthStencilView);
     
     if (NumUAVs != D3D11_KEEP_UNORDERED_ACCESS_VIEWS) {
+      // Check whether there actually are any UAVs bound
+      m_state.om.isUavRendering = false;
+
+      for (uint32_t i = 0; i < NumUAVs && !m_state.om.isUavRendering; i++)
+        m_state.om.isUavRendering = ppUnorderedAccessViews[i] != nullptr;
+
       // UAVs are made available to all shader stages in
       // the graphics pipeline even though this code may
       // suggest that they are limited to the pixel shader.
@@ -2159,6 +2098,8 @@ namespace dxvk {
           ppUnorderedAccessViews, pUAVInitialCounts);
       }
     }
+
+    BindFramebuffer(spillOnBind);
   }
   
   
@@ -2290,8 +2231,11 @@ namespace dxvk {
     const D3D11_RECT*                       pRects) {
     m_state.rs.numScissors = NumRects;
     
-    for (uint32_t i = 0; i < NumRects; i++)
-      m_state.rs.scissors.at(i) = pRects[i];
+    for (uint32_t i = 0; i < NumRects; i++) {
+      if (pRects[i].bottom >= pRects[i].top
+       && pRects[i].right  >= pRects[i].left)
+        m_state.rs.scissors.at(i) = pRects[i];
+    }
     
     if (m_state.rs.state != nullptr) {
       D3D11_RASTERIZER_DESC rsDesc;
@@ -2554,17 +2498,22 @@ namespace dxvk {
     }
     
     for (uint32_t i = 0; i < m_state.rs.numViewports; i++) {
-      // TODO D3D11 docs aren't clear about what should happen
-      // when there are undefined scissor rects for a viewport.
-      // Figure out what it does on Windows.
       if (enableScissorTest && (i < m_state.rs.numScissors)) {
-        const D3D11_RECT& sr = m_state.rs.scissors.at(i);
+        D3D11_RECT sr = m_state.rs.scissors.at(i);
         
-        scissors.at(i) = VkRect2D {
-          VkOffset2D { sr.left, sr.top },
-          VkExtent2D {
-            static_cast<uint32_t>(sr.right  - sr.left),
-            static_cast<uint32_t>(sr.bottom - sr.top) } };
+        VkOffset2D srPosA;
+        srPosA.x = std::max<int32_t>(0, sr.left);
+        srPosA.y = std::max<int32_t>(0, sr.top);
+        
+        VkOffset2D srPosB;
+        srPosB.x = std::max<int32_t>(srPosA.x, sr.right);
+        srPosB.y = std::max<int32_t>(srPosA.y, sr.bottom);
+        
+        VkExtent2D srSize;
+        srSize.width  = uint32_t(srPosB.x - srPosA.x);
+        srSize.height = uint32_t(srPosB.y - srPosA.y);
+        
+        scissors.at(i) = VkRect2D { srPosA, srSize };
       } else {
         scissors.at(i) = VkRect2D {
           VkOffset2D { 0, 0 },
@@ -2587,7 +2536,7 @@ namespace dxvk {
   }
   
   
-  void D3D11DeviceContext::BindFramebuffer() {
+  void D3D11DeviceContext::BindFramebuffer(BOOL Spill) {
     // NOTE According to the Microsoft docs, we are supposed to
     // unbind overlapping shader resource views. Since this comes
     // with a large performance penalty we'll ignore this until an
@@ -2612,8 +2561,11 @@ namespace dxvk {
     }
     
     // Create and bind the framebuffer object to the context
-    EmitCs([cAttachments = std::move(attachments)] (DxvkContext* ctx) {
-      ctx->bindRenderTargets(cAttachments);
+    EmitCs([
+      cAttachments = std::move(attachments),
+      cSpill       = Spill
+    ] (DxvkContext* ctx) {
+      ctx->bindRenderTargets(cAttachments, cSpill);
     });
   }
   
@@ -2819,6 +2771,25 @@ namespace dxvk {
       }
     }
   }
+
+
+  void D3D11DeviceContext::SetRenderTargets(
+          UINT                              NumViews,
+          ID3D11RenderTargetView* const*    ppRenderTargetViews,
+          ID3D11DepthStencilView*           pDepthStencilView) {
+    // Native D3D11 does not change the render targets if
+    // the parameters passed to this method are invalid.
+    if (!ValidateRenderTargets(NumViews, ppRenderTargetViews, pDepthStencilView))
+      return;
+    
+    for (UINT i = 0; i < m_state.om.renderTargetViews.size(); i++) {
+      m_state.om.renderTargetViews.at(i) = i < NumViews
+        ? static_cast<D3D11RenderTargetView*>(ppRenderTargetViews[i])
+        : nullptr;
+    }
+    
+    m_state.om.depthStencilView = static_cast<D3D11DepthStencilView*>(pDepthStencilView);
+  }
   
   
   void D3D11DeviceContext::InitUnorderedAccessViewCounters(
@@ -2832,14 +2803,13 @@ namespace dxvk {
         const DxvkBufferSlice counterSlice = uav->GetCounterSlice();
         const D3D11UavCounter counterValue = { pUAVInitialCounts[i] };
         
-        if (counterSlice.defined()
-         && counterValue.atomicCtr != 0xFFFFFFFFu) {
+        if (counterSlice.defined() && counterValue.atomicCtr != 0xFFFFFFFFu) {
           EmitCs([counterSlice, counterValue] (DxvkContext* ctx) {
-            ctx->updateBuffer(
+            ctx->clearBuffer(
               counterSlice.buffer(),
               counterSlice.offset(),
               counterSlice.length(),
-              &counterValue);
+              counterValue.atomicCtr);
           });
         }
       }
@@ -2868,7 +2838,7 @@ namespace dxvk {
   
   
   void D3D11DeviceContext::RestoreState() {
-    BindFramebuffer();
+    BindFramebuffer(m_state.om.isUavRendering);
     
     BindShader(m_state.vs.shader.ptr(), VK_SHADER_STAGE_VERTEX_BIT);
     BindShader(m_state.hs.shader.ptr(), VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT);

@@ -87,7 +87,7 @@ namespace dxvk {
     /* Emit                                 */
     { 0, DxbcInstClass::GeometryEmit },
     /* EmitThenCut                          */
-    { },
+    { 0, DxbcInstClass::GeometryEmit },
     /* EndIf                                */
     { 0, DxbcInstClass::ControlFlow },
     /* EndLoop                              */
@@ -582,7 +582,9 @@ namespace dxvk {
       { DxbcOperandKind::DstReg, DxbcScalarType::Uint32  },
     } },
     /* EmitThenCutStream                    */
-    { },
+    { 1, DxbcInstClass::GeometryEmit, {
+      { DxbcOperandKind::DstReg, DxbcScalarType::Uint32  },
+    } },
     /* InterfaceCall                        */
     { },
     /* BufInfo                              */
@@ -958,29 +960,70 @@ namespace dxvk {
     /* Sync                                 */
     { 0, DxbcInstClass::Barrier },
     /* DAdd                                 */
-    { },
+    { 3, DxbcInstClass::VectorAlu, {
+      { DxbcOperandKind::DstReg, DxbcScalarType::Float64 },
+      { DxbcOperandKind::SrcReg, DxbcScalarType::Float64 },
+      { DxbcOperandKind::SrcReg, DxbcScalarType::Float64 },
+    } },
     /* DMax                                 */
-    { },
+    { 3, DxbcInstClass::VectorAlu, {
+      { DxbcOperandKind::DstReg, DxbcScalarType::Float64 },
+      { DxbcOperandKind::SrcReg, DxbcScalarType::Float64 },
+      { DxbcOperandKind::SrcReg, DxbcScalarType::Float64 },
+    } },
     /* DMin                                 */
-    { },
+    { 3, DxbcInstClass::VectorAlu, {
+      { DxbcOperandKind::DstReg, DxbcScalarType::Float64 },
+      { DxbcOperandKind::SrcReg, DxbcScalarType::Float64 },
+      { DxbcOperandKind::SrcReg, DxbcScalarType::Float64 },
+    } },
     /* DMul                                 */
-    { },
+    { 3, DxbcInstClass::VectorAlu, {
+      { DxbcOperandKind::DstReg, DxbcScalarType::Float64 },
+      { DxbcOperandKind::SrcReg, DxbcScalarType::Float64 },
+      { DxbcOperandKind::SrcReg, DxbcScalarType::Float64 },
+    } },
     /* DEq                                  */
-    { },
+    { 3, DxbcInstClass::VectorCmp, {
+      { DxbcOperandKind::DstReg, DxbcScalarType::Uint32  },
+      { DxbcOperandKind::SrcReg, DxbcScalarType::Float64 },
+      { DxbcOperandKind::SrcReg, DxbcScalarType::Float64 },
+    } },
     /* DGe                                  */
-    { },
+    { 3, DxbcInstClass::VectorCmp, {
+      { DxbcOperandKind::DstReg, DxbcScalarType::Uint32  },
+      { DxbcOperandKind::SrcReg, DxbcScalarType::Float64 },
+      { DxbcOperandKind::SrcReg, DxbcScalarType::Float64 },
+    } },
     /* DLt                                  */
-    { },
+    { 3, DxbcInstClass::VectorCmp, {
+      { DxbcOperandKind::DstReg, DxbcScalarType::Uint32  },
+      { DxbcOperandKind::SrcReg, DxbcScalarType::Float64 },
+      { DxbcOperandKind::SrcReg, DxbcScalarType::Float64 },
+    } },
     /* DNe                                  */
-    { },
+    { 3, DxbcInstClass::VectorCmp, {
+      { DxbcOperandKind::DstReg, DxbcScalarType::Uint32  },
+      { DxbcOperandKind::SrcReg, DxbcScalarType::Float64 },
+      { DxbcOperandKind::SrcReg, DxbcScalarType::Float64 },
+    } },
     /* DMov                                 */
-    { },
+    { 2, DxbcInstClass::VectorAlu, {
+      { DxbcOperandKind::DstReg, DxbcScalarType::Float64 },
+      { DxbcOperandKind::SrcReg, DxbcScalarType::Float64 },
+    } },
     /* DMovc                                */
     { },
     /* DtoF                                 */
-    { },
+    { 2, DxbcInstClass::ConvertFloat64, {
+      { DxbcOperandKind::DstReg, DxbcScalarType::Float32 },
+      { DxbcOperandKind::SrcReg, DxbcScalarType::Float64 },
+    } },
     /* FtoD                                 */
-    { },
+    { 2, DxbcInstClass::ConvertFloat64, {
+      { DxbcOperandKind::DstReg, DxbcScalarType::Float64 },
+      { DxbcOperandKind::SrcReg, DxbcScalarType::Float32 },
+    } },
     /* EvalSnapped                          */
     { 3, DxbcInstClass::Interpolate, {
       { DxbcOperandKind::DstReg, DxbcScalarType::Float32 },

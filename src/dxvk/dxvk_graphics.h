@@ -50,15 +50,11 @@ namespace dxvk {
     VkVertexInputBindingDescription     ilBindings[DxvkLimits::MaxNumVertexBindings];
     uint32_t                            ilDivisors[DxvkLimits::MaxNumVertexBindings];
     
-    VkBool32                            rsEnableDepthClamp;
-    VkBool32                            rsEnableDiscard;
+    VkBool32                            rsDepthClampEnable;
+    VkBool32                            rsDepthBiasEnable;
     VkPolygonMode                       rsPolygonMode;
     VkCullModeFlags                     rsCullMode;
     VkFrontFace                         rsFrontFace;
-    VkBool32                            rsDepthBiasEnable;
-    float                               rsDepthBiasConstant;
-    float                               rsDepthBiasClamp;
-    float                               rsDepthBiasSlope;
     uint32_t                            rsViewportCount;
     
     VkSampleCountFlagBits               msSampleCount;
@@ -68,13 +64,10 @@ namespace dxvk {
     
     VkBool32                            dsEnableDepthTest;
     VkBool32                            dsEnableDepthWrite;
-    VkBool32                            dsEnableDepthBounds;
     VkBool32                            dsEnableStencilTest;
     VkCompareOp                         dsDepthCompareOp;
     VkStencilOpState                    dsStencilOpFront;
     VkStencilOpState                    dsStencilOpBack;
-    float                               dsDepthBoundsMin;
-    float                               dsDepthBoundsMax;
     
     VkBool32                            omEnableLogicOp;
     VkLogicOp                           omLogicOp;
@@ -200,8 +193,8 @@ namespace dxvk {
      * slots used by the pipeline.
      * \returns Pipeline layout
      */
-    Rc<DxvkPipelineLayout> layout() const {
-      return m_layout;
+    DxvkPipelineLayout* layout() const {
+      return m_layout.ptr();
     }
     
     /**

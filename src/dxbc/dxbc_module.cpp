@@ -24,14 +24,10 @@ namespace dxvk {
         m_shexChunk = new DxbcShex(chunkReader);
       
       if ((tag == "ISGN"))
-        m_isgnChunk = new DxbcIsgn(chunkReader);
+        m_isgnChunk = new DxbcIsgn(chunkReader, tag);
       
-      if ((tag == "OSGN"))
-        m_osgnChunk = new DxbcIsgn(chunkReader);
-      
-//       if ((tag == "OSG5"))
-//         m_osgnChunk = new DxbcIsgn(chunkReader);
-      
+      if ((tag == "OSGN") || (tag == "OSG5"))
+        m_osgnChunk = new DxbcIsgn(chunkReader, tag);
     }
   }
   
@@ -42,25 +38,26 @@ namespace dxvk {
   
   
   Rc<DxvkShader> DxbcModule::compile(
-    const DxbcOptions& options,
-    const std::string& fileName) const {
+    const DxbcModuleInfo& moduleInfo,
+    const std::string&    fileName) const {
     if (m_shexChunk == nullptr)
       throw DxvkError("DxbcModule::compile: No SHDR/SHEX chunk");
     
     DxbcAnalysisInfo analysisInfo;
     
-    DxbcAnalyzer analyzer(options,
-      m_shexChunk->version(),
-      m_isgnChunk, m_osgnChunk,
-      analysisInfo);
-    
-    DxbcCompiler compiler(
-      fileName, options,
+    DxbcAnalyzer analyzer(moduleInfo,
       m_shexChunk->version(),
       m_isgnChunk, m_osgnChunk,
       analysisInfo);
     
     this->runAnalyzer(analyzer, m_shexChunk->slice());
+    
+    DxbcCompiler compiler(
+      fileName, moduleInfo,
+      m_shexChunk->version(),
+      m_isgnChunk, m_osgnChunk,
+      analysisInfo);
+    
     this->runCompiler(compiler, m_shexChunk->slice());
     
     return compiler.finalize();

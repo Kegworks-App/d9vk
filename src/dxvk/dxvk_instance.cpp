@@ -1,13 +1,23 @@
+#include <version.h>
+
 #include "dxvk_instance.h"
+#include "dxvk_openvr.h"
 
 #include <algorithm>
 
 namespace dxvk {
   
-  DxvkInstance::DxvkInstance()
-  : m_vkl(new vk::LibraryFn()),
-    m_vki(new vk::InstanceFn(this->createInstance())) {
-    
+  DxvkInstance::DxvkInstance() {
+    Logger::info(str::format("Game: ", env::getExeName()));
+    Logger::info(str::format("DXVK: ", DXVK_VERSION));
+
+    g_vrInstance.initInstanceExtensions();
+
+    m_vkl = new vk::LibraryFn();
+    m_vki = new vk::InstanceFn(this->createInstance());
+
+    m_adapters = this->queryAdapters();
+    g_vrInstance.initDeviceExtensions(this);
   }
   
   
@@ -16,26 +26,10 @@ namespace dxvk {
   }
   
   
-  std::vector<Rc<DxvkAdapter>> DxvkInstance::enumAdapters() {
-    uint32_t numAdapters = 0;
-    if (m_vki->vkEnumeratePhysicalDevices(m_vki->instance(), &numAdapters, nullptr) != VK_SUCCESS)
-      throw DxvkError("DxvkInstance::enumAdapters: Failed to enumerate adapters");
-    
-    std::vector<VkPhysicalDevice> adapters(numAdapters);
-    if (m_vki->vkEnumeratePhysicalDevices(m_vki->instance(), &numAdapters, adapters.data()) != VK_SUCCESS)
-      throw DxvkError("DxvkInstance::enumAdapters: Failed to enumerate adapters");
-    
-    std::vector<Rc<DxvkAdapter>> result;
-    for (uint32_t i = 0; i < numAdapters; i++)
-      result.push_back(new DxvkAdapter(this, adapters[i]));
-    
-    std::sort(result.begin(), result.end(),
-      [this] (const Rc<DxvkAdapter>& a, const Rc<DxvkAdapter>& b) -> bool {
-        return a->deviceProperties().deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU
-            && b->deviceProperties().deviceType != VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
-      });
-    
-    return result;
+  Rc<DxvkAdapter> DxvkInstance::enumAdapters(uint32_t index) const {
+    return index < m_adapters.size()
+      ? m_adapters[index]
+      : nullptr;
   }
   
   
@@ -51,6 +45,8 @@ namespace dxvk {
     
     // Generate list of extensions that we're actually going to use
     vk::NameSet enabledExtensionSet = extensionsToEnable.getEnabledExtensionNames();
+    enabledExtensionSet.merge(g_vrInstance.getInstanceExtensions());
+    
     vk::NameList enabledExtensionList = enabledExtensionSet.getNameList();
     
     Logger::info("Enabled instance extensions:");
@@ -78,6 +74,29 @@ namespace dxvk {
     VkInstance result = VK_NULL_HANDLE;
     if (m_vkl->vkCreateInstance(&info, nullptr, &result) != VK_SUCCESS)
       throw DxvkError("DxvkInstance::createInstance: Failed to create Vulkan instance");
+    return result;
+  }
+  
+  
+  std::vector<Rc<DxvkAdapter>> DxvkInstance::queryAdapters() {
+    uint32_t numAdapters = 0;
+    if (m_vki->vkEnumeratePhysicalDevices(m_vki->instance(), &numAdapters, nullptr) != VK_SUCCESS)
+      throw DxvkError("DxvkInstance::enumAdapters: Failed to enumerate adapters");
+    
+    std::vector<VkPhysicalDevice> adapters(numAdapters);
+    if (m_vki->vkEnumeratePhysicalDevices(m_vki->instance(), &numAdapters, adapters.data()) != VK_SUCCESS)
+      throw DxvkError("DxvkInstance::enumAdapters: Failed to enumerate adapters");
+    
+    std::vector<Rc<DxvkAdapter>> result;
+    for (uint32_t i = 0; i < numAdapters; i++)
+      result.push_back(new DxvkAdapter(this, adapters[i]));
+    
+    std::sort(result.begin(), result.end(),
+      [this] (const Rc<DxvkAdapter>& a, const Rc<DxvkAdapter>& b) -> bool {
+        return a->deviceProperties().deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU
+            && b->deviceProperties().deviceType != VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
+      });
+    
     return result;
   }
   
