@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="debug|Win32">
+      <Configuration>debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="debug|x64">
+      <Configuration>debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="release|Win32">
+      <Configuration>release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="release|x64">
+      <Configuration>release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{F5A342F1-20FC-4EFD-AEEF-226CE821C8E6}</ProjectGuid>
+    <Keyword>x64Proj</Keyword>
+    <RootNamespace>d3d11</RootNamespace>
+    <Platform>x64</Platform>
+    <ProjectName>d3d11</ProjectName>
+    <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v141</PlatformToolset>
+    <WholeProgramOptimization>false</WholeProgramOptimization>
+    <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+    <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+    <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+    <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+    <Optimization>Disabled</Optimization>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+    <OutDir>.\</OutDir>
+    <IntDir>src@d3d11@@d3d11@sha\</IntDir>
+    <TargetName>d3d11</TargetName>
+    <TargetExt>.dll</TargetExt>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>true</MinimalRebuild>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <PrecompiledHeader />
+      <WarningLevel>Level2</WarningLevel>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions />
+    </ResourceCompile>
+    <Link>
+      <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
+      <AdditionalDependencies>D:\Projekte\Windows\dxvk/lib\vulkan-1.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib;..\..\src\util\libutil.a;..\..\src\dxvk\libdxvk.a;..\..\src\spirv\libspirv.a;..\..\src\dxgi\dxgi.lib;..\..\src\dxbc\libdxbc.a;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>$(OutDir)d3d11.dll</OutputFile>
+      <SubSystem>Windows</SubSystem>
+      <ImportLibrary>d3d11.lib</ImportLibrary>
+      <ModuleDefinitionFile>..\..\..\src\d3d11\d3d11.def</ModuleDefinitionFile>
+      <ProgramDataBaseFileName>$(OutDir}d3d11.pdb</ProgramDataBaseFileName>
+      <TargetMachine>MachineX64</TargetMachine>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <CLCompile Include="..\..\..\src\d3d11\d3d11_blend.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@d3d11@@d3d11@sha;.;..\..\..\src\d3d11;..\..\..\./include;..\..\include;..\..\..\src\dxvk\.;..\dxvk;..\..\..\src\dxgi\.;..\dxgi;..\..\..\src\dxbc\.;..\dxbc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)d3d11_blend.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\d3d11\d3d11_buffer.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@d3d11@@d3d11@sha;.;..\..\..\src\d3d11;..\..\..\./include;..\..\include;..\..\..\src\dxvk\.;..\dxvk;..\..\..\src\dxgi\.;..\dxgi;..\..\..\src\dxbc\.;..\dxbc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)d3d11_buffer.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\d3d11\d3d11_class_linkage.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@d3d11@@d3d11@sha;.;..\..\..\src\d3d11;..\..\..\./include;..\..\include;..\..\..\src\dxvk\.;..\dxvk;..\..\..\src\dxgi\.;..\dxgi;..\..\..\src\dxbc\.;..\dxbc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)d3d11_class_linkage.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\d3d11\d3d11_cmdlist.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@d3d11@@d3d11@sha;.;..\..\..\src\d3d11;..\..\..\./include;..\..\include;..\..\..\src\dxvk\.;..\dxvk;..\..\..\src\dxgi\.;..\dxgi;..\..\..\src\dxbc\.;..\dxbc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)d3d11_cmdlist.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\d3d11\d3d11_context.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@d3d11@@d3d11@sha;.;..\..\..\src\d3d11;..\..\..\./include;..\..\include;..\..\..\src\dxvk\.;..\dxvk;..\..\..\src\dxgi\.;..\dxgi;..\..\..\src\dxbc\.;..\dxbc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)d3d11_context.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\d3d11\d3d11_context_def.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@d3d11@@d3d11@sha;.;..\..\..\src\d3d11;..\..\..\./include;..\..\include;..\..\..\src\dxvk\.;..\dxvk;..\..\..\src\dxgi\.;..\dxgi;..\..\..\src\dxbc\.;..\dxbc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)d3d11_context_def.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\d3d11\d3d11_context_imm.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@d3d11@@d3d11@sha;.;..\..\..\src\d3d11;..\..\..\./include;..\..\include;..\..\..\src\dxvk\.;..\dxvk;..\..\..\src\dxgi\.;..\dxgi;..\..\..\src\dxbc\.;..\dxbc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)d3d11_context_imm.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\d3d11\d3d11_depth_stencil.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@d3d11@@d3d11@sha;.;..\..\..\src\d3d11;..\..\..\./include;..\..\include;..\..\..\src\dxvk\.;..\dxvk;..\..\..\src\dxgi\.;..\dxgi;..\..\..\src\dxbc\.;..\dxbc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)d3d11_depth_stencil.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\d3d11\d3d11_device.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@d3d11@@d3d11@sha;.;..\..\..\src\d3d11;..\..\..\./include;..\..\include;..\..\..\src\dxvk\.;..\dxvk;..\..\..\src\dxgi\.;..\dxgi;..\..\..\src\dxbc\.;..\dxbc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)d3d11_device.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\d3d11\d3d11_enums.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@d3d11@@d3d11@sha;.;..\..\..\src\d3d11;..\..\..\./include;..\..\include;..\..\..\src\dxvk\.;..\dxvk;..\..\..\src\dxgi\.;..\dxgi;..\..\..\src\dxbc\.;..\dxbc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)d3d11_enums.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\d3d11\d3d11_input_layout.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@d3d11@@d3d11@sha;.;..\..\..\src\d3d11;..\..\..\./include;..\..\include;..\..\..\src\dxvk\.;..\dxvk;..\..\..\src\dxgi\.;..\dxgi;..\..\..\src\dxbc\.;..\dxbc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)d3d11_input_layout.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\d3d11\d3d11_interop.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@d3d11@@d3d11@sha;.;..\..\..\src\d3d11;..\..\..\./include;..\..\include;..\..\..\src\dxvk\.;..\dxvk;..\..\..\src\dxgi\.;..\dxgi;..\..\..\src\dxbc\.;..\dxbc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)d3d11_interop.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\d3d11\d3d11_main.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@d3d11@@d3d11@sha;.;..\..\..\src\d3d11;..\..\..\./include;..\..\include;..\..\..\src\dxvk\.;..\dxvk;..\..\..\src\dxgi\.;..\dxgi;..\..\..\src\dxbc\.;..\dxbc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)d3d11_main.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\d3d11\d3d11_options.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@d3d11@@d3d11@sha;.;..\..\..\src\d3d11;..\..\..\./include;..\..\include;..\..\..\src\dxvk\.;..\dxvk;..\..\..\src\dxgi\.;..\dxgi;..\..\..\src\dxbc\.;..\dxbc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)d3d11_options.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\d3d11\d3d11_present.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@d3d11@@d3d11@sha;.;..\..\..\src\d3d11;..\..\..\./include;..\..\include;..\..\..\src\dxvk\.;..\dxvk;..\..\..\src\dxgi\.;..\dxgi;..\..\..\src\dxbc\.;..\dxbc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)d3d11_present.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\d3d11\d3d11_query.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@d3d11@@d3d11@sha;.;..\..\..\src\d3d11;..\..\..\./include;..\..\include;..\..\..\src\dxvk\.;..\dxvk;..\..\..\src\dxgi\.;..\dxgi;..\..\..\src\dxbc\.;..\dxbc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)d3d11_query.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\d3d11\d3d11_rasterizer.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@d3d11@@d3d11@sha;.;..\..\..\src\d3d11;..\..\..\./include;..\..\include;..\..\..\src\dxvk\.;..\dxvk;..\..\..\src\dxgi\.;..\dxgi;..\..\..\src\dxbc\.;..\dxbc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)d3d11_rasterizer.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\d3d11\d3d11_sampler.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@d3d11@@d3d11@sha;.;..\..\..\src\d3d11;..\..\..\./include;..\..\include;..\..\..\src\dxvk\.;..\dxvk;..\..\..\src\dxgi\.;..\dxgi;..\..\..\src\dxbc\.;..\dxbc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)d3d11_sampler.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\d3d11\d3d11_shader.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@d3d11@@d3d11@sha;.;..\..\..\src\d3d11;..\..\..\./include;..\..\include;..\..\..\src\dxvk\.;..\dxvk;..\..\..\src\dxgi\.;..\dxgi;..\..\..\src\dxbc\.;..\dxbc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)d3d11_shader.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\d3d11\d3d11_state.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@d3d11@@d3d11@sha;.;..\..\..\src\d3d11;..\..\..\./include;..\..\include;..\..\..\src\dxvk\.;..\dxvk;..\..\..\src\dxgi\.;..\dxgi;..\..\..\src\dxbc\.;..\dxbc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)d3d11_state.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\d3d11\d3d11_texture.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@d3d11@@d3d11@sha;.;..\..\..\src\d3d11;..\..\..\./include;..\..\include;..\..\..\src\dxvk\.;..\dxvk;..\..\..\src\dxgi\.;..\dxgi;..\..\..\src\dxbc\.;..\dxbc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)d3d11_texture.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\d3d11\d3d11_util.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@d3d11@@d3d11@sha;.;..\..\..\src\d3d11;..\..\..\./include;..\..\include;..\..\..\src\dxvk\.;..\dxvk;..\..\..\src\dxgi\.;..\dxgi;..\..\..\src\dxbc\.;..\dxbc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)d3d11_util.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\d3d11\d3d11_view_dsv.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@d3d11@@d3d11@sha;.;..\..\..\src\d3d11;..\..\..\./include;..\..\include;..\..\..\src\dxvk\.;..\dxvk;..\..\..\src\dxgi\.;..\dxgi;..\..\..\src\dxbc\.;..\dxbc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)d3d11_view_dsv.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\d3d11\d3d11_view_rtv.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@d3d11@@d3d11@sha;.;..\..\..\src\d3d11;..\..\..\./include;..\..\include;..\..\..\src\dxvk\.;..\dxvk;..\..\..\src\dxgi\.;..\dxgi;..\..\..\src\dxbc\.;..\dxbc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)d3d11_view_rtv.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\d3d11\d3d11_view_srv.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@d3d11@@d3d11@sha;.;..\..\..\src\d3d11;..\..\..\./include;..\..\include;..\..\..\src\dxvk\.;..\dxvk;..\..\..\src\dxgi\.;..\dxgi;..\..\..\src\dxbc\.;..\dxbc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)d3d11_view_srv.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\d3d11\d3d11_view_uav.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@d3d11@@d3d11@sha;.;..\..\..\src\d3d11;..\..\..\./include;..\..\include;..\..\..\src\dxvk\.;..\dxvk;..\..\..\src\dxgi\.;..\dxgi;..\..\..\src\dxbc\.;..\dxbc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)d3d11_view_uav.cpp.obj</ObjectFileName>
+    </CLCompile>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ItemGroup>
+    <ProjectReference Include="D:\Projekte\Windows\dxvk\vs.w64\REGEN.vcxproj">
+      <Project>{55D9687B-B79D-4EC5-ABDA-82A6A6B5B1CF}</Project>
+    </ProjectReference>
+  </ItemGroup>
+</Project>

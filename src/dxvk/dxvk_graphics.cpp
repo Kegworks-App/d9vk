@@ -159,7 +159,7 @@ namespace dxvk {
     // Compile optimized pipeline asynchronously
     if (m_compiler != nullptr)
       m_compiler->queueCompilation(this, newPipeline, false);
-    
+
     m_stateCache->cachePipelineInstance(this, newPipeline);
     return newPipelineHandle;
   }

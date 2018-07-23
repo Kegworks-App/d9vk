@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="debug|Win32">
+      <Configuration>debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="debug|x64">
+      <Configuration>debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="release|Win32">
+      <Configuration>release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="release|x64">
+      <Configuration>release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{62A7EDD0-0B50-48E5-8524-5A74B09713FD}</ProjectGuid>
+    <Keyword>x64Proj</Keyword>
+    <RootNamespace>dxbc</RootNamespace>
+    <Platform>x64</Platform>
+    <ProjectName>dxbc</ProjectName>
+    <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v141</PlatformToolset>
+    <WholeProgramOptimization>false</WholeProgramOptimization>
+    <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+    <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+    <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+    <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+    <Optimization>Disabled</Optimization>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+    <OutDir>.\</OutDir>
+    <IntDir>src@dxbc@@dxbc@sta\</IntDir>
+    <TargetName>libdxbc</TargetName>
+    <TargetExt>.a</TargetExt>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>true</MinimalRebuild>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <PrecompiledHeader />
+      <WarningLevel>Level2</WarningLevel>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions />
+    </ResourceCompile>
+    <Link>
+      <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>$(OutDir)libdxbc.a</OutputFile>
+      <SubSystem>Windows</SubSystem>
+      <ProgramDataBaseFileName>$(OutDir}dxbc.pdb</ProgramDataBaseFileName>
+      <TargetMachine>MachineX64</TargetMachine>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <CLCompile Include="..\..\..\src\dxbc\dxbc_analysis.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxbc@@dxbc@sta;.;..\..\..\src\dxbc;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxbc_analysis.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxbc\dxbc_chunk_isgn.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxbc@@dxbc@sta;.;..\..\..\src\dxbc;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxbc_chunk_isgn.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxbc\dxbc_chunk_shex.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxbc@@dxbc@sta;.;..\..\..\src\dxbc;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxbc_chunk_shex.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxbc\dxbc_common.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxbc@@dxbc@sta;.;..\..\..\src\dxbc;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxbc_common.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxbc\dxbc_compiler.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxbc@@dxbc@sta;.;..\..\..\src\dxbc;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxbc_compiler.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxbc\dxbc_defs.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxbc@@dxbc@sta;.;..\..\..\src\dxbc;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxbc_defs.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxbc\dxbc_decoder.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxbc@@dxbc@sta;.;..\..\..\src\dxbc;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxbc_decoder.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxbc\dxbc_header.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxbc@@dxbc@sta;.;..\..\..\src\dxbc;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxbc_header.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxbc\dxbc_module.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxbc@@dxbc@sta;.;..\..\..\src\dxbc;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxbc_module.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxbc\dxbc_names.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxbc@@dxbc@sta;.;..\..\..\src\dxbc;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxbc_names.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxbc\dxbc_options.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxbc@@dxbc@sta;.;..\..\..\src\dxbc;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxbc_options.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxbc\dxbc_reader.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxbc@@dxbc@sta;.;..\..\..\src\dxbc;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxbc_reader.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxbc\dxbc_util.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxbc@@dxbc@sta;.;..\..\..\src\dxbc;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxbc_util.cpp.obj</ObjectFileName>
+    </CLCompile>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ItemGroup>
+    <ProjectReference Include="D:\Projekte\Windows\dxvk\vs.w64\REGEN.vcxproj">
+      <Project>{55D9687B-B79D-4EC5-ABDA-82A6A6B5B1CF}</Project>
+    </ProjectReference>
+  </ItemGroup>
+</Project>

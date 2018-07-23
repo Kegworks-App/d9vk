@@ -1,0 +1,47 @@
+Build started at 2018-06-26T23:41:43.505197
+Main binary: C:\Program Files\Meson\meson.exe
+Python system: Windows
+The Meson build system
+Version: 0.46.1
+Source dir: D:\Projekte\Windows\dxvk
+Build dir: D:\Projekte\Windows\dxvk\vs.w64
+Build type: native build
+Project name: dxvk
+Native C compiler: cl (msvc 19.14.26430)
+Native C++ compiler: cl (msvc 19.14.26430)
+Build machine cpu family: x86_64
+Build machine cpu: x86_64
+Library vulkan-1 found: YES
+Running compile:
+Working directory:  C:\Users\robin\AppData\Local\Temp\tmpe_5h54wb
+Command line:  cl C:\Users\robin\AppData\Local\Temp\tmpe_5h54wb\testfile.cpp /nologo /showIncludes /FeC:\Users\robin\AppData\Local\Temp\tmpe_5h54wb\output.exe /MDd /Od d3d11.lib 
+
+Code:
+ int main(int argc, char **argv) { return 0; }
+Compiler stdout:
+ testfile.cpp
+
+Compiler stderr:
+ 
+Library d3d11 found: YES
+Running compile:
+Working directory:  C:\Users\robin\AppData\Local\Temp\tmp82s5dbe8
+Command line:  cl C:\Users\robin\AppData\Local\Temp\tmp82s5dbe8\testfile.cpp /nologo /showIncludes /FeC:\Users\robin\AppData\Local\Temp\tmp82s5dbe8\output.exe /MDd /Od dxgi.lib 
+
+Code:
+ int main(int argc, char **argv) { return 0; }
+Compiler stdout:
+ testfile.cpp
+
+Compiler stderr:
+ 
+Library dxgi found: YES
+Program glslangValidator found: YES (C:\VulkanSDK\1.1.70.1\Bin\glslangValidator.EXE)
+Dependency threads found: YES (cached)
+Build targets in project: 6
+Generating vcxproj util.
+Generating vcxproj spirv.
+Generating vcxproj dxvk.
+Generating vcxproj dxgi.
+Generating vcxproj dxbc.
+Generating vcxproj d3d11.

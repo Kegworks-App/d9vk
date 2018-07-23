@@ -1,0 +1,12 @@
+diff --git a/src/dxvk/dxvk_surface.cpp b/src/dxvk/dxvk_surface.cpp
+index 20dc456..87b1cff 100644
+--- a/src/dxvk/dxvk_surface.cpp
++++ b/src/dxvk/dxvk_surface.cpp
+@@ -73,6 +73,7 @@ namespace dxvk {
+   VkPresentModeKHR DxvkSurface::pickPresentMode(
+           uint32_t            preferredCount,
+     const VkPresentModeKHR*   preferred) const {
++    return VK_PRESENT_MODE_MAILBOX_KHR;
+     for (uint32_t i = 0; i < preferredCount; i++) {
+       for (auto mode : m_presentModes) {
+         if (mode == preferred[i])

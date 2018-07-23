@@ -1,0 +1,27 @@
+﻿  Performing Custom Build Tools
+  ../../../src/dxgi/shaders/dxgi_presenter_frag.frag
+  Performing Custom Build Tools
+  ../../../src/dxgi/shaders/dxgi_presenter_vert.vert
+  dxgi_adapter.cpp
+d:\projekte\windows\dxvk\src\dxgi\dxgi_interfaces.h(203): warning C4099: "IDXGIVkInteropDevice": Geben Sie den zuerst unter Verwendung von "class" und jetzt unter Verwendung von "struct" gesehenen Namen ein
+  d:\projekte\windows\dxvk\src\dxgi\dxgi_interfaces.h(203): note: Siehe Deklaration von "IDXGIVkInteropDevice"
+  dxgi_device.cpp
+d:\projekte\windows\dxvk\src\dxgi\dxgi_interfaces.h(203): warning C4099: "IDXGIVkInteropDevice": Geben Sie den zuerst unter Verwendung von "class" und jetzt unter Verwendung von "struct" gesehenen Namen ein
+  d:\projekte\windows\dxvk\src\dxgi\dxgi_interfaces.h(203): note: Siehe Deklaration von "IDXGIVkInteropDevice"
+  dxgi_enums.cpp
+  dxgi_factory.cpp
+d:\projekte\windows\dxvk\src\dxgi\dxgi_interfaces.h(203): warning C4099: "IDXGIVkInteropDevice": Geben Sie den zuerst unter Verwendung von "class" und jetzt unter Verwendung von "struct" gesehenen Namen ein
+  d:\projekte\windows\dxvk\src\dxgi\dxgi_interfaces.h(203): note: Siehe Deklaration von "IDXGIVkInteropDevice"
+  dxgi_format.cpp
+  dxgi_main.cpp
+d:\projekte\windows\dxvk\src\dxgi\dxgi_interfaces.h(203): warning C4099: "IDXGIVkInteropDevice": Geben Sie den zuerst unter Verwendung von "class" und jetzt unter Verwendung von "struct" gesehenen Namen ein
+  d:\projekte\windows\dxvk\src\dxgi\dxgi_interfaces.h(203): note: Siehe Deklaration von "IDXGIVkInteropDevice"
+  dxgi_options.cpp
+  dxgi_output.cpp
+d:\projekte\windows\dxvk\src\dxgi\dxgi_interfaces.h(203): warning C4099: "IDXGIVkInteropDevice": Geben Sie den zuerst unter Verwendung von "class" und jetzt unter Verwendung von "struct" gesehenen Namen ein
+  d:\projekte\windows\dxvk\src\dxgi\dxgi_interfaces.h(203): note: Siehe Deklaration von "IDXGIVkInteropDevice"
+  dxgi_presenter.cpp
+  dxgi_swapchain.cpp
+d:\projekte\windows\dxvk\src\dxgi\dxgi_interfaces.h(203): warning C4099: "IDXGIVkInteropDevice": Geben Sie den zuerst unter Verwendung von "class" und jetzt unter Verwendung von "struct" gesehenen Namen ein
+  d:\projekte\windows\dxvk\src\dxgi\dxgi_interfaces.h(203): note: Siehe Deklaration von "IDXGIVkInteropDevice"
+LINK : fatal error LNK1104: Datei "..\..\src\util\libutil.a" kann nicht geöffnet werden.

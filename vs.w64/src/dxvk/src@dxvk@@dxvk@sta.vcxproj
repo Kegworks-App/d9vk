@@ -1,0 +1,520 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="debug|Win32">
+      <Configuration>debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="debug|x64">
+      <Configuration>debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="release|Win32">
+      <Configuration>release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="release|x64">
+      <Configuration>release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{CF568EB8-4625-49D0-ADC1-450570CC6B2F}</ProjectGuid>
+    <Keyword>x64Proj</Keyword>
+    <RootNamespace>dxvk</RootNamespace>
+    <Platform>x64</Platform>
+    <ProjectName>dxvk</ProjectName>
+    <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v141</PlatformToolset>
+    <WholeProgramOptimization>false</WholeProgramOptimization>
+    <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+    <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+    <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+    <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+    <Optimization>Disabled</Optimization>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ItemGroup>
+    <CustomBuild Include="..\..\..\src\dxvk\shaders/dxvk_clear_buffer_u.comp">
+      <Command>"C:\VulkanSDK\1.1.70.1\Bin\glslangValidator.EXE" "-V" "--vn" "dxvk_clear_buffer_u" "../../../src/dxvk/shaders/dxvk_clear_buffer_u.comp" "-o" "src@dxvk@@dxvk@sta/dxvk_clear_buffer_u.h"</Command>
+      <Outputs>src@dxvk@@dxvk@sta\dxvk_clear_buffer_u.h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\dxvk\shaders/dxvk_clear_buffer_f.comp">
+      <Command>"C:\VulkanSDK\1.1.70.1\Bin\glslangValidator.EXE" "-V" "--vn" "dxvk_clear_buffer_f" "../../../src/dxvk/shaders/dxvk_clear_buffer_f.comp" "-o" "src@dxvk@@dxvk@sta/dxvk_clear_buffer_f.h"</Command>
+      <Outputs>src@dxvk@@dxvk@sta\dxvk_clear_buffer_f.h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\dxvk\shaders/dxvk_clear_image1d_u.comp">
+      <Command>"C:\VulkanSDK\1.1.70.1\Bin\glslangValidator.EXE" "-V" "--vn" "dxvk_clear_image1d_u" "../../../src/dxvk/shaders/dxvk_clear_image1d_u.comp" "-o" "src@dxvk@@dxvk@sta/dxvk_clear_image1d_u.h"</Command>
+      <Outputs>src@dxvk@@dxvk@sta\dxvk_clear_image1d_u.h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\dxvk\shaders/dxvk_clear_image1d_f.comp">
+      <Command>"C:\VulkanSDK\1.1.70.1\Bin\glslangValidator.EXE" "-V" "--vn" "dxvk_clear_image1d_f" "../../../src/dxvk/shaders/dxvk_clear_image1d_f.comp" "-o" "src@dxvk@@dxvk@sta/dxvk_clear_image1d_f.h"</Command>
+      <Outputs>src@dxvk@@dxvk@sta\dxvk_clear_image1d_f.h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\dxvk\shaders/dxvk_clear_image1darr_u.comp">
+      <Command>"C:\VulkanSDK\1.1.70.1\Bin\glslangValidator.EXE" "-V" "--vn" "dxvk_clear_image1darr_u" "../../../src/dxvk/shaders/dxvk_clear_image1darr_u.comp" "-o" "src@dxvk@@dxvk@sta/dxvk_clear_image1darr_u.h"</Command>
+      <Outputs>src@dxvk@@dxvk@sta\dxvk_clear_image1darr_u.h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\dxvk\shaders/dxvk_clear_image1darr_f.comp">
+      <Command>"C:\VulkanSDK\1.1.70.1\Bin\glslangValidator.EXE" "-V" "--vn" "dxvk_clear_image1darr_f" "../../../src/dxvk/shaders/dxvk_clear_image1darr_f.comp" "-o" "src@dxvk@@dxvk@sta/dxvk_clear_image1darr_f.h"</Command>
+      <Outputs>src@dxvk@@dxvk@sta\dxvk_clear_image1darr_f.h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\dxvk\shaders/dxvk_clear_image2d_u.comp">
+      <Command>"C:\VulkanSDK\1.1.70.1\Bin\glslangValidator.EXE" "-V" "--vn" "dxvk_clear_image2d_u" "../../../src/dxvk/shaders/dxvk_clear_image2d_u.comp" "-o" "src@dxvk@@dxvk@sta/dxvk_clear_image2d_u.h"</Command>
+      <Outputs>src@dxvk@@dxvk@sta\dxvk_clear_image2d_u.h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\dxvk\shaders/dxvk_clear_image2d_f.comp">
+      <Command>"C:\VulkanSDK\1.1.70.1\Bin\glslangValidator.EXE" "-V" "--vn" "dxvk_clear_image2d_f" "../../../src/dxvk/shaders/dxvk_clear_image2d_f.comp" "-o" "src@dxvk@@dxvk@sta/dxvk_clear_image2d_f.h"</Command>
+      <Outputs>src@dxvk@@dxvk@sta\dxvk_clear_image2d_f.h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\dxvk\shaders/dxvk_clear_image2darr_u.comp">
+      <Command>"C:\VulkanSDK\1.1.70.1\Bin\glslangValidator.EXE" "-V" "--vn" "dxvk_clear_image2darr_u" "../../../src/dxvk/shaders/dxvk_clear_image2darr_u.comp" "-o" "src@dxvk@@dxvk@sta/dxvk_clear_image2darr_u.h"</Command>
+      <Outputs>src@dxvk@@dxvk@sta\dxvk_clear_image2darr_u.h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\dxvk\shaders/dxvk_clear_image2darr_f.comp">
+      <Command>"C:\VulkanSDK\1.1.70.1\Bin\glslangValidator.EXE" "-V" "--vn" "dxvk_clear_image2darr_f" "../../../src/dxvk/shaders/dxvk_clear_image2darr_f.comp" "-o" "src@dxvk@@dxvk@sta/dxvk_clear_image2darr_f.h"</Command>
+      <Outputs>src@dxvk@@dxvk@sta\dxvk_clear_image2darr_f.h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\dxvk\shaders/dxvk_clear_image3d_u.comp">
+      <Command>"C:\VulkanSDK\1.1.70.1\Bin\glslangValidator.EXE" "-V" "--vn" "dxvk_clear_image3d_u" "../../../src/dxvk/shaders/dxvk_clear_image3d_u.comp" "-o" "src@dxvk@@dxvk@sta/dxvk_clear_image3d_u.h"</Command>
+      <Outputs>src@dxvk@@dxvk@sta\dxvk_clear_image3d_u.h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\dxvk\shaders/dxvk_clear_image3d_f.comp">
+      <Command>"C:\VulkanSDK\1.1.70.1\Bin\glslangValidator.EXE" "-V" "--vn" "dxvk_clear_image3d_f" "../../../src/dxvk/shaders/dxvk_clear_image3d_f.comp" "-o" "src@dxvk@@dxvk@sta/dxvk_clear_image3d_f.h"</Command>
+      <Outputs>src@dxvk@@dxvk@sta\dxvk_clear_image3d_f.h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\dxvk\shaders/dxvk_mipgen_vert.vert">
+      <Command>"C:\VulkanSDK\1.1.70.1\Bin\glslangValidator.EXE" "-V" "--vn" "dxvk_mipgen_vert" "../../../src/dxvk/shaders/dxvk_mipgen_vert.vert" "-o" "src@dxvk@@dxvk@sta/dxvk_mipgen_vert.h"</Command>
+      <Outputs>src@dxvk@@dxvk@sta\dxvk_mipgen_vert.h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\dxvk\shaders/dxvk_mipgen_geom.geom">
+      <Command>"C:\VulkanSDK\1.1.70.1\Bin\glslangValidator.EXE" "-V" "--vn" "dxvk_mipgen_geom" "../../../src/dxvk/shaders/dxvk_mipgen_geom.geom" "-o" "src@dxvk@@dxvk@sta/dxvk_mipgen_geom.h"</Command>
+      <Outputs>src@dxvk@@dxvk@sta\dxvk_mipgen_geom.h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\dxvk\shaders/dxvk_mipgen_frag_1d.frag">
+      <Command>"C:\VulkanSDK\1.1.70.1\Bin\glslangValidator.EXE" "-V" "--vn" "dxvk_mipgen_frag_1d" "../../../src/dxvk/shaders/dxvk_mipgen_frag_1d.frag" "-o" "src@dxvk@@dxvk@sta/dxvk_mipgen_frag_1d.h"</Command>
+      <Outputs>src@dxvk@@dxvk@sta\dxvk_mipgen_frag_1d.h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\dxvk\shaders/dxvk_mipgen_frag_2d.frag">
+      <Command>"C:\VulkanSDK\1.1.70.1\Bin\glslangValidator.EXE" "-V" "--vn" "dxvk_mipgen_frag_2d" "../../../src/dxvk/shaders/dxvk_mipgen_frag_2d.frag" "-o" "src@dxvk@@dxvk@sta/dxvk_mipgen_frag_2d.h"</Command>
+      <Outputs>src@dxvk@@dxvk@sta\dxvk_mipgen_frag_2d.h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\dxvk\shaders/dxvk_mipgen_frag_3d.frag">
+      <Command>"C:\VulkanSDK\1.1.70.1\Bin\glslangValidator.EXE" "-V" "--vn" "dxvk_mipgen_frag_3d" "../../../src/dxvk/shaders/dxvk_mipgen_frag_3d.frag" "-o" "src@dxvk@@dxvk@sta/dxvk_mipgen_frag_3d.h"</Command>
+      <Outputs>src@dxvk@@dxvk@sta\dxvk_mipgen_frag_3d.h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\dxvk\hud/shaders/hud_line.frag">
+      <Command>"C:\VulkanSDK\1.1.70.1\Bin\glslangValidator.EXE" "-V" "--vn" "hud_line" "../../../src/dxvk/hud/shaders/hud_line.frag" "-o" "src@dxvk@@dxvk@sta/hud_line.h"</Command>
+      <Outputs>src@dxvk@@dxvk@sta\hud_line.h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\dxvk\hud/shaders/hud_text.frag">
+      <Command>"C:\VulkanSDK\1.1.70.1\Bin\glslangValidator.EXE" "-V" "--vn" "hud_text" "../../../src/dxvk/hud/shaders/hud_text.frag" "-o" "src@dxvk@@dxvk@sta/hud_text.h"</Command>
+      <Outputs>src@dxvk@@dxvk@sta\hud_text.h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\dxvk\hud/shaders/hud_vert.vert">
+      <Command>"C:\VulkanSDK\1.1.70.1\Bin\glslangValidator.EXE" "-V" "--vn" "hud_vert" "../../../src/dxvk/hud/shaders/hud_vert.vert" "-o" "src@dxvk@@dxvk@sta/hud_vert.h"</Command>
+      <Outputs>src@dxvk@@dxvk@sta\hud_vert.h</Outputs>
+    </CustomBuild>
+  </ItemGroup>
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+    <OutDir>.\</OutDir>
+    <IntDir>src@dxvk@@dxvk@sta\</IntDir>
+    <TargetName>libdxvk</TargetName>
+    <TargetExt>.a</TargetExt>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>true</MinimalRebuild>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <PrecompiledHeader />
+      <WarningLevel>Level2</WarningLevel>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions />
+    </ResourceCompile>
+    <Link>
+      <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib;..\..\src\util\libutil.a;..\..\src\spirv\libspirv.a;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>$(OutDir)libdxvk.a</OutputFile>
+      <SubSystem>Windows</SubSystem>
+      <ProgramDataBaseFileName>$(OutDir}dxvk.pdb</ProgramDataBaseFileName>
+      <TargetMachine>MachineX64</TargetMachine>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <CLInclude Include="src@dxvk@@dxvk@sta\dxvk_clear_buffer_u.h" />
+    <CLInclude Include="src@dxvk@@dxvk@sta\dxvk_clear_buffer_f.h" />
+    <CLInclude Include="src@dxvk@@dxvk@sta\dxvk_clear_image1d_u.h" />
+    <CLInclude Include="src@dxvk@@dxvk@sta\dxvk_clear_image1d_f.h" />
+    <CLInclude Include="src@dxvk@@dxvk@sta\dxvk_clear_image1darr_u.h" />
+    <CLInclude Include="src@dxvk@@dxvk@sta\dxvk_clear_image1darr_f.h" />
+    <CLInclude Include="src@dxvk@@dxvk@sta\dxvk_clear_image2d_u.h" />
+    <CLInclude Include="src@dxvk@@dxvk@sta\dxvk_clear_image2d_f.h" />
+    <CLInclude Include="src@dxvk@@dxvk@sta\dxvk_clear_image2darr_u.h" />
+    <CLInclude Include="src@dxvk@@dxvk@sta\dxvk_clear_image2darr_f.h" />
+    <CLInclude Include="src@dxvk@@dxvk@sta\dxvk_clear_image3d_u.h" />
+    <CLInclude Include="src@dxvk@@dxvk@sta\dxvk_clear_image3d_f.h" />
+    <CLInclude Include="src@dxvk@@dxvk@sta\dxvk_mipgen_vert.h" />
+    <CLInclude Include="src@dxvk@@dxvk@sta\dxvk_mipgen_geom.h" />
+    <CLInclude Include="src@dxvk@@dxvk@sta\dxvk_mipgen_frag_1d.h" />
+    <CLInclude Include="src@dxvk@@dxvk@sta\dxvk_mipgen_frag_2d.h" />
+    <CLInclude Include="src@dxvk@@dxvk@sta\dxvk_mipgen_frag_3d.h" />
+    <CLInclude Include="src@dxvk@@dxvk@sta\hud_line.h" />
+    <CLInclude Include="src@dxvk@@dxvk@sta\hud_text.h" />
+    <CLInclude Include="src@dxvk@@dxvk@sta\hud_vert.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <CLCompile Include="..\..\..\src\dxvk\dxvk_adapter.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxvk_adapter.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\dxvk_barrier.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxvk_barrier.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\dxvk_buffer.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxvk_buffer.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\dxvk_buffer_res.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxvk_buffer_res.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\dxvk_cmdlist.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxvk_cmdlist.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\dxvk_compute.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxvk_compute.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\dxvk_context.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxvk_context.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\dxvk_cs.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxvk_cs.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\dxvk_data.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxvk_data.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\dxvk_descriptor.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxvk_descriptor.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\dxvk_device.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxvk_device.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\dxvk_extensions.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxvk_extensions.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\dxvk_event.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxvk_event.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\dxvk_event_tracker.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxvk_event_tracker.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\dxvk_format.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxvk_format.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\dxvk_framebuffer.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxvk_framebuffer.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\dxvk_graphics.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxvk_graphics.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\dxvk_image.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxvk_image.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\dxvk_instance.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxvk_instance.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\dxvk_lifetime.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxvk_lifetime.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\dxvk_main.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxvk_main.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\dxvk_memory.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxvk_memory.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\dxvk_meta_clear.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxvk_meta_clear.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\dxvk_meta_mipgen.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxvk_meta_mipgen.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\dxvk_meta_resolve.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxvk_meta_resolve.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\dxvk_openvr.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxvk_openvr.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\dxvk_pipecache.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxvk_pipecache.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\dxvk_pipecompiler.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxvk_pipecompiler.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\dxvk_pipelayout.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxvk_pipelayout.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\dxvk_pipemanager.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxvk_pipemanager.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\dxvk_query.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxvk_query.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\dxvk_query_pool.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxvk_query_pool.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\dxvk_query_tracker.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxvk_query_tracker.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\dxvk_queue.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxvk_queue.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\dxvk_renderpass.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxvk_renderpass.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\dxvk_resource.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxvk_resource.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\dxvk_sampler.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxvk_sampler.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\dxvk_shader.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxvk_shader.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\dxvk_spec_const.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxvk_spec_const.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\dxvk_staging.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxvk_staging.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\dxvk_stats.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxvk_stats.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\dxvk_surface.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxvk_surface.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\dxvk_swapchain.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxvk_swapchain.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\dxvk_sync.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxvk_sync.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\dxvk_unbound.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxvk_unbound.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\dxvk_util.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)dxvk_util.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\hud/dxvk_hud.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)hud_dxvk_hud.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\hud/dxvk_hud_config.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)hud_dxvk_hud_config.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\hud/dxvk_hud_devinfo.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)hud_dxvk_hud_devinfo.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\hud/dxvk_hud_font.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)hud_dxvk_hud_font.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\hud/dxvk_hud_fps.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)hud_dxvk_hud_fps.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\hud/dxvk_hud_renderer.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)hud_dxvk_hud_renderer.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\hud/dxvk_hud_stats.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)hud_dxvk_hud_stats.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\vulkan/dxvk_vulkan_extensions.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)vulkan_dxvk_vulkan_extensions.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\vulkan/dxvk_vulkan_loader.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)vulkan_dxvk_vulkan_loader.cpp.obj</ObjectFileName>
+    </CLCompile>
+    <CLCompile Include="..\..\..\src\dxvk\vulkan/dxvk_vulkan_names.cpp">
+      <AdditionalOptions>"/EHsc" "/std:c++latest" %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src@dxvk@@dxvk@sta;.;..\..\..\src\dxvk;..\..\..\./include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)vulkan_dxvk_vulkan_names.cpp.obj</ObjectFileName>
+    </CLCompile>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ItemGroup>
+    <ProjectReference Include="D:\Projekte\Windows\dxvk\vs.w64\REGEN.vcxproj">
+      <Project>{55D9687B-B79D-4EC5-ABDA-82A6A6B5B1CF}</Project>
+    </ProjectReference>
+  </ItemGroup>
+</Project>
