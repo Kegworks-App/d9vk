@@ -6,14 +6,15 @@ namespace dxvk {
   DxvkDevice::DxvkDevice(
     const Rc<DxvkAdapter>&          adapter,
     const Rc<vk::DeviceFn>&         vkd,
-    const Rc<DxvkDeviceExtensions>& extensions,
-    const VkPhysicalDeviceFeatures& features)
-  : m_adapter           (adapter),
+    const DxvkDeviceExtensions&     extensions,
+    const DxvkDeviceFeatures&       features)
+  : m_options           (adapter->instance()->config()),
+    m_adapter           (adapter),
     m_vkd               (vkd),
     m_extensions        (extensions),
     m_features          (features),
     m_properties        (adapter->deviceProperties()),
-    m_memory            (new DxvkMemoryAllocator    (adapter, vkd)),
+    m_memory            (new DxvkMemoryAllocator    (this)),
     m_renderPassPool    (new DxvkRenderPassPool     (vkd)),
     m_pipelineManager   (new DxvkPipelineManager    (this)),
     m_metaClearObjects  (new DxvkMetaClearObjects   (vkd)),
@@ -196,7 +197,8 @@ namespace dxvk {
     const DxvkInterfaceSlots&       iface,
     const SpirvCodeBuffer&          code) {
     return new DxvkShader(stage,
-      slotCount, slotInfos, iface, code);
+      slotCount, slotInfos, iface,
+      code, DxvkShaderConstData());
   }
   
   

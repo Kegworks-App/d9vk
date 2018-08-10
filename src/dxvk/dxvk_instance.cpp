@@ -11,6 +11,9 @@ namespace dxvk {
     Logger::info(str::format("Game: ", env::getExeName()));
     Logger::info(str::format("DXVK: ", DXVK_VERSION));
 
+    m_config = Config::getUserConfig();
+    m_config.merge(Config::getAppConfig(env::getExeName()));
+
     g_vrInstance.initInstanceExtensions();
 
     m_vkl = new vk::LibraryFn();
@@ -34,23 +37,29 @@ namespace dxvk {
   
   
   VkInstance DxvkInstance::createInstance() {
-    // Query available extensions and enable the ones that are needed
-    vk::NameSet availableExtensions = vk::NameSet::enumerateInstanceExtensions(*m_vkl);
+    DxvkInstanceExtensions insExtensions;
+
+    std::array<DxvkExt*, 3> insExtensionList = {{
+      &insExtensions.khrGetPhysicalDeviceProperties2,
+      &insExtensions.khrSurface,
+      &insExtensions.khrWin32Surface,
+    }};
+
+    DxvkNameSet extensionsEnabled;
+    DxvkNameSet extensionsAvailable = DxvkNameSet::enumInstanceExtensions(m_vkl);
     
-    DxvkInstanceExtensions extensionsToEnable;
-    extensionsToEnable.enableExtensions(availableExtensions);
-    
-    if (!extensionsToEnable.checkSupportStatus())
+    if (!extensionsAvailable.enableExtensions(
+          insExtensionList.size(),
+          insExtensionList.data(),
+          extensionsEnabled))
       throw DxvkError("DxvkInstance: Failed to create instance");
     
-    // Generate list of extensions that we're actually going to use
-    vk::NameSet enabledExtensionSet = extensionsToEnable.getEnabledExtensionNames();
-    enabledExtensionSet.merge(g_vrInstance.getInstanceExtensions());
-    
-    vk::NameList enabledExtensionList = enabledExtensionSet.getNameList();
+    // Enable additional extensions if necessary
+    extensionsEnabled.merge(g_vrInstance.getInstanceExtensions());
+    DxvkNameList extensionNameList = extensionsEnabled.toNameList();
     
     Logger::info("Enabled instance extensions:");
-    this->logNameList(enabledExtensionList);
+    this->logNameList(extensionNameList);
     
     VkApplicationInfo appInfo;
     appInfo.sType                 = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -68,8 +77,8 @@ namespace dxvk {
     info.pApplicationInfo         = &appInfo;
     info.enabledLayerCount        = 0;
     info.ppEnabledLayerNames      = nullptr;
-    info.enabledExtensionCount    = enabledExtensionList.count();
-    info.ppEnabledExtensionNames  = enabledExtensionList.names();
+    info.enabledExtensionCount    = extensionNameList.count();
+    info.ppEnabledExtensionNames  = extensionNameList.names();
     
     VkInstance result = VK_NULL_HANDLE;
     if (m_vkl->vkCreateInstance(&info, nullptr, &result) != VK_SUCCESS)
@@ -101,7 +110,7 @@ namespace dxvk {
   }
   
   
-  void DxvkInstance::logNameList(const vk::NameList& names) {
+  void DxvkInstance::logNameList(const DxvkNameList& names) {
     for (uint32_t i = 0; i < names.count(); i++)
       Logger::info(str::format("  ", names.name(i)));
   }

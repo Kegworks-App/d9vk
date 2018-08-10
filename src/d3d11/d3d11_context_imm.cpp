@@ -339,7 +339,7 @@ namespace dxvk {
       // it as the 'new' mapped slice. This assumes that the
       // only way to invalidate a buffer is by mapping it.
       auto physicalSlice = buffer->allocPhysicalSlice();
-      pResource->GetBufferInfo()->mappedSlice = physicalSlice;
+      pResource->SetMappedSlice(physicalSlice);
       
       EmitCs([
         cBuffer        = buffer,
@@ -355,8 +355,7 @@ namespace dxvk {
     // Use map pointer from previous map operation. This
     // way we don't have to synchronize with the CS thread
     // if the map mode is D3D11_MAP_WRITE_NO_OVERWRITE.
-    const DxvkPhysicalBufferSlice physicalSlice
-      = pResource->GetBufferInfo()->mappedSlice;
+    const DxvkPhysicalBufferSlice physicalSlice = pResource->GetMappedSlice();
     
     pMappedResource->pData      = physicalSlice.mapPtr(0);
     pMappedResource->RowPitch   = physicalSlice.length();
@@ -515,22 +514,30 @@ namespace dxvk {
           UINT                              MapFlags) {
     // Some games (e.g. The Witcher 3) do not work correctly
     // when a map fails with D3D11_MAP_FLAG_DO_NOT_WAIT set
-    if (!m_parent->TestOption(D3D11Option::AllowMapFlagNoWait))
+    if (!m_parent->GetOptions()->allowMapFlagNoWait)
       MapFlags &= ~D3D11_MAP_FLAG_DO_NOT_WAIT;
     
     // Wait for the any pending D3D11 command to be executed
     // on the CS thread so that we can determine whether the
     // resource is currently in use or not.
-    Flush();
+    FlushCsChunk();
     SynchronizeCsThread();
     
     if (Resource->isInUse()) {
-      if (MapFlags & D3D11_MAP_FLAG_DO_NOT_WAIT)
+      if (MapFlags & D3D11_MAP_FLAG_DO_NOT_WAIT) {
+        // We don't have to wait, but misbehaving games may
+        // still try to spin on `Map` until the resource is
+        // idle, so we should flush pending commands
+        FlushImplicit();
         return false;
-      
-      // TODO implement properly in DxvkDevice
-      while (Resource->isInUse())
-        dxvk::this_thread::yield();
+      } else {
+        // Make sure pending commands using the resource get
+        // executed on the the GPU if we have to wait for it
+        Flush();
+        
+        while (Resource->isInUse())
+          dxvk::this_thread::yield();
+      }
     }
     
     return true;

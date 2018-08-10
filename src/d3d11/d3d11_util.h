@@ -37,4 +37,19 @@ namespace dxvk {
   VkMemoryPropertyFlags GetMemoryFlagsForUsage(
           D3D11_USAGE               Usage);
   
+  VkShaderStageFlagBits GetShaderStage(
+          DxbcProgramType           ProgramType);
+  
+  VkBufferUsageFlags GetBufferUsageFlags(
+          UINT                      BindFlags);
+  
+  VkImageUsageFlags GetImageUsageFlags(
+          UINT                      BindFlags);
+  
+  VkFormatFeatureFlags GetBufferFormatFeatures(
+          UINT                      BindFlags);
+
+  VkFormatFeatureFlags GetImageFormatFeatures(
+          UINT                      BindFlags);
+
 }

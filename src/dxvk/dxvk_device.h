@@ -10,6 +10,7 @@
 #include "dxvk_image.h"
 #include "dxvk_memory.h"
 #include "dxvk_meta_clear.h"
+#include "dxvk_options.h"
 #include "dxvk_pipecache.h"
 #include "dxvk_pipemanager.h"
 #include "dxvk_queue.h"
@@ -64,8 +65,8 @@ namespace dxvk {
     DxvkDevice(
       const Rc<DxvkAdapter>&          adapter,
       const Rc<vk::DeviceFn>&         vkd,
-      const Rc<DxvkDeviceExtensions>& extensions,
-      const VkPhysicalDeviceFeatures& features);
+      const DxvkDeviceExtensions&     extensions,
+      const DxvkDeviceFeatures&       features);
       
     ~DxvkDevice();
     
@@ -83,6 +84,14 @@ namespace dxvk {
      */
     VkDevice handle() const {
       return m_vkd->device();
+    }
+
+    /**
+     * \brief Device options
+     * \returns Device options
+     */
+    const DxvkOptions& config() const {
+      return m_options;
     }
     
     /**
@@ -112,14 +121,14 @@ namespace dxvk {
      * \returns Enabled device extensions
      */
     const DxvkDeviceExtensions& extensions() const {
-      return *m_extensions;
+      return m_extensions;
     }
     
     /**
      * \brief Enabled device features
      * \returns Enabled features
      */
-    const VkPhysicalDeviceFeatures& features() const {
+    const DxvkDeviceFeatures& features() const {
       return m_features;
     }
     
@@ -389,10 +398,13 @@ namespace dxvk {
     
   private:
     
+    DxvkOptions                 m_options;
+
     Rc<DxvkAdapter>             m_adapter;
     Rc<vk::DeviceFn>            m_vkd;
-    Rc<DxvkDeviceExtensions>    m_extensions;
-    VkPhysicalDeviceFeatures    m_features;
+    DxvkDeviceExtensions        m_extensions;
+
+    DxvkDeviceFeatures          m_features;
     VkPhysicalDeviceProperties  m_properties;
     
     Rc<DxvkMemoryAllocator>     m_memory;

@@ -177,8 +177,12 @@ namespace dxvk {
     // If an optimized version has been compiled
     // in the meantime, discard the new pipeline
     if (!instance->setFastPipeline(newPipelineHandle)) {
+      // If another thread finished compiling an optimized version of this
+      // pipeline before this one finished, discard the new pipeline object.
       m_vkd->vkDestroyPipeline(m_vkd->device(), newPipelineHandle, nullptr);
-      return false;
+    } else if (newPipelineBase == VK_NULL_HANDLE && newPipelineHandle != VK_NULL_HANDLE) {
+      // Use the new pipeline as the base pipeline for derivative pipelines.
+      m_fastPipelineBase.compare_exchange_strong(newPipelineBase, newPipelineHandle);
     }
     
     // If the pipeline instance needs to be inserted
@@ -301,7 +305,7 @@ namespace dxvk {
       viInfo.pNext = viDivisorInfo.pNext;
     
     // TODO remove this once the extension is widely supported
-    if (!m_device->extensions().extVertexAttributeDivisor.enabled())
+    if (!m_device->extensions().extVertexAttributeDivisor)
       viInfo.pNext = viDivisorInfo.pNext;
     
     VkPipelineInputAssemblyStateCreateInfo iaInfo;
