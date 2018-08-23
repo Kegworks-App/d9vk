@@ -224,14 +224,14 @@ namespace dxvk {
       Sha1Hash actualHash = Sha1Hash::compute(
       reinterpret_cast<const uint8_t*>(&key),
       sizeof(key));
+      
+      if (!fileStream)
+        break;
 
       if (!(actualHash == expectedHash)) {
         Logger::debug("Skipping shader due to hash");
         continue;
       }
-      
-      if (!fileStream)
-        break;
       
       const DxvkGraphicsPipelineStateKey* ptr = this->insertEntry(key);
       
