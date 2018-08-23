@@ -220,12 +220,10 @@ namespace dxvk {
      * another thread finished compiling an optimized pipeline
      * for the same instance before the calling thread.
      * \param [in] instance The pipeline instance
-     * \param [in] doInsert \c true if the pipeline is standalone
      * \returns \c true on success
      */
     bool compileInstance(
-      const Rc<DxvkGraphicsPipelineInstance>& instance,
-            bool                              doInsert);
+      const Rc<DxvkGraphicsPipelineInstance>& instance);
     
     /**
      * \brief Computes the state key for a given instance

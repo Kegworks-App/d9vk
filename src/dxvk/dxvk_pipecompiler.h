@@ -37,15 +37,13 @@ namespace dxvk {
      */
     void queueCompilation(
       const Rc<DxvkGraphicsPipeline>&         pipeline,
-      const Rc<DxvkGraphicsPipelineInstance>& instance,
-            bool                              doInsert);
+      const Rc<DxvkGraphicsPipelineInstance>& instance);
     
   private:
     
     struct PipelineEntry {
       Rc<DxvkGraphicsPipeline>         pipeline;
       Rc<DxvkGraphicsPipelineInstance> instance;
-      bool                             doInsert;
     };
     
     std::atomic<bool>           m_compilerStop = { false };

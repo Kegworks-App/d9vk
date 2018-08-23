@@ -3,6 +3,8 @@
 #include "dxvk_pipemanager.h"
 #include "dxvk_state_cache.h"
 
+#include "../util/sha1/sha1_util.h"
+
 namespace dxvk {
   
   std::istream& DxvkStateCacheHeader::read(std::istream& stream) {
@@ -127,8 +129,15 @@ namespace dxvk {
       // Write pipeline key to the cache file if not already cached
       DxvkGraphicsPipelineStateKey key = entry.pipeline->getInstanceKey(entry.instance);
       
-      if (m_cacheEntries.find(key) == m_cacheEntries.end())
+      if (m_cacheEntries.find(key) == m_cacheEntries.end()) {
+        Sha1Hash hash = Sha1Hash::compute(
+        reinterpret_cast<const uint8_t*>(&key),
+        sizeof(key));
+
+        fileStream.write(reinterpret_cast<const char*>(&hash), sizeof(hash));
+
         key.write(fileStream);
+      }
     }
   }
   
@@ -184,7 +193,7 @@ namespace dxvk {
           m_device->vkd(), curr->stateVector(), *renderPass, VK_NULL_HANDLE);
         
         Logger::info("Compiling from state cache");
-        m_pipeCompiler->queueCompilation(pipeline, instance, true);
+        m_pipeCompiler->queueCompilation(pipeline, instance);
       }
     }
   }
@@ -206,8 +215,20 @@ namespace dxvk {
     // Read as many entries from the file as
     // possible and fill the data structures
     while (fileStream) {
+      Sha1Hash expectedHash;
+      fileStream.read(reinterpret_cast<char*>(&expectedHash), sizeof(expectedHash));
+
       DxvkGraphicsPipelineStateKey key;
       key.read(fileStream);
+
+      Sha1Hash actualHash = Sha1Hash::compute(
+      reinterpret_cast<const uint8_t*>(&key),
+      sizeof(key));
+
+      if (!(actualHash == expectedHash)) {
+        Logger::debug("Skipping shader due to hash");
+        continue;
+      }
       
       if (!fileStream)
         break;

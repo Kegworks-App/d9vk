@@ -25,7 +25,7 @@ namespace dxvk {
    * of the data structures.
    */
   struct DxvkStateCacheHeader {
-    static constexpr uint32_t CurrVersion = 1;
+    static constexpr uint32_t CurrVersion = 2;
     
     uint32_t version;
     uint32_t keySize;

@@ -122,8 +122,10 @@ namespace dxvk {
     
     // If the pipeline state vector is invalid, don't try
     // to create a new pipeline, it won't work anyway.
-    if (!this->validatePipelineState(state))
+    if (!this->validatePipelineState(state)) {
+      Logger::warn("Invalid pipeline state.");
       return VK_NULL_HANDLE;
+    }
     
     // If no pipeline instance exists with the given state
     // vector, create a new one and add it to the list.
@@ -158,7 +160,7 @@ namespace dxvk {
     
     // Compile optimized pipeline asynchronously
     if (m_compiler != nullptr)
-      m_compiler->queueCompilation(this, newPipeline, false);
+      m_compiler->queueCompilation(this, newPipeline);
 
     m_stateCache->cachePipelineInstance(this, newPipeline);
     return newPipelineHandle;
@@ -166,8 +168,7 @@ namespace dxvk {
   
   
   bool DxvkGraphicsPipeline::compileInstance(
-    const Rc<DxvkGraphicsPipelineInstance>& instance,
-          bool                              doInsert) {
+    const Rc<DxvkGraphicsPipelineInstance>& instance) {
     // Compile an optimized version of the pipeline
     VkPipeline newPipelineBase   = m_fastPipelineBase.load();
     VkPipeline newPipelineHandle = this->compilePipeline(

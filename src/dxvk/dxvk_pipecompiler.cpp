@@ -32,10 +32,9 @@ namespace dxvk {
   
   void DxvkPipelineCompiler::queueCompilation(
     const Rc<DxvkGraphicsPipeline>&         pipeline,
-    const Rc<DxvkGraphicsPipelineInstance>& instance,
-          bool                              doInsert) {
+    const Rc<DxvkGraphicsPipelineInstance>& instance) {
     std::unique_lock<std::mutex> lock(m_compilerLock);
-    m_compilerQueue.push({ pipeline, instance, doInsert });
+    m_compilerQueue.push({ pipeline, instance });
     m_compilerCond.notify_one();
   }
   
@@ -60,7 +59,7 @@ namespace dxvk {
       }
       
       if (entry.pipeline != nullptr && entry.instance != nullptr)
-        entry.pipeline->compileInstance(entry.instance, entry.doInsert);
+        entry.pipeline->compileInstance(entry.instance);
     }
   }
   
