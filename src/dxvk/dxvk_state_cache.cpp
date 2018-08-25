@@ -137,6 +137,7 @@ namespace dxvk {
         fileStream.write(reinterpret_cast<const char*>(&hash), sizeof(hash));
 
         key.write(fileStream);
+        Logger::debug("DxvkStateCache: Wrote pipeline to hash");
       }
     }
   }
@@ -192,7 +193,7 @@ namespace dxvk {
         Rc<DxvkGraphicsPipelineInstance> instance = new DxvkGraphicsPipelineInstance(
           m_device->vkd(), curr->stateVector(), *renderPass, VK_NULL_HANDLE);
         
-        Logger::info("Compiling from state cache");
+        Logger::info("DxvkStateCache: Compiling from state cache");
         m_pipeCompiler->queueCompilation(pipeline, instance);
       }
     }
@@ -200,48 +201,60 @@ namespace dxvk {
   
   
   bool DxvkStateCache::readCacheFile() {
-    std::ifstream fileStream(getFilePath(), std::ios_base::binary);
-    
-    if (!fileStream)
-      return false;
-    
-    DxvkStateCacheHeader header = { };
-    header.read(fileStream);
-    
-    if (header.version != DxvkStateCacheHeader::CurrVersion
-     || header.keySize != sizeof(DxvkGraphicsPipelineStateKey))
-      return false;
-    
-    // Read as many entries from the file as
-    // possible and fill the data structures
-    while (fileStream) {
-      Sha1Hash expectedHash;
-      fileStream.read(reinterpret_cast<char*>(&expectedHash), sizeof(expectedHash));
-
-      DxvkGraphicsPipelineStateKey key;
-      key.read(fileStream);
-
-      Sha1Hash actualHash = Sha1Hash::compute(
-      reinterpret_cast<const uint8_t*>(&key),
-      sizeof(key));
+    uint32_t consecutiveCorruptPipelines = 0;
+    {
+      std::ifstream fileStream(getFilePath(), std::ios_base::binary);
       
       if (!fileStream)
-        break;
+        return false;
+      
+      DxvkStateCacheHeader header = { };
+      header.read(fileStream);
+      
+      if (header.version != DxvkStateCacheHeader::CurrVersion
+      || header.keySize != sizeof(DxvkGraphicsPipelineStateKey))
+        return false;
 
-      if (!(actualHash == expectedHash)) {
-        Logger::debug("Skipping shader due to hash");
-        continue;
-      }
       
-      const DxvkGraphicsPipelineStateKey* ptr = this->insertEntry(key);
-      
-      if (ptr != nullptr) {
-        this->insertShaderEntry(key.vsKey(),  ptr);
-        this->insertShaderEntry(key.tcsKey(), ptr);
-        this->insertShaderEntry(key.tesKey(), ptr);
-        this->insertShaderEntry(key.gsKey(),  ptr);
-        this->insertShaderEntry(key.psKey(),  ptr);
+      // Read as many entries from the file as
+      // possible and fill the data structures
+      while (fileStream) {
+        Sha1Hash expectedHash;
+        fileStream.read(reinterpret_cast<char*>(&expectedHash), sizeof(expectedHash));
+
+        DxvkGraphicsPipelineStateKey key;
+        key.read(fileStream);
+
+        Sha1Hash actualHash = Sha1Hash::compute(
+        reinterpret_cast<const uint8_t*>(&key),
+        sizeof(key));
+        
+        if (!fileStream)
+          break;
+
+        if (!(actualHash == expectedHash)) {
+          Logger::debug("DxvkStateCache: Skipping pipeline due to hash");
+          consecutiveCorruptPipelines++;
+          continue;
+        }
+        
+        consecutiveCorruptPipelines = 0;
+        const DxvkGraphicsPipelineStateKey* ptr = this->insertEntry(key);
+        
+        if (ptr != nullptr) {
+          this->insertShaderEntry(key.vsKey(),  ptr);
+          this->insertShaderEntry(key.tcsKey(), ptr);
+          this->insertShaderEntry(key.tesKey(), ptr);
+          this->insertShaderEntry(key.gsKey(),  ptr);
+          this->insertShaderEntry(key.psKey(),  ptr);
+        }
       }
+    }
+    
+    if (consecutiveCorruptPipelines > 10) {
+      Logger::warn("DxvkStateCache: State cache is corrupted, deleting file.");
+      // The state file is corrupted
+      std::remove(getFilePath().c_str());
     }
     
     Logger::info(str::format(
