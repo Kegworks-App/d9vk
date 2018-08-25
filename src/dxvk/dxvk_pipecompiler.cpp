@@ -4,7 +4,9 @@
 namespace dxvk {
   
   DxvkPipelineCompiler::DxvkPipelineCompiler() {
-    constexpr uint32_t threadCount = 1u;
+    // Use ~half the CPU cores for pipeline compilation
+    const uint32_t threadCount = std::max<uint32_t>(
+      1u, std::thread::hardware_concurrency() / 2);
     
     Logger::debug(str::format(
       "DxvkPipelineCompiler: Using ", threadCount, " workers"));
