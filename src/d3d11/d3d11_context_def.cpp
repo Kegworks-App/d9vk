@@ -293,6 +293,59 @@ namespace dxvk {
     });
   }
   
+
+  void STDMETHODCALLTYPE D3D11DeferredContext::UpdateSubresource(
+          ID3D11Resource*                   pDstResource,
+          UINT                              DstSubresource,
+    const D3D11_BOX*                        pDstBox,
+    const void*                             pSrcData,
+          UINT                              SrcRowPitch,
+          UINT                              SrcDepthPitch) {
+    //Implement d3d11 runtime bug
+    const void* pAdjustedSrcData = pSrcData;
+    D3D11_BOX alignedBox = *pDstBox;
+    D3D11_RESOURCE_DIMENSION dim;
+    pDstResource->GetType(&dim);
+
+    bool isBlockCompressed = false;
+    uint32_t srcBytesPerElement = 1;
+
+    switch (dim) {
+      case D3D11_RESOURCE_DIMENSION_TEXTURE1D: {
+        const DxvkFormatInfo* info = static_cast<D3D11Texture1D*>(pDstResource)->GetCommonTexture()->GetImage()->formatInfo();
+        isBlockCompressed = (info->flags & DxvkFormatFlag::BlockCompressed) != 0;
+        srcBytesPerElement = info->elementSize;
+      } break;
+      case D3D11_RESOURCE_DIMENSION_TEXTURE2D: {
+        const DxvkFormatInfo* info = static_cast<D3D11Texture2D*>(pDstResource)->GetCommonTexture()->GetImage()->formatInfo();
+        isBlockCompressed = (info->flags & DxvkFormatFlag::BlockCompressed) != 0;
+        srcBytesPerElement = info->elementSize;
+      } break;
+      case D3D11_RESOURCE_DIMENSION_TEXTURE3D: {
+        const DxvkFormatInfo* info = static_cast<D3D11Texture3D*>(pDstResource)->GetCommonTexture()->GetImage()->formatInfo();
+        isBlockCompressed = (info->flags & DxvkFormatFlag::BlockCompressed) != 0;
+        srcBytesPerElement = info->elementSize;
+      } break;
+      case D3D11_RESOURCE_DIMENSION_BUFFER: {
+        isBlockCompressed = false;
+        srcBytesPerElement = 1;
+      }
+    }
+    if (isBlockCompressed)
+    {
+          alignedBox.left     /= 4;
+          alignedBox.right    /= 4;
+          alignedBox.top      /= 4;
+          alignedBox.bottom   /= 4;
+    }
+    pAdjustedSrcData = ((const BYTE*)pSrcData) + (alignedBox.front * SrcDepthPitch) + (alignedBox.top * SrcRowPitch) + (alignedBox.left * srcBytesPerElement);
+
+
+    D3D11DeviceContext::UpdateSubresource(
+      pDstResource, DstSubresource, pDstBox,
+      pAdjustedSrcData, SrcRowPitch, SrcDepthPitch);
+  }
+  
   
   Com<D3D11CommandList> D3D11DeferredContext::CreateCommandList() {
     return new D3D11CommandList(m_parent, m_contextFlags);

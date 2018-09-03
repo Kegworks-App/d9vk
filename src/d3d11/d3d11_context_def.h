@@ -95,6 +95,14 @@ namespace dxvk {
             UINT                          Subresource,
       const D3D11DeferredContextMapEntry* pMapEntry);
     
+    void STDMETHODCALLTYPE UpdateSubresource(
+            ID3D11Resource*                   pDstResource,
+            UINT                              DstSubresource,
+      const D3D11_BOX*                        pDstBox,
+      const void*                             pSrcData,
+            UINT                              SrcRowPitch,
+            UINT                              SrcDepthPitch) final;
+    
     Com<D3D11CommandList> CreateCommandList();
     
     void EmitCsChunk(DxvkCsChunkRef&& chunk) final;

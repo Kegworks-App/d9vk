@@ -1085,13 +1085,10 @@ namespace dxvk {
       case D3D11_FEATURE_THREADING: {
         if (FeatureSupportDataSize != sizeof(D3D11_FEATURE_DATA_THREADING))
           return E_INVALIDARG;
-        
-        // We report native support for command lists here so that we do not actually
-        // have to re-implement the UpdateSubresource bug from the D3D11 runtime, see
-        // https://msdn.microsoft.com/en-us/library/windows/desktop/ff476486(v=vs.85).aspx)
+
         auto info = static_cast<D3D11_FEATURE_DATA_THREADING*>(pFeatureSupportData);
         info->DriverConcurrentCreates = TRUE;
-        info->DriverCommandLists      = TRUE;
+        info->DriverCommandLists      = FALSE;
       } return S_OK;
       
       case D3D11_FEATURE_DOUBLES: {
