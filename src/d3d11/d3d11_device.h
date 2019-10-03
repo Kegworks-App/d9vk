@@ -22,6 +22,7 @@
 #include "d3d11_shader.h"
 #include "d3d11_state.h"
 #include "d3d11_util.h"
+#include "d3d11_info_queue.h"
 
 namespace dxvk {
   class DxgiAdapter;
@@ -663,6 +664,8 @@ namespace dxvk {
     D3D11Device         m_d3d11Device;
     D3D11DeviceExt      m_d3d11DeviceExt;
     D3D11VkInterop      m_d3d11Interop;
+
+    D3D11InfoQueue      m_d3d11InfoQueue;
     
     WineDXGISwapChainFactory m_wineFactory;
     

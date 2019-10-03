@@ -2501,6 +2501,7 @@ namespace dxvk {
     m_d3d11Device   (this, FeatureLevel, FeatureFlags),
     m_d3d11DeviceExt(this, &m_d3d11Device),
     m_d3d11Interop  (this, &m_d3d11Device),
+    m_d3d11InfoQueue(),
     m_wineFactory   (this, &m_d3d11Device),
     m_frameLatencyCap(m_d3d11Device.GetOptions()->maxFrameLatency) {
     for (uint32_t i = 0; i < m_frameEvents.size(); i++)
@@ -2565,6 +2566,12 @@ namespace dxvk {
       Com<ID3D11DeviceContext> context;
       m_d3d11Device.GetImmediateContext(&context);
       return context->QueryInterface(riid, ppvObject);
+    }
+
+    if (riid == __uuidof(ID3D11InfoQueue)) {
+      Logger::warn("Returning info queue");
+      *ppvObject = ref(&m_d3d11InfoQueue);
+      return S_OK;
     }
     
     if (riid == __uuidof(ID3D11Debug))

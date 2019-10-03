@@ -89,9 +89,9 @@ namespace dxvk {
         pInitialData->pSysMem,
         bufferSlice.length());
     } else {
-      std::memset(
+      /*std::memset(
         bufferSlice.mapPtr(0), 0,
-        bufferSlice.length());
+        bufferSlice.length());*/
     }
   }
 
@@ -224,7 +224,7 @@ namespace dxvk {
                        + z * initialData->SysMemSlicePitch;
               std::memcpy(dst, src, size);
             } else {
-              std::memset(dst, 0, size);
+              //std::memset(dst, 0, size);
             }
           }
         }
