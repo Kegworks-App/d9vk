@@ -4120,7 +4120,7 @@ namespace dxvk {
     UINT Subresource = pResource->CalcSubresource(Face, MipLevel);
 
     // We weren't locked anyway!
-    if (unlikely(!pResource->GetLocked(Subresource) && !m_d3d9Options.uploadAllManagedSubresources))
+    if (unlikely(!pResource->GetLocked(Subresource)))
       return D3DERR_INVALIDCALL;
 
     pResource->SetLocked(Subresource, false);
@@ -4129,10 +4129,7 @@ namespace dxvk {
     if (!pResource->GetReadOnlyLocked(Subresource)) {
       // Only flush buffer -> image if we actually have an image
       if (pResource->IsManaged() && !m_d3d9Options.evictManagedOnUnlock) {
-        if (unlikely(m_d3d9Options.uploadAllManagedSubresources))
-          pResource->MarkAllForUpload();
-        else
-          pResource->SetNeedsUpload(Subresource, true);
+        pResource->SetNeedsUpload(Subresource, true);
 
         for (uint32_t tex = m_activeTextures; tex; tex &= tex - 1) {
           // Guaranteed to not be nullptr...
