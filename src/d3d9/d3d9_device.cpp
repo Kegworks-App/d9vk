@@ -4098,6 +4098,22 @@ namespace dxvk {
 
     pResource->SetLocked(Subresource, true);
 
+    if (managed && !m_d3d9Options.evictManagedOnUnlock) {
+      pResource->SetNeedsUpload(Subresource, true);
+
+      for (uint32_t tex = m_activeTextures; tex; tex &= tex - 1) {
+        // Guaranteed to not be nullptr...
+        const uint32_t i = bit::tzcnt(tex);
+        auto texInfo = GetCommonTexture(m_state.textures[i]);
+
+        if (texInfo == pResource) {
+          m_activeTexturesToUpload |= 1 << i;
+          // We can early out here, no need to add another index for this.
+          break;
+        }
+      }
+    }
+
     const uint32_t offset = CalcImageLockOffset(
       pLockedBox->SlicePitch,
       pLockedBox->RowPitch,
@@ -4128,22 +4144,8 @@ namespace dxvk {
     // Do we have a pending copy?
     if (!pResource->GetReadOnlyLocked(Subresource)) {
       // Only flush buffer -> image if we actually have an image
-      if (pResource->IsManaged() && !m_d3d9Options.evictManagedOnUnlock) {
-        pResource->SetNeedsUpload(Subresource, true);
-
-        for (uint32_t tex = m_activeTextures; tex; tex &= tex - 1) {
-          // Guaranteed to not be nullptr...
-          const uint32_t i = bit::tzcnt(tex);
-          auto texInfo = GetCommonTexture(m_state.textures[i]);
-
-          if (texInfo == pResource) {
-            m_activeTexturesToUpload |= 1 << i;
-            // We can early out here, no need to add another index for this.
-            break;
-          }
-        }
-      }
-      else if (pResource->GetMapMode() == D3D9_COMMON_TEXTURE_MAP_MODE_BACKED)
+      if ((!pResource->IsManaged() || m_d3d9Options.evictManagedOnUnlock)
+       && pResource->GetMapMode() == D3D9_COMMON_TEXTURE_MAP_MODE_BACKED)
         this->FlushImage(pResource, Subresource);
     }
 
