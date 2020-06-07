@@ -100,6 +100,8 @@ namespace dxvk {
 
     constexpr static uint32_t NullStreamIdx = caps::MaxStreams;
 
+    constexpr static uint32_t ManagedAutoDiscardThreshold = 64 << 10;
+
     friend class D3D9SwapChainEx;
   public:
 

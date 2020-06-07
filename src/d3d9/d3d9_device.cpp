@@ -3993,7 +3993,19 @@ namespace dxvk {
 
       if (alloced)
         std::memset(physSlice.mapPtr, 0, physSlice.length);
-      else if (!skipWait) {
+      else if (managed && uploading && !skipWait && mappedBuffer->info().size < ManagedAutoDiscardThreshold) {
+        // if the mapped buffer is currently being copied to image and it's small enough
+        // we can just avoid a stall by allocating a new slice and copying the existing contents
+        DxvkBufferSliceHandle oldSlice = physSlice;
+        physSlice = pResource->DiscardMapSlice(Subresource);
+        std::memcpy(physSlice.mapPtr, oldSlice.mapPtr, oldSlice.length);
+        EmitCs([
+          cImageBuffer = mappedBuffer,
+          cBufferSlice = physSlice
+        ] (DxvkContext* ctx) {
+          ctx->invalidateBuffer(cImageBuffer, cBufferSlice);
+        });
+      } else if (!skipWait) {
         if (!WaitForResource(mappedBuffer, Flags))
           return D3DERR_WASSTILLDRAWING;
 
