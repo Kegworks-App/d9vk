@@ -71,6 +71,8 @@ namespace dxvk {
     ValidSampleMask,
     DirtyDepthBounds,
     DirtyPointScale,
+    DirtyVSConstantBuffer,
+    DirtyPSConstantBuffer
   };
 
   using D3D9DeviceFlags = Flags<D3D9DeviceFlag>;
@@ -730,7 +732,8 @@ namespace dxvk {
             bool                SSBO,
             VkDeviceSize        Size,
             DxsoProgramType     ShaderStage,
-            DxsoConstantBuffers BufferType);
+            DxsoConstantBuffers BufferType,
+            bool                DeviceLocal);
 
     void CreateConstantBuffers();
 

@@ -2692,6 +2692,11 @@ namespace dxvk {
       m_consts[DxsoProgramTypes::VertexShader].dirty |= !oldShader->GetMeta().usesRelativeAddressing
                                                      || !newShader->GetMeta().usesRelativeAddressing;
       // if the shader don't use relative addressing, their constants get compacted and might have completely different layouts
+
+      if (oldShader->GetMeta().usesRelativeAddressing != newShader->GetMeta().usesRelativeAddressing && m_consts[DxsoProgramTypes::VertexShader].bufferDeviceLocal != nullptr)
+        m_flags.set(D3D9DeviceFlag::DirtyVSConstantBuffer);
+    } else if (!oldShader && m_consts[DxsoProgramTypes::VertexShader].bufferDeviceLocal != nullptr) {
+        m_flags.set(D3D9DeviceFlag::DirtyVSConstantBuffer);
     }
 
     m_state.vertexShader = shader;
@@ -3023,6 +3028,11 @@ namespace dxvk {
       m_consts[DxsoProgramTypes::PixelShader].dirty |= !oldShader->GetMeta().usesRelativeAddressing
                                                      || !newShader->GetMeta().usesRelativeAddressing;
       // if the shader don't use relative addressing, their constants get compacted and might have completely different layouts
+
+      if (oldShader->GetMeta().usesRelativeAddressing != newShader->GetMeta().usesRelativeAddressing && m_consts[DxsoProgramTypes::VertexShader].bufferDeviceLocal != nullptr)
+        m_flags.set(D3D9DeviceFlag::DirtyPSConstantBuffer);
+    } else if (!oldShader && m_consts[DxsoProgramTypes::PixelShader].bufferDeviceLocal != nullptr) {
+        m_flags.set(D3D9DeviceFlag::DirtyPSConstantBuffer);
     }
 
     m_state.pixelShader = shader;
@@ -4550,7 +4560,8 @@ namespace dxvk {
           bool                SSBO,
           VkDeviceSize        Size,
           DxsoProgramType     ShaderStage,
-          DxsoConstantBuffers BufferType) {
+          DxsoConstantBuffers BufferType,
+          bool                DeviceLocal) {
     DxvkBufferCreateInfo info = { };
     info.usage  = SSBO ? VK_BUFFER_USAGE_STORAGE_BUFFER_BIT : VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
     info.access = SSBO ? VK_ACCESS_SHADER_READ_BIT          : VK_ACCESS_UNIFORM_READ_BIT;
@@ -4561,6 +4572,9 @@ namespace dxvk {
 
     VkMemoryPropertyFlags memoryFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
                                       | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+
+    if (DeviceLocal)
+      memoryFlags |= VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 
     Rc<DxvkBuffer> buffer = m_dxvkDevice->createBuffer(info, memoryFlags);
 
@@ -4581,41 +4595,72 @@ namespace dxvk {
 
 
   void D3D9DeviceEx::CreateConstantBuffers() {
+    auto memory = m_dxvkDevice->adapter()->memoryProperties();
+    bool hasDeviceLocalHostVisible = false;
+
+    for (uint32_t i = 0; i < memory.memoryTypeCount && !hasDeviceLocalHostVisible; i++) {
+      hasDeviceLocalHostVisible
+        |= (memory.memoryTypes[i].propertyFlags & (VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
+        == (VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+    }
+
+    if (hasDeviceLocalHostVisible && !CanSWVP()) {
+      m_consts[DxsoProgramTypes::VertexShader].bufferDeviceLocal =
+        CreateConstantBuffer(m_dxsoOptions.vertexConstantBufferAsSSBO,
+                            m_vsLayout.totalSize(),
+                            DxsoProgramType::VertexShader,
+                            DxsoConstantBuffers::VSConstantBuffer,
+                            true);
+
+      m_consts[DxsoProgramTypes::PixelShader].bufferDeviceLocal =
+        CreateConstantBuffer(false,
+                            m_psLayout.totalSize(),
+                            DxsoProgramType::PixelShader,
+                            DxsoConstantBuffers::PSConstantBuffer,
+                            true);
+    }
+
     m_consts[DxsoProgramTypes::VertexShader].buffer =
       CreateConstantBuffer(m_dxsoOptions.vertexConstantBufferAsSSBO,
                            m_vsLayout.totalSize(),
                            DxsoProgramType::VertexShader,
-                           DxsoConstantBuffers::VSConstantBuffer);
+                           DxsoConstantBuffers::VSConstantBuffer,
+                           false);
 
     m_consts[DxsoProgramTypes::PixelShader].buffer =
       CreateConstantBuffer(false,
                            m_psLayout.totalSize(),
                            DxsoProgramType::PixelShader,
-                           DxsoConstantBuffers::PSConstantBuffer);
+                           DxsoConstantBuffers::PSConstantBuffer,
+                           false);
 
-    m_vsClipPlanes = 
+    m_vsClipPlanes =
       CreateConstantBuffer(false,
                            caps::MaxClipPlanes * sizeof(D3D9ClipPlane),
                            DxsoProgramType::VertexShader,
-                           DxsoConstantBuffers::VSClipPlanes);
+                           DxsoConstantBuffers::VSClipPlanes,
+                           false);
 
     m_vsFixedFunction =
       CreateConstantBuffer(false,
                            sizeof(D3D9FixedFunctionVS),
                            DxsoProgramType::VertexShader,
-                           DxsoConstantBuffers::VSFixedFunction);
+                           DxsoConstantBuffers::VSFixedFunction,
+                           false);
 
     m_psFixedFunction =
       CreateConstantBuffer(false,
                            sizeof(D3D9FixedFunctionPS),
                            DxsoProgramType::PixelShader,
-                           DxsoConstantBuffers::PSFixedFunction);
+                           DxsoConstantBuffers::PSFixedFunction,
+                           false);
 
     m_psShared =
       CreateConstantBuffer(false,
                            sizeof(D3D9SharedPS),
                            DxsoProgramType::PixelShader,
-                           DxsoConstantBuffers::PSShared);
+                           DxsoConstantBuffers::PSShared,
+                           false);
 
     m_vsVertexBlend =
       CreateConstantBuffer(true,
@@ -4623,7 +4668,11 @@ namespace dxvk {
                             ? sizeof(D3D9FixedFunctionVertexBlendDataSW)
                             : sizeof(D3D9FixedFunctionVertexBlendDataHW),
                            DxsoProgramType::VertexShader,
-                           DxsoConstantBuffers::VSVertexBlendData);
+                           DxsoConstantBuffers::VSVertexBlendData,
+                           false);
+
+    m_flags.set(D3D9DeviceFlag::DirtyPSConstantBuffer);
+    m_flags.set(D3D9DeviceFlag::DirtyVSConstantBuffer);
   }
 
 
@@ -4693,10 +4742,11 @@ namespace dxvk {
 
     constSet.dirty = false;
 
-    DxvkBufferSliceHandle slice = constSet.buffer->allocSlice();
-
+    bool useDeviceLocal = constSet.meta && !constSet.meta->usesRelativeAddressing && constSet.bufferDeviceLocal != nullptr;
+    Rc<DxvkBuffer>& buffer = useDeviceLocal ? constSet.bufferDeviceLocal : constSet.buffer;
+    DxvkBufferSliceHandle slice = buffer->allocSlice();
     EmitCs([
-      cBuffer = constSet.buffer,
+      cBuffer = buffer,
       cSlice  = slice
     ] (DxvkContext* ctx) {
       ctx->invalidateBuffer(cBuffer, cSlice);
@@ -5861,6 +5911,46 @@ namespace dxvk {
         ctx->setDepthBounds(cDepthBounds);
       });
     }
+
+    if (m_flags.test(D3D9DeviceFlag::DirtyVSConstantBuffer)) {
+      m_flags.clr(D3D9DeviceFlag::DirtyVSConstantBuffer);
+      const D3D9ConstantSets& constSet = m_consts[DxsoProgramType::VertexShader];
+
+      const uint32_t slotId = computeResourceSlotId(
+        DxsoProgramType::VertexShader, DxsoBindingType::ConstantBuffer,
+        DxsoConstantBuffers::VSConstantBuffer);
+
+      bool useDeviceLocal = constSet.meta && !constSet.meta->usesRelativeAddressing && constSet.bufferDeviceLocal != nullptr;
+      Rc<DxvkBuffer> buffer = useDeviceLocal ? constSet.bufferDeviceLocal : constSet.buffer;
+
+      EmitCs([
+        cSlotId = slotId,
+        cBuffer = buffer
+      ] (DxvkContext* ctx) {
+        ctx->bindResourceBuffer(cSlotId,
+          DxvkBufferSlice(cBuffer, 0, cBuffer->info().size));
+      });
+    }
+
+    if (m_flags.test(D3D9DeviceFlag::DirtyPSConstantBuffer)) {
+      m_flags.clr(D3D9DeviceFlag::DirtyPSConstantBuffer);
+      const D3D9ConstantSets& constSet = m_consts[DxsoProgramType::PixelShader];
+
+      const uint32_t slotId = computeResourceSlotId(
+        DxsoProgramType::PixelShader, DxsoBindingType::ConstantBuffer,
+        DxsoConstantBuffers::PSConstantBuffer);
+
+      bool useDeviceLocal = constSet.meta && !constSet.meta->usesRelativeAddressing && constSet.bufferDeviceLocal != nullptr;
+      Rc<DxvkBuffer> buffer = useDeviceLocal ? constSet.bufferDeviceLocal : constSet.buffer;
+
+      EmitCs([
+        cSlotId = slotId,
+        cBuffer = buffer
+      ] (DxvkContext* ctx) {
+        ctx->bindResourceBuffer(cSlotId,
+          DxvkBufferSlice(cBuffer, 0, cBuffer->info().size));
+      });
+    }
   }
 
 
@@ -6878,6 +6968,8 @@ namespace dxvk {
 
     // We should do this...
     m_flags.set(D3D9DeviceFlag::DirtyInputLayout);
+    m_flags.set(D3D9DeviceFlag::DirtyVSConstantBuffer);
+    m_flags.set(D3D9DeviceFlag::DirtyPSConstantBuffer);
 
     UpdateSamplerSpecConsant(0u);
     UpdateBoolSpecConstantVertex(0u);
