@@ -216,6 +216,49 @@ namespace dxvk {
       m_entryPointInterfaces.size(),
       m_entryPointInterfaces.data());
     m_module.setDebugName(m_entryPointId, "main");
+
+    m_meta.usesRelativeAddressing = m_analysis->usesRelativeAddressing;
+    DxsoConstantRange range = { 0, 0 };
+    for (auto itr = m_analysis->floatConstantMap.begin(); itr != m_analysis->floatConstantMap.end(); itr++) {
+      uint32_t constantRegister = itr->first;
+      uint32_t actualRegister = itr->second;
+      if (range.start + range.count != constantRegister) {
+        if (range.count != 0)
+          m_meta.floatConstantRanges.push_back(range);
+        range.start = constantRegister;
+        range.count = 0;
+      }
+      range.count++;
+    }
+    if (range.count != 0)
+      m_meta.floatConstantRanges.push_back(range);
+
+    if (m_meta.floatConstantRanges.size() != 0) {
+      m_meta.totalFloatConstantRange.start = m_meta.floatConstantRanges.begin()->start;
+      auto last = m_meta.floatConstantRanges.end() - 1;
+      m_meta.totalFloatConstantRange.count = (last->start - m_meta.totalFloatConstantRange.start) + last->count;
+    }
+
+    range = { 0, 0 };
+    for (auto itr = m_analysis->intConstantMap.begin(); itr != m_analysis->intConstantMap.end(); itr++) {
+      uint32_t constantRegister = itr->first;
+      uint32_t actualRegister = itr->second;
+      if (range.start + range.count != constantRegister) {
+        if (range.count != 0)
+          m_meta.intConstantRanges.push_back(range);
+        range.start = constantRegister;
+        range.count = 0;
+      }
+      range.count++;
+    }
+    if (range.count != 0)
+      m_meta.intConstantRanges.push_back(range);
+
+    if (m_meta.intConstantRanges.size() != 0) {
+      m_meta.totalIntConstantRange.start = m_meta.intConstantRanges.begin()->start;
+      auto last = m_meta.intConstantRanges.end() - 1;
+      m_meta.totalIntConstantRange.count = (last->start - m_meta.totalIntConstantRange.start) + last->count;
+    }
   }
 
 
@@ -907,31 +950,29 @@ namespace dxvk {
 
     switch (reg.id.type) {
       case DxsoRegisterType::Const:
-        if (!relative) {
-          m_meta.maxConstIndexF = std::max(m_meta.maxConstIndexF, reg.id.num + 1);
-          m_meta.maxConstIndexF = std::min(m_meta.maxConstIndexF, m_layout->floatCount);
-        } else {
-          m_meta.maxConstIndexF = m_layout->floatCount;
+        if (relative) {
           m_meta.needsConstantCopies |= m_moduleInfo.options.strictConstantCopies
                                      || m_cFloat.at(reg.id.num) != 0;
         }
         break;
-      
-      case DxsoRegisterType::ConstInt:
-        m_meta.maxConstIndexI = std::max(m_meta.maxConstIndexI, reg.id.num + 1);
-        m_meta.maxConstIndexI = std::min(m_meta.maxConstIndexI, m_layout->intCount);
-        break;
-      
+
       case DxsoRegisterType::ConstBool:
-        m_meta.maxConstIndexB = std::max(m_meta.maxConstIndexB, reg.id.num + 1);
-        m_meta.maxConstIndexB = std::min(m_meta.maxConstIndexB, m_layout->boolCount);
-        m_meta.boolConstantMask |= 1 << reg.id.num;
+          m_meta.usesBoolConstants = true;
+          m_meta.boolConstantMask |= 1 << reg.id.num;
         break;
-      
+
       default: break;
     }
 
-    uint32_t relativeIdx = this->emitArrayIndex(reg.id.num, relative);
+    uint32_t relativeIdx;
+    if (!m_analysis->usesRelativeAddressing && !relative
+      && reg.id.type != DxsoRegisterType::ConstBool) {
+        if (reg.id.type == DxsoRegisterType::Const)
+          relativeIdx = this->emitArrayIndex(m_analysis->floatConstantMap.at(reg.id.num), nullptr);
+        else
+          relativeIdx = this->emitArrayIndex(m_analysis->intConstantMap.at(reg.id.num), nullptr);
+    } else
+      relativeIdx = this->emitArrayIndex(reg.id.num, relative);
 
     if (reg.id.type != DxsoRegisterType::ConstBool) {
       uint32_t structIdx = reg.id.type == DxsoRegisterType::Const
@@ -1674,7 +1715,11 @@ namespace dxvk {
     m_module.setDebugName(constId, name.c_str());
 
     DxsoDefinedConstant constant;
-    constant.uboIdx = ctx.dst.id.num;
+    if (!m_analysis->usesRelativeAddressing)
+      constant.uboIdx = m_analysis->floatConstantMap.at(ctx.dst.id.num);
+    else
+      constant.uboIdx = ctx.dst.id.num;
+
     for (uint32_t i = 0; i < 4; i++)
       constant.float32[i] = data[i];
     m_constants.push_back(constant);

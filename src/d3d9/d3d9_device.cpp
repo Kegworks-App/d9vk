@@ -2686,13 +2686,12 @@ namespace dxvk {
     bool newCopies = newShader && newShader->GetMeta().needsConstantCopies;
 
     m_consts[DxsoProgramTypes::VertexShader].dirty |= oldCopies || newCopies || !oldShader;
-    m_consts[DxsoProgramTypes::VertexShader].meta  = newShader ? newShader->GetMeta() : DxsoShaderMetaInfo();
+    m_consts[DxsoProgramTypes::VertexShader].meta   = newShader ? &newShader->GetMeta() : nullptr;
 
     if (newShader && oldShader) {
-      m_consts[DxsoProgramTypes::VertexShader].dirty
-        |= newShader->GetMeta().maxConstIndexF > oldShader->GetMeta().maxConstIndexF
-        || newShader->GetMeta().maxConstIndexI > oldShader->GetMeta().maxConstIndexI
-        || newShader->GetMeta().maxConstIndexB > oldShader->GetMeta().maxConstIndexB;
+      m_consts[DxsoProgramTypes::VertexShader].dirty |= !oldShader->GetMeta().usesRelativeAddressing
+                                                     || !newShader->GetMeta().usesRelativeAddressing;
+      // if the shader don't use relative addressing, their constants get compacted and might have completely different layouts
     }
 
     m_state.vertexShader = shader;
@@ -3018,13 +3017,12 @@ namespace dxvk {
     bool newCopies = newShader && newShader->GetMeta().needsConstantCopies;
 
     m_consts[DxsoProgramTypes::PixelShader].dirty |= oldCopies || newCopies || !oldShader;
-    m_consts[DxsoProgramTypes::PixelShader].meta  = newShader ? newShader->GetMeta() : DxsoShaderMetaInfo();
+    m_consts[DxsoProgramTypes::PixelShader].meta  = newShader ? &newShader->GetMeta() : nullptr;
 
     if (newShader && oldShader) {
-      m_consts[DxsoProgramTypes::PixelShader].dirty
-        |= newShader->GetMeta().maxConstIndexF > oldShader->GetMeta().maxConstIndexF
-        || newShader->GetMeta().maxConstIndexI > oldShader->GetMeta().maxConstIndexI
-        || newShader->GetMeta().maxConstIndexB > oldShader->GetMeta().maxConstIndexB;
+      m_consts[DxsoProgramTypes::PixelShader].dirty |= !oldShader->GetMeta().usesRelativeAddressing
+                                                     || !newShader->GetMeta().usesRelativeAddressing;
+      // if the shader don't use relative addressing, their constants get compacted and might have completely different layouts
     }
 
     m_state.pixelShader = shader;
@@ -4635,10 +4633,25 @@ namespace dxvk {
 
     auto* dst = reinterpret_cast<HardwareLayoutType*>(pData);
 
-    if (constSet.meta.maxConstIndexF)
-      std::memcpy(dst->fConsts, Src.fConsts, constSet.meta.maxConstIndexF * sizeof(Vector4));
-    if (constSet.meta.maxConstIndexI)
-      std::memcpy(dst->iConsts, Src.iConsts, constSet.meta.maxConstIndexI * sizeof(Vector4i));
+    auto* meta = constSet.meta;
+    if (!meta || meta->usesRelativeAddressing) {
+      std::memcpy(dst->fConsts, Src.fConsts, (ShaderStage == DxsoProgramType::VertexShader ? caps::MaxFloatConstantsVS : caps::MaxFloatConstantsPS) * sizeof(Vector4));
+      std::memcpy(dst->iConsts, Src.iConsts, caps::MaxOtherConstants * sizeof(Vector4i));
+    } else {
+      auto& floatRanges = constSet.meta->floatConstantRanges;
+      uint32_t offset = 0;
+      for (auto itr = floatRanges.begin(); itr != floatRanges.end(); itr++) {
+        std::memcpy(dst->fConsts + offset, &Src.fConsts[itr->start], itr->count * sizeof(Vector4));
+        offset += itr->count;
+      }
+
+      auto& intRanges = constSet.meta->intConstantRanges;
+      offset = 0;
+      for (auto itr = intRanges.begin(); itr != intRanges.end(); itr++) {
+        std::memcpy(dst->iConsts + offset, &Src.iConsts[itr->start], itr->count * sizeof(Vector4i));
+        offset += itr->count;
+      }
+    }
   }
 
 
@@ -4648,11 +4661,25 @@ namespace dxvk {
 
     auto dst = reinterpret_cast<uint8_t*>(pData);
 
-    if (constSet.meta.maxConstIndexF)
-      std::memcpy(dst + Layout.floatOffset(),   Src.fConsts, constSet.meta.maxConstIndexF * sizeof(Vector4));
-    if (constSet.meta.maxConstIndexI)
-      std::memcpy(dst + Layout.intOffset(),     Src.iConsts, constSet.meta.maxConstIndexI * sizeof(Vector4i));
-    if (constSet.meta.maxConstIndexB)
+    auto* meta = constSet.meta;
+    if (!meta || meta->usesRelativeAddressing) {
+      std::memcpy(dst + Layout.floatOffset(),   Src.fConsts, Layout.floatCount * sizeof(Vector4));
+      std::memcpy(dst + Layout.intOffset(),     Src.iConsts, Layout.intCount * sizeof(Vector4i));
+    } else {
+      auto& floatRanges = constSet.meta->floatConstantRanges;
+      uint32_t offset = 0;
+      for (auto itr = floatRanges.begin(); itr != floatRanges.end(); itr++) {
+        std::memcpy(dst + Layout.floatOffset() + offset * sizeof(Vector4), &Src.fConsts[itr->start], itr->count * sizeof(Vector4));
+        offset += itr->count;
+      }
+      auto& intRanges = constSet.meta->intConstantRanges;
+      offset = 0;
+      for (auto itr = intRanges.begin(); itr != intRanges.end(); itr++) {
+        std::memcpy(dst + Layout.intOffset() + offset * sizeof(Vector4), &Src.iConsts[itr->start], itr->count * sizeof(Vector4i));
+        offset += itr->count;
+      }
+    }
+    if (!meta || meta->usesBoolConstants)
       std::memcpy(dst + Layout.bitmaskOffset(), Src.bConsts, Layout.bitmaskSize());
   }
 
@@ -4682,7 +4709,7 @@ namespace dxvk {
     else
       UploadSoftwareConstantSet(slice.mapPtr, Src, Layout, Shader);
 
-    if (constSet.meta.needsConstantCopies) {
+    if (!constSet.meta || constSet.meta->needsConstantCopies) {
       Vector4* data = reinterpret_cast<Vector4*>(slice.mapPtr);
 
       auto& shaderConsts = GetCommonShader(Shader)->GetConstants();
@@ -5744,7 +5771,7 @@ namespace dxvk {
       if (likely(!CanSWVP())) {
         UpdateBoolSpecConstantVertex(
           m_state.vsConsts.bConsts[0] &
-          m_consts[DxsoProgramType::VertexShader].meta.boolConstantMask);
+          m_consts[DxsoProgramType::VertexShader].meta->boolConstantMask);
       } else
         UpdateBoolSpecConstantVertex(0);
     }
@@ -5782,7 +5809,7 @@ namespace dxvk {
 
       UpdateBoolSpecConstantPixel(
         m_state.psConsts.bConsts[0] &
-        m_consts[DxsoProgramType::PixelShader].meta.boolConstantMask);
+        m_consts[DxsoProgramType::PixelShader].meta->boolConstantMask);
     }
     else {
       UpdateBoolSpecConstantPixel(0);
@@ -6087,11 +6114,14 @@ namespace dxvk {
         Count);
 
     if constexpr (ConstantType != D3D9ConstantType::Bool) {
-      uint32_t maxCount = ConstantType == D3D9ConstantType::Float
-        ? m_consts[ProgramType].meta.maxConstIndexF
-        : m_consts[ProgramType].meta.maxConstIndexI;
+      if (m_consts[ProgramType].meta && !m_consts[ProgramType].meta->usesRelativeAddressing) {
+        DxsoConstantRange range = ConstantType == D3D9ConstantType::Float
+          ? m_consts[ProgramType].meta->totalFloatConstantRange
+          : m_consts[ProgramType].meta->totalIntConstantRange;
 
-      m_consts[ProgramType].dirty |= StartRegister < maxCount;
+        m_consts[ProgramType].dirty |= StartRegister < range.start + range.count && StartRegister + Count > range.start;
+      } else
+        m_consts[ProgramType].dirty = true;
     }
 
     UpdateStateConstants<ProgramType, ConstantType, T>(

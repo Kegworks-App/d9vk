@@ -29,11 +29,19 @@ namespace dxvk {
 
   using DxsoDefinedConstants = std::vector<DxsoDefinedConstant>;
 
+  struct DxsoConstantRange {
+    uint32_t start = 0;
+    uint32_t count = 0;
+  };
+
   struct DxsoShaderMetaInfo {
     bool needsConstantCopies = false;
-    uint32_t maxConstIndexF = 0;
-    uint32_t maxConstIndexI = 0;
-    uint32_t maxConstIndexB = 0;
+    bool usesRelativeAddressing = false;
+    DxsoConstantRange totalFloatConstantRange = { 0, 0 };
+    DxsoConstantRange totalIntConstantRange = { 0, 0 };
+    bool usesBoolConstants = false;
+    std::vector<DxsoConstantRange> floatConstantRanges;
+    std::vector<DxsoConstantRange> intConstantRanges;
 
     uint32_t boolConstantMask = 0;
   };
