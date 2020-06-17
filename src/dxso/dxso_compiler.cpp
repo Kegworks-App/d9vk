@@ -910,6 +910,8 @@ namespace dxvk {
         if (!relative) {
           m_meta.maxConstIndexF = std::max(m_meta.maxConstIndexF, reg.id.num + 1);
           m_meta.maxConstIndexF = std::min(m_meta.maxConstIndexF, m_layout->floatCount);
+          m_meta.minConstIndexF = std::min(m_meta.minConstIndexF, reg.id.num);
+          m_meta.minConstIndexF = std::min(m_meta.minConstIndexF, 0);
         } else {
           m_meta.maxConstIndexF = m_layout->floatCount;
           m_meta.needsConstantCopies |= m_moduleInfo.options.strictConstantCopies
@@ -920,6 +922,8 @@ namespace dxvk {
       case DxsoRegisterType::ConstInt:
         m_meta.maxConstIndexI = std::max(m_meta.maxConstIndexI, reg.id.num + 1);
         m_meta.maxConstIndexI = std::min(m_meta.maxConstIndexI, m_layout->intCount);
+        m_meta.minConstIndexI = std::min(m_meta.maxConstIndexI, reg.id.num);
+        m_meta.minConstIndexI = std::min(m_meta.maxConstIndexI, 0);
         break;
       
       case DxsoRegisterType::ConstBool:
