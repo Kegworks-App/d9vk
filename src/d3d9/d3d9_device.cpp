@@ -2689,7 +2689,9 @@ namespace dxvk {
     if (newShader && oldShader) {
       m_consts[DxsoProgramTypes::VertexShader].dirty
         |= newShader->GetMeta().maxConstIndexF > oldShader->GetMeta().maxConstIndexF
+        || newShader->GetMeta().minConstIndexF < oldShader->GetMeta().minConstIndexF
         || newShader->GetMeta().maxConstIndexI > oldShader->GetMeta().maxConstIndexI
+        || newShader->GetMeta().minConstIndexI < oldShader->GetMeta().minConstIndexI
         || newShader->GetMeta().maxConstIndexB > oldShader->GetMeta().maxConstIndexB;
     }
 
@@ -3021,7 +3023,9 @@ namespace dxvk {
     if (newShader && oldShader) {
       m_consts[DxsoProgramTypes::PixelShader].dirty
         |= newShader->GetMeta().maxConstIndexF > oldShader->GetMeta().maxConstIndexF
+        || newShader->GetMeta().minConstIndexF < oldShader->GetMeta().minConstIndexF
         || newShader->GetMeta().maxConstIndexI > oldShader->GetMeta().maxConstIndexI
+        || newShader->GetMeta().minConstIndexI < oldShader->GetMeta().minConstIndexI
         || newShader->GetMeta().maxConstIndexB > oldShader->GetMeta().maxConstIndexB;
     }
 
@@ -4635,9 +4639,9 @@ namespace dxvk {
     auto* dst = reinterpret_cast<HardwareLayoutType*>(pData);
 
     if (constSet.meta.maxConstIndexF)
-      std::memcpy(dst->fConsts, Src.fConsts, constSet.meta.maxConstIndexF * sizeof(Vector4));
+      std::memcpy(dst->fConsts + constSet.meta.minConstIndexF, Src.fConsts + constSet.meta.minConstIndexF, (constSet.meta.maxConstIndexF - constSet.meta.minConstIndexF) * sizeof(Vector4));
     if (constSet.meta.maxConstIndexI)
-      std::memcpy(dst->iConsts, Src.iConsts, constSet.meta.maxConstIndexI * sizeof(Vector4i));
+      std::memcpy(dst->iConsts + constSet.meta.minConstIndexI, Src.iConsts + constSet.meta.minConstIndexI, (constSet.meta.maxConstIndexI - constSet.meta.minConstIndexI) * sizeof(Vector4i));
   }
 
 
@@ -4648,9 +4652,9 @@ namespace dxvk {
     auto dst = reinterpret_cast<uint8_t*>(pData);
 
     if (constSet.meta.maxConstIndexF)
-      std::memcpy(dst + Layout.floatOffset(),   Src.fConsts, constSet.meta.maxConstIndexF * sizeof(Vector4));
+      std::memcpy(dst + Layout.floatOffset() + constSet.meta.minConstIndexF * sizeof(Vector4), Src.fConsts + constSet.meta.minConstIndexF, (constSet.meta.maxConstIndexF - constSet.meta.minConstIndexF) * sizeof(Vector4));
     if (constSet.meta.maxConstIndexI)
-      std::memcpy(dst + Layout.intOffset(),     Src.iConsts, constSet.meta.maxConstIndexI * sizeof(Vector4i));
+      std::memcpy(dst + Layout.intOffset() + constSet.meta.minConstIndexI * sizeof(Vector4i),  Src.iConsts + constSet.meta.minConstIndexI, (constSet.meta.maxConstIndexI - constSet.meta.minConstIndexI) * sizeof(Vector4i));
     if (constSet.meta.maxConstIndexB)
       std::memcpy(dst + Layout.bitmaskOffset(), Src.bConsts, Layout.bitmaskSize());
   }
@@ -6089,8 +6093,11 @@ namespace dxvk {
       uint32_t maxCount = ConstantType == D3D9ConstantType::Float
         ? m_consts[ProgramType].meta.maxConstIndexF
         : m_consts[ProgramType].meta.maxConstIndexI;
+      uint32_t minIndex = ConstantType == D3D9ConstantType::Float
+        ? m_consts[ProgramType].meta.minConstIndexF
+        : m_consts[ProgramType].meta.minConstIndexI;
 
-      m_consts[ProgramType].dirty |= StartRegister < maxCount;
+      m_consts[ProgramType].dirty |= StartRegister < maxCount && StartRegister + Count > minIndex;
     }
 
     UpdateStateConstants<ProgramType, ConstantType, T>(
