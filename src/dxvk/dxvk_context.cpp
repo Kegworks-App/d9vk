@@ -2146,7 +2146,10 @@ namespace dxvk {
           uint32_t            viewportCount,
     const VkViewport*         viewports,
     const VkRect2D*           scissorRects) {
-    if (m_state.gp.state.rs.viewportCount() != viewportCount) {
+    m_state.vp.viewportCount = viewportCount;
+
+    if (unlikely(!m_features.test(DxvkContextFeature::ExtendedDynamicState))
+     && unlikely(m_state.gp.state.rs.viewportCount() != viewportCount)) {
       m_state.gp.state.rs.setViewportCount(viewportCount);
       m_flags.set(DxvkContextFlag::GpDirtyPipelineState);
     }
@@ -4219,9 +4222,15 @@ namespace dxvk {
     if (m_flags.test(DxvkContextFlag::GpDirtyViewport)) {
       m_flags.clr(DxvkContextFlag::GpDirtyViewport);
 
-      uint32_t viewportCount = m_state.gp.state.rs.viewportCount();
-      m_cmd->cmdSetViewport(0, viewportCount, m_state.vp.viewports.data());
-      m_cmd->cmdSetScissor (0, viewportCount, m_state.vp.scissorRects.data());
+      uint32_t viewportCount = m_state.vp.viewportCount;
+
+      if (m_features.test(DxvkContextFeature::ExtendedDynamicState)) {
+        m_cmd->cmdSetViewportWithCount(viewportCount, m_state.vp.viewports.data());
+        m_cmd->cmdSetScissorWithCount (viewportCount, m_state.vp.scissorRects.data());
+      } else {
+        m_cmd->cmdSetViewport(0, viewportCount, m_state.vp.viewports.data());
+        m_cmd->cmdSetScissor (0, viewportCount, m_state.vp.scissorRects.data());
+      }
     }
 
     if (m_flags.all(DxvkContextFlag::GpDirtyBlendConstants,

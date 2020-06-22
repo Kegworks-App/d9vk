@@ -137,8 +137,8 @@ namespace dxvk {
     std::array<VkDynamicState, 7> dynamicStates;
     uint32_t                      dynamicStateCount = 0;
     
-    dynamicStates[dynamicStateCount++] = VK_DYNAMIC_STATE_VIEWPORT;
-    dynamicStates[dynamicStateCount++] = VK_DYNAMIC_STATE_SCISSOR;
+    dynamicStates[dynamicStateCount++] = extendedDynamicStates ? VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT_EXT : VK_DYNAMIC_STATE_VIEWPORT;
+    dynamicStates[dynamicStateCount++] = extendedDynamicStates ? VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT_EXT  : VK_DYNAMIC_STATE_SCISSOR;
 
     if (state.useDynamicDepthBias())
       dynamicStates[dynamicStateCount++] = VK_DYNAMIC_STATE_DEPTH_BIAS;
@@ -294,9 +294,9 @@ namespace dxvk {
     vpInfo.sType                  = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
     vpInfo.pNext                  = nullptr;
     vpInfo.flags                  = 0;
-    vpInfo.viewportCount          = state.rs.viewportCount();
+    vpInfo.viewportCount          = extendedDynamicStates ? 0 : state.rs.viewportCount();
     vpInfo.pViewports             = nullptr;
-    vpInfo.scissorCount           = state.rs.viewportCount();
+    vpInfo.scissorCount           = extendedDynamicStates ? 0 : state.rs.viewportCount();
     vpInfo.pScissors              = nullptr;
     
     VkPipelineRasterizationStateStreamCreateInfoEXT xfbStreamInfo;
