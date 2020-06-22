@@ -11,8 +11,8 @@ namespace dxvk {
   DxvkGraphicsPipeline::DxvkGraphicsPipeline(
           DxvkPipelineManager*        pipeMgr,
           DxvkGraphicsPipelineShaders shaders)
-  : m_vkd(pipeMgr->m_device->vkd()), m_pipeMgr(pipeMgr),
-    m_shaders(std::move(shaders)) {
+  : m_device(pipeMgr->m_device), m_vkd(m_device->vkd()),
+    m_pipeMgr(pipeMgr), m_shaders(std::move(shaders)) {
     if (m_shaders.vs  != nullptr) m_shaders.vs ->defineResourceSlots(m_slotMapping);
     if (m_shaders.tcs != nullptr) m_shaders.tcs->defineResourceSlots(m_slotMapping);
     if (m_shaders.tes != nullptr) m_shaders.tes->defineResourceSlots(m_slotMapping);
@@ -128,11 +128,13 @@ namespace dxvk {
       this->logPipelineState(LogLevel::Debug, state);
     }
 
+    bool extendedDynamicStates = m_device->features().extExtendedDynamicState.extendedDynamicState;
+
     // Render pass format and image layouts
     DxvkRenderPassFormat passFormat = renderPass->format();
     
     // Set up dynamic states as needed
-    std::array<VkDynamicState, 6> dynamicStates;
+    std::array<VkDynamicState, 7> dynamicStates;
     uint32_t                      dynamicStateCount = 0;
     
     dynamicStates[dynamicStateCount++] = VK_DYNAMIC_STATE_VIEWPORT;
@@ -149,6 +151,9 @@ namespace dxvk {
     
     if (state.useDynamicStencilRef())
       dynamicStates[dynamicStateCount++] = VK_DYNAMIC_STATE_STENCIL_REFERENCE;
+
+    if (extendedDynamicStates && state.il.bindingCount())
+      dynamicStates[dynamicStateCount++] = VK_DYNAMIC_STATE_VERTEX_INPUT_BINDING_STRIDE_EXT;
 
     // Figure out the actual sample count to use
     VkSampleCountFlagBits sampleCount = VK_SAMPLE_COUNT_1_BIT;
@@ -238,6 +243,10 @@ namespace dxvk {
     for (uint32_t i = 0; i < state.il.bindingCount(); i++) {
       viBindings[i] = state.ilBindings[i].description();
       viBindings[i].binding = i;
+
+      if (extendedDynamicStates)
+        viBindings[i].stride = 0;
+
       viBindingMap[state.ilBindings[i].binding()] = i;
     }
 

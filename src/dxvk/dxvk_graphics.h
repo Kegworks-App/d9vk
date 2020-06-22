@@ -205,6 +205,7 @@ namespace dxvk {
     
   private:
     
+    const DxvkDevice*           m_device;
     Rc<vk::DeviceFn>            m_vkd;
     DxvkPipelineManager*        m_pipeMgr;
 
