@@ -3875,7 +3875,7 @@ namespace dxvk {
               m_cmd->trackResource<DxvkAccess::None>(res.imageView);
               m_cmd->trackResource<DxvkAccess::Read>(res.imageView->image());
             }
-          } else if (m_features.test(DxvkContextFeature::NullDescriptors)) {
+          } else if (false /* m_features.test(DxvkContextFeature::NullDescriptors) */) {
             descriptors[i].image.sampler     = VK_NULL_HANDLE;
             descriptors[i].image.imageView   = VK_NULL_HANDLE;
             descriptors[i].image.imageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -3897,7 +3897,7 @@ namespace dxvk {
               m_cmd->trackResource<DxvkAccess::None>(res.imageView);
               m_cmd->trackResource<DxvkAccess::Write>(res.imageView->image());
             }
-          } else if (m_features.test(DxvkContextFeature::NullDescriptors)) {
+          } else if (false /* m_features.test(DxvkContextFeature::NullDescriptors) */) {
             descriptors[i].image.sampler     = VK_NULL_HANDLE;
             descriptors[i].image.imageView   = VK_NULL_HANDLE;
             descriptors[i].image.imageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -3921,7 +3921,7 @@ namespace dxvk {
               m_cmd->trackResource<DxvkAccess::None>(res.imageView);
               m_cmd->trackResource<DxvkAccess::Read>(res.imageView->image());
             }
-          } else if (m_features.test(DxvkContextFeature::NullDescriptors)) {
+          } else if (false /* m_features.test(DxvkContextFeature::NullDescriptors) */) {
             descriptors[i].image = m_common->dummyResources().samplerDescriptor();
           } else {
             bindMask.clr(i);
@@ -3937,7 +3937,7 @@ namespace dxvk {
               m_cmd->trackResource<DxvkAccess::None>(res.bufferView);
               m_cmd->trackResource<DxvkAccess::Read>(res.bufferView->buffer());
             }
-          } else if (m_features.test(DxvkContextFeature::NullDescriptors)) {
+          } else if (false /* m_features.test(DxvkContextFeature::NullDescriptors) */) {
             descriptors[i].texelBuffer = VK_NULL_HANDLE;
           } else {
             bindMask.clr(i);
@@ -3953,7 +3953,7 @@ namespace dxvk {
               m_cmd->trackResource<DxvkAccess::None>(res.bufferView);
               m_cmd->trackResource<DxvkAccess::Write>(res.bufferView->buffer());
             }
-          } else if (m_features.test(DxvkContextFeature::NullDescriptors)) {
+          } else if (false /* m_features.test(DxvkContextFeature::NullDescriptors) */) {
             descriptors[i].texelBuffer = VK_NULL_HANDLE;
           } else {
             bindMask.clr(i);
@@ -3981,7 +3981,7 @@ namespace dxvk {
             
             if (m_rcTracked.set(binding.slot))
               m_cmd->trackResource<DxvkAccess::Write>(res.bufferSlice.buffer());
-          } else if (m_features.test(DxvkContextFeature::NullDescriptors)) {
+          } else if (false /* m_features.test(DxvkContextFeature::NullDescriptors) */) {
             descriptors[i].buffer.buffer = VK_NULL_HANDLE;
             descriptors[i].buffer.offset = 0;
             descriptors[i].buffer.range = 0;
