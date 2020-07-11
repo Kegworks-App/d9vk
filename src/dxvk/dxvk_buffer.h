@@ -312,6 +312,16 @@ namespace dxvk {
       slice.offset = m_physSliceStride * index;
       slice.mapPtr = handle.memory.mapPtr(slice.offset);
       m_freeSlices.push_back(slice);
+
+      if (likely((m_info.usage
+        & (VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
+          | VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT
+          | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT
+          | VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT))
+        && m_physSliceStride != m_physSliceLength
+        && (m_memFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))) {
+        memset(handle.memory.mapPtr(slice.offset + m_physSliceLength), 0, m_physSliceStride - m_physSliceLength);
+      }
     }
 
     DxvkBufferHandle allocBuffer(
