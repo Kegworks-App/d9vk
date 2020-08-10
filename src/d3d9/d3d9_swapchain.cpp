@@ -67,16 +67,9 @@ namespace dxvk {
     if (it == g_windowProcMap.end())
       return;
 
-    auto proc = reinterpret_cast<WNDPROC>(
-      CallCharsetFunction(
-      GetWindowLongPtrW, GetWindowLongPtrA, it->second.unicode,
-        window, GWLP_WNDPROC));
-
-
-    if (proc == D3D9WindowProc)
-      CallCharsetFunction(
-        SetWindowLongPtrW, SetWindowLongPtrA, it->second.unicode,
-          window, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(it->second.proc));
+    CallCharsetFunction(
+      SetWindowLongPtrW, SetWindowLongPtrA, it->second.unicode,
+        window, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(it->second.proc));
 
     g_windowProcMap.erase(window);
   }
@@ -173,6 +166,8 @@ namespace dxvk {
     // Apply initial window mode and fullscreen state
     if (!m_presentParams.Windowed && FAILED(EnterFullscreenMode(pPresentParams, pFullscreenDisplayMode)))
       throw DxvkError("D3D9: Failed to set initial fullscreen state");
+
+    HookWindowProc(m_window);
   }
 
 
@@ -1398,8 +1393,6 @@ namespace dxvk {
     // Some games restore window styles after we have changed it, so hooking is
     // also required. Doing it will allow us to create fullscreen windows
     // regardless of their style and it also appears to work on Windows.
-    HookWindowProc(m_window);
-
     D3D9WindowMessageFilter filter(m_window);
     
     // Change the window flags to remove the decoration etc.
@@ -1437,8 +1430,6 @@ namespace dxvk {
     
     m_monitor = nullptr;
 
-    ResetWindowProc(m_window);
-    
     // Only restore the window style if the application hasn't
     // changed them. This is in line with what native D3D9 does.
     LONG curStyle   = ::GetWindowLongW(m_window, GWL_STYLE) & ~WS_VISIBLE;
