@@ -14,6 +14,8 @@ namespace dxvk {
     bool unicode;
     bool filter;
     WNDPROC proc;
+    uint32_t backBufferWidth;
+    uint32_t backBufferHeight;
   };
 
 
@@ -75,7 +77,7 @@ namespace dxvk {
   }
 
 
-  void HookWindowProc(HWND window) {
+  void HookWindowProc(HWND window, uint32_t backBufferWidth, uint32_t backBufferHeight) {
     std::lock_guard lock(g_windowProcMapMutex);
 
     ResetWindowProc(window);
@@ -87,6 +89,8 @@ namespace dxvk {
       CallCharsetFunction(
       SetWindowLongPtrW, SetWindowLongPtrA, windowData.unicode,
         window, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(D3D9WindowProc)));
+    windowData.backBufferWidth = backBufferWidth;
+    windowData.backBufferHeight = backBufferHeight;
 
     g_windowProcMap[window] = std::move(windowData);
   }
@@ -109,6 +113,16 @@ namespace dxvk {
     bool unicode = windowData.proc
       ? windowData.unicode
       : IsWindowUnicode(window);
+
+    if (message == WM_ACTIVATEAPP) {
+      bool active = static_cast<bool>(wparam);
+      if (active && !IsWindowVisible(window)) {
+        SetWindowPos(window, NULL, 0, 0, windowData.backBufferWidth,
+          windowData.backBufferHeight, SWP_NOACTIVATE | SWP_NOZORDER);
+      } else if (!active && IsWindowVisible(window)) {
+        ShowWindow(window, SW_MINIMIZE);
+      }
+    }
 
     if (!windowData.proc || windowData.filter)
       return CallCharsetFunction(
@@ -167,7 +181,7 @@ namespace dxvk {
     if (!m_presentParams.Windowed && FAILED(EnterFullscreenMode(pPresentParams, pFullscreenDisplayMode)))
       throw DxvkError("D3D9: Failed to set initial fullscreen state");
 
-    HookWindowProc(m_window);
+    HookWindowProc(m_window, m_presentParams.BackBufferWidth, m_presentParams.BackBufferHeight);
   }
 
 
@@ -627,6 +641,13 @@ namespace dxvk {
       SetGammaRamp(0, &m_ramp);
 
     CreateBackBuffers(m_presentParams.BackBufferCount);
+
+    std::lock_guard procLock(g_windowProcMapMutex);
+    auto procEntry = g_windowProcMap.find(m_window);
+    if (procEntry != g_windowProcMap.end()) {
+      procEntry->second.backBufferWidth = pPresentParams->BackBufferWidth;
+      procEntry->second.backBufferHeight = pPresentParams->BackBufferHeight;
+    }
   }
 
 
