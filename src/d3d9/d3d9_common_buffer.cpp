@@ -87,12 +87,6 @@ namespace dxvk {
     }
 
     if (GetMapMode() == D3D9_COMMON_BUFFER_MAP_MODE_DIRECT) {
-      info.stages |= VK_PIPELINE_STAGE_HOST_BIT;
-      info.access |= VK_ACCESS_HOST_WRITE_BIT;
-
-      if (!(m_desc.Usage & D3DUSAGE_WRITEONLY))
-        info.access |= VK_ACCESS_HOST_READ_BIT;
-
       memoryFlags |= VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
                   |  VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 
@@ -114,16 +108,11 @@ namespace dxvk {
   Rc<DxvkBuffer> D3D9CommonBuffer::CreateStagingBuffer() const {
     DxvkBufferCreateInfo  info;
     info.size   = m_desc.Size;
-    info.stages = VK_PIPELINE_STAGE_HOST_BIT
-                | VK_PIPELINE_STAGE_TRANSFER_BIT;
+    info.stages = VK_PIPELINE_STAGE_TRANSFER_BIT;
 
     info.usage  = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
-    info.access = VK_ACCESS_HOST_WRITE_BIT
-                | VK_ACCESS_TRANSFER_READ_BIT;
-
-    if (!(m_desc.Usage & D3DUSAGE_WRITEONLY))
-      info.access |= VK_ACCESS_HOST_READ_BIT;
+    info.access = VK_ACCESS_TRANSFER_READ_BIT;
 
     VkMemoryPropertyFlags memoryFlags = 
       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
