@@ -4280,7 +4280,7 @@ namespace dxvk {
     // The docs say DISCARD and NOOVERWRITE are ignored if the buffer is not DYNAMIC
     // but tests say otherwise!
     if (desc.Pool != D3DPOOL_DEFAULT)
-      Flags &= ~(D3DLOCK_DISCARD | D3DLOCK_NOOVERWRITE);
+      Flags &= ~D3DLOCK_DISCARD;
 
     // Ignore READONLY if we are a WRITEONLY resource.
     if (desc.Usage & D3DUSAGE_WRITEONLY)
