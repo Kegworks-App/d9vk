@@ -90,6 +90,9 @@ namespace dxvk {
       memoryFlags |= VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
                   |  VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 
+      if (m_desc.Pool == D3DPOOL_SYSTEMMEM)
+        memoryFlags |= VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
+
       if (m_desc.Size <= DeviceLocalThreshold)
         memoryFlags |= VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
     }
