@@ -1,4 +1,5 @@
 #include "dxvk_image.h"
+#include "dxvk_barrier.h"
 
 namespace dxvk {
   
@@ -7,7 +8,7 @@ namespace dxvk {
     const DxvkImageCreateInfo&  createInfo,
           DxvkMemoryAllocator&  memAlloc,
           VkMemoryPropertyFlags memFlags)
-  : m_vkd(vkd), m_info(createInfo), m_memFlags(memFlags) {
+  : m_vkd(vkd), m_info(createInfo), m_memFlags(memFlags), m_barrierInfo {} {
 
     // Copy the compatible view formats to a persistent array
     m_viewFormats.resize(createInfo.viewFormatCount);
@@ -236,5 +237,47 @@ namespace dxvk {
         "\n    Tiling:        ", m_image->info().tiling));
     }
   }
-  
+
+  bool DxvkImage::read(DxvkBarrierSet& barriers, VkImageLayout layout, VkAccessFlags readAccess, VkPipelineStageFlags readStage) {
+    bool needsBarrier = layout != m_barrierInfo.layout || m_barrierInfo.writeAccess != 0 && (!(m_barrierInfo.readAccess & readAccess) || !(m_barrierInfo.readStages & readStage));
+    if (needsBarrier) {
+      VkImageSubresourceRange subresources;
+      subresources.aspectMask     = formatInfo()->aspectMask;
+      subresources.baseArrayLayer = 0;
+      subresources.baseMipLevel   = 0;
+      subresources.layerCount     = m_info.numLayers;
+      subresources.levelCount     = m_info.mipLevels;
+      barriers.accessImage(this, subresources,
+        m_barrierInfo.layout, m_barrierInfo.writeStages, m_barrierInfo.writeAccess,
+        layout, readStage, readAccess);
+    }
+
+    m_barrierInfo.layout = layout;
+    m_barrierInfo.readAccess |= readAccess;
+    m_barrierInfo.readStages |= readStage;
+    return needsBarrier;
+  }
+
+  bool DxvkImage::write(DxvkBarrierSet& barriers, VkImageLayout layout, VkAccessFlags writeAccess, VkPipelineStageFlags writeStage) {
+    bool needsBarrier = layout != m_barrierInfo.layout || m_barrierInfo.writeAccess != 0 || m_barrierInfo.readAccess != 0;
+    if (needsBarrier) {
+      VkImageSubresourceRange subresources;
+      subresources.aspectMask     = formatInfo()->aspectMask;
+      subresources.baseArrayLayer = 0;
+      subresources.baseMipLevel   = 0;
+      subresources.layerCount     = m_info.numLayers;
+      subresources.levelCount     = m_info.mipLevels;
+
+      barriers.accessImage(this, subresources,
+        m_barrierInfo.layout, m_barrierInfo.writeStages | m_barrierInfo.readStages, m_barrierInfo.writeAccess,
+        layout, writeStage, writeAccess);
+    }
+
+    m_barrierInfo.layout = layout;
+    m_barrierInfo.readAccess = 0;
+    m_barrierInfo.readStages = 0;
+    m_barrierInfo.writeAccess = writeAccess;
+    m_barrierInfo.writeStages = writeStage;
+    return needsBarrier;
+  }
 }

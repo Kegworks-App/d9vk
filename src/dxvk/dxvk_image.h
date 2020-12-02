@@ -8,6 +8,7 @@
 
 namespace dxvk {
 
+  class DxvkBarrierSet;
   class DxvkImageView;
   
   /**
@@ -63,6 +64,13 @@ namespace dxvk {
     const VkFormat* viewFormats     = nullptr;
   };
   
+  struct DxvkImageBarrierInfo {
+    VkPipelineStageFlags readStages;
+    VkPipelineStageFlags writeStages;
+    VkAccessFlags readAccess;
+    VkAccessFlags writeAccess;
+    VkImageLayout layout;
+  };
   
   /**
    * \brief Image create info
@@ -164,6 +172,16 @@ namespace dxvk {
      */
     const DxvkImageCreateInfo& info() const {
       return m_info;
+    }
+    
+    /**
+     * \brief Image barrier properties
+     * 
+     * The image barrier info structure.
+     * \returns Image properties
+     */
+    DxvkImageBarrierInfo& barrierInfo() {
+      return m_barrierInfo;
     }
     
     /**
@@ -284,6 +302,9 @@ namespace dxvk {
     VkDeviceSize memSize() const {
       return m_image.memory.length();
     }
+
+    bool read(DxvkBarrierSet& barriers, VkImageLayout layout, VkAccessFlags readAccess, VkPipelineStageFlags readStage);
+    bool write(DxvkBarrierSet& barriers, VkImageLayout layout, VkAccessFlags writeAccess, VkPipelineStageFlags writeStage);
     
   private:
     
@@ -291,6 +312,7 @@ namespace dxvk {
     DxvkImageCreateInfo   m_info;
     VkMemoryPropertyFlags m_memFlags;
     DxvkPhysicalImage     m_image;
+    DxvkImageBarrierInfo  m_barrierInfo;
 
     small_vector<VkFormat, 4> m_viewFormats;
     

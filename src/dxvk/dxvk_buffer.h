@@ -10,6 +10,7 @@
 #include "dxvk_resource.h"
 
 namespace dxvk {
+  class DxvkBarrierSet;
 
   /**
    * \brief Buffer create info
@@ -31,7 +32,13 @@ namespace dxvk {
     /// Allowed access patterns
     VkAccessFlags access;
   };
-  
+
+  struct DxvkBufferBarrierInfo {
+    VkPipelineStageFlags readStages;
+    VkPipelineStageFlags writeStages;
+    VkAccessFlags readAccess;
+    VkAccessFlags writeAccess;
+  };
   
   /**
    * \brief Buffer view create info
@@ -117,6 +124,14 @@ namespace dxvk {
      */
     const DxvkBufferCreateInfo& info() const {
       return m_info;
+    }
+    
+    /**
+     * \brief Buffer properties
+     * \returns Buffer properties
+     */
+    DxvkBufferBarrierInfo& barrierInfo() {
+      return m_barrierInfo;
     }
     
     /**
@@ -279,13 +294,17 @@ namespace dxvk {
       std::unique_lock<sync::Spinlock> swapLock(m_swapMutex);
       m_nextSlices.push_back(slice);
     }
-    
+
+    bool read(DxvkBarrierSet& barriers, VkAccessFlags readAccess, VkPipelineStageFlags readStage);
+    bool write(DxvkBarrierSet& barriers, VkAccessFlags writeAccess, VkPipelineStageFlags writeStage);
+
   private:
 
     DxvkDevice*             m_device;
     DxvkBufferCreateInfo    m_info;
     DxvkMemoryAllocator*    m_memAlloc;
     VkMemoryPropertyFlags   m_memFlags;
+    DxvkBufferBarrierInfo   m_barrierInfo;
     
     DxvkBufferHandle        m_buffer;
     DxvkBufferSliceHandle   m_physSlice;

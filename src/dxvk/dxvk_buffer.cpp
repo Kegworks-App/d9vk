@@ -13,7 +13,8 @@ namespace dxvk {
   : m_device        (device),
     m_info          (createInfo),
     m_memAlloc      (&memAlloc),
-    m_memFlags      (memFlags) {
+    m_memFlags      (memFlags),
+    m_barrierInfo   { } {
     // Align slices so that we don't violate any alignment
     // requirements imposed by the Vulkan device/driver
     VkDeviceSize sliceAlignment = computeSliceAlignment();
@@ -148,9 +149,34 @@ namespace dxvk {
     return result;
   }
 
+  bool DxvkBuffer::read(DxvkBarrierSet& barriers, VkAccessFlags readAccess, VkPipelineStageFlags readStage) {
+    bool needsBarrier = m_barrierInfo.writeAccess != 0 && (!(m_barrierInfo.readAccess & readAccess) || !(m_barrierInfo.readStages & readStage));
+    if (needsBarrier) {
+      barriers.accessBuffer(this->getSliceHandle(0, m_physSliceStride * m_physSliceCount),
+        m_barrierInfo.writeStages, m_barrierInfo.writeAccess,
+        readStage, readAccess);
+    }
 
+    m_barrierInfo.readAccess |= readAccess;
+    m_barrierInfo.readStages |= readStage;
+    return needsBarrier;
+  }
 
-  
+  bool DxvkBuffer::write(DxvkBarrierSet& barriers, VkAccessFlags writeAccess, VkPipelineStageFlags writeStage) {
+    bool needsBarrier = m_barrierInfo.writeAccess != 0 || m_barrierInfo.readAccess != 0;
+    if (needsBarrier) {
+      barriers.accessBuffer(this->getSliceHandle(0, m_physSliceStride * m_physSliceCount),
+        m_barrierInfo.writeStages | m_barrierInfo.readStages, m_barrierInfo.writeAccess,
+        writeStage, writeAccess);
+    }
+
+    m_barrierInfo.readAccess = 0;
+    m_barrierInfo.readStages = 0;
+    m_barrierInfo.writeAccess = writeAccess;
+    m_barrierInfo.writeStages = writeStage;
+    return needsBarrier;
+  }
+
   DxvkBufferView::DxvkBufferView(
     const Rc<vk::DeviceFn>&         vkd,
     const Rc<DxvkBuffer>&           buffer,
