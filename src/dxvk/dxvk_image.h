@@ -305,6 +305,10 @@ namespace dxvk {
 
     bool read(DxvkBarrierSet& barriers, VkImageLayout layout, VkAccessFlags readAccess, VkPipelineStageFlags readStage);
     bool write(DxvkBarrierSet& barriers, VkImageLayout layout, VkAccessFlags writeAccess, VkPipelineStageFlags writeStage);
+    bool writeNeedsBarrier(VkImageLayout layout, VkAccessFlags writeAccess, VkPipelineStageFlags writeStage);
+    bool readNeedsBarrier(VkImageLayout layout, VkAccessFlags readAccess, VkPipelineStageFlags readStage);
+    bool writeDiscard(DxvkBarrierSet& barriers, VkImageLayout layout, VkAccessFlags writeAccess, VkPipelineStageFlags writeStage);
+    bool writeInit(DxvkBarrierSet& barriers, VkImageLayout layout, VkAccessFlags writeAccess, VkPipelineStageFlags writeStage);
     
   private:
     

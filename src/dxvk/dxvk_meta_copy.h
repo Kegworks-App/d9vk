@@ -78,6 +78,8 @@ namespace dxvk {
       return m_framebuffer;
     }
 
+    bool emitBarriers(DxvkBarrierSet& barriers);
+
   private:
 
     Rc<vk::DeviceFn>  m_vkd;
@@ -92,6 +94,8 @@ namespace dxvk {
     VkRenderPass createRenderPass(bool discard) const;
 
     VkFramebuffer createFramebuffer() const;
+
+    bool m_discard;
 
   };
 

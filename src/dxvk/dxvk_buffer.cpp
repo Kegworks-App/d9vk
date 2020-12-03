@@ -151,29 +151,29 @@ namespace dxvk {
 
   bool DxvkBuffer::read(DxvkBarrierSet& barriers, VkAccessFlags readAccess, VkPipelineStageFlags readStage) {
     bool needsBarrier = m_barrierInfo.writeAccess != 0 && (!(m_barrierInfo.readAccess & readAccess) || !(m_barrierInfo.readStages & readStage));
-    if (needsBarrier) {
+    if (unlikely(needsBarrier)) {
       barriers.accessBuffer(this->getSliceHandle(0, m_physSliceStride * m_physSliceCount),
         m_barrierInfo.writeStages, m_barrierInfo.writeAccess,
         readStage, readAccess);
-    }
 
-    m_barrierInfo.readAccess |= readAccess;
-    m_barrierInfo.readStages |= readStage;
+      m_barrierInfo.readAccess |= readAccess;
+      m_barrierInfo.readStages |= readStage;
+    }
     return needsBarrier;
   }
 
   bool DxvkBuffer::write(DxvkBarrierSet& barriers, VkAccessFlags writeAccess, VkPipelineStageFlags writeStage) {
     bool needsBarrier = m_barrierInfo.writeAccess != 0 || m_barrierInfo.readAccess != 0;
-    if (needsBarrier) {
+    if (likely(needsBarrier)) {
       barriers.accessBuffer(this->getSliceHandle(0, m_physSliceStride * m_physSliceCount),
         m_barrierInfo.writeStages | m_barrierInfo.readStages, m_barrierInfo.writeAccess,
         writeStage, writeAccess);
-    }
 
-    m_barrierInfo.readAccess = 0;
-    m_barrierInfo.readStages = 0;
-    m_barrierInfo.writeAccess = writeAccess;
-    m_barrierInfo.writeStages = writeStage;
+      m_barrierInfo.readAccess = 0;
+      m_barrierInfo.readStages = 0;
+      m_barrierInfo.writeAccess = writeAccess;
+      m_barrierInfo.writeStages = writeStage;
+    }
     return needsBarrier;
   }
 

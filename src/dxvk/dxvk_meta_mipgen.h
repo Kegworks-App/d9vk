@@ -5,7 +5,9 @@
 #include "dxvk_meta_blit.h"
 
 namespace dxvk {
-  
+
+  class DxvkBarrierSet;
+
   /**
    * \brief Mip map generation render pass
    * 
@@ -71,6 +73,8 @@ namespace dxvk {
      * of the framebuffer for the given pass ID.
      */
     VkExtent3D passExtent(uint32_t passId) const;
+
+    bool emitBarriers(DxvkBarrierSet& barriers);
     
   private:
     

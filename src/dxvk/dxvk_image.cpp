@@ -8,7 +8,7 @@ namespace dxvk {
     const DxvkImageCreateInfo&  createInfo,
           DxvkMemoryAllocator&  memAlloc,
           VkMemoryPropertyFlags memFlags)
-  : m_vkd(vkd), m_info(createInfo), m_memFlags(memFlags), m_barrierInfo {} {
+  : m_vkd(vkd), m_info(createInfo), m_memFlags(memFlags), m_barrierInfo { 0, 0, 0, 0, m_info.initialLayout } {
 
     // Copy the compatible view formats to a persistent array
     m_viewFormats.resize(createInfo.viewFormatCount);
@@ -239,28 +239,41 @@ namespace dxvk {
   }
 
   bool DxvkImage::read(DxvkBarrierSet& barriers, VkImageLayout layout, VkAccessFlags readAccess, VkPipelineStageFlags readStage) {
-    bool needsBarrier = layout != m_barrierInfo.layout || m_barrierInfo.writeAccess != 0 && (!(m_barrierInfo.readAccess & readAccess) || !(m_barrierInfo.readStages & readStage));
-    if (needsBarrier) {
+    if (layout == VK_IMAGE_LAYOUT_UNDEFINED) {
+      Logger::warn(str::format("UNDEFINED layout, writeAccess: ", readAccess, " writeStage:", readStage));
+    }
+
+    bool needsBarrier = readNeedsBarrier(layout, readAccess, readStage);
+    if (unlikely(needsBarrier)) {
       VkImageSubresourceRange subresources;
       subresources.aspectMask     = formatInfo()->aspectMask;
       subresources.baseArrayLayer = 0;
       subresources.baseMipLevel   = 0;
       subresources.layerCount     = m_info.numLayers;
       subresources.levelCount     = m_info.mipLevels;
+
+      if (m_barrierInfo.layout != layout) {
+        Logger::warn(str::format("Transitioning ", this, " vkimage: ", m_image.image, " from: ", m_barrierInfo.layout, " to: ", layout, " readAccess: ", readAccess, " readStage: ", readStage, " info stages: ", m_info.stages, " info access: ", m_info.access, " info layout:", m_info.layout));
+      }
+
       barriers.accessImage(this, subresources,
         m_barrierInfo.layout, m_barrierInfo.writeStages, m_barrierInfo.writeAccess,
         layout, readStage, readAccess);
-    }
 
-    m_barrierInfo.layout = layout;
-    m_barrierInfo.readAccess |= readAccess;
-    m_barrierInfo.readStages |= readStage;
+      m_barrierInfo.layout = layout;
+      m_barrierInfo.readAccess |= readAccess;
+      m_barrierInfo.readStages |= readStage;
+    }
     return needsBarrier;
   }
 
   bool DxvkImage::write(DxvkBarrierSet& barriers, VkImageLayout layout, VkAccessFlags writeAccess, VkPipelineStageFlags writeStage) {
-    bool needsBarrier = layout != m_barrierInfo.layout || m_barrierInfo.writeAccess != 0 || m_barrierInfo.readAccess != 0;
-    if (needsBarrier) {
+    if (layout == VK_IMAGE_LAYOUT_UNDEFINED) {
+      //Logger::warn(str::format("UNDEFINED layout, writeAccess: ", writeAccess, " writeStage:", writeStage));
+    }
+
+    bool needsBarrier = writeNeedsBarrier(layout, writeAccess, writeStage);
+    if (likely(needsBarrier)) {
       VkImageSubresourceRange subresources;
       subresources.aspectMask     = formatInfo()->aspectMask;
       subresources.baseArrayLayer = 0;
@@ -268,16 +281,81 @@ namespace dxvk {
       subresources.layerCount     = m_info.numLayers;
       subresources.levelCount     = m_info.mipLevels;
 
+      if (m_barrierInfo.layout != layout) {
+        Logger::warn(str::format("Transitioning ", this, " vkimage: ", m_image.image, " from: ", m_barrierInfo.layout, " to: ", layout, " writeAccess: ", writeAccess, " writeStage: ", writeStage, " info stages: ", m_info.stages, " info access: ", m_info.access, " info layout:", m_info.layout));
+      }
+
       barriers.accessImage(this, subresources,
         m_barrierInfo.layout, m_barrierInfo.writeStages | m_barrierInfo.readStages, m_barrierInfo.writeAccess,
         layout, writeStage, writeAccess);
-    }
 
-    m_barrierInfo.layout = layout;
-    m_barrierInfo.readAccess = 0;
-    m_barrierInfo.readStages = 0;
-    m_barrierInfo.writeAccess = writeAccess;
-    m_barrierInfo.writeStages = writeStage;
+      m_barrierInfo.layout = layout;
+      m_barrierInfo.readAccess = 0;
+      m_barrierInfo.readStages = 0;
+      m_barrierInfo.writeAccess = writeAccess;
+      m_barrierInfo.writeStages = writeStage;
+    }
     return needsBarrier;
+  }
+
+  bool DxvkImage::writeDiscard(DxvkBarrierSet& barriers, VkImageLayout layout, VkAccessFlags writeAccess, VkPipelineStageFlags writeStage) {
+    bool needsBarrier = writeNeedsBarrier(layout, writeAccess, writeStage);
+    if (likely(needsBarrier)) {
+      VkImageSubresourceRange subresources;
+      subresources.aspectMask = formatInfo()->aspectMask;
+      subresources.baseArrayLayer = 0;
+      subresources.baseMipLevel = 0;
+      subresources.layerCount = m_info.numLayers;
+      subresources.levelCount = m_info.mipLevels;
+
+      if (m_barrierInfo.layout != layout) {
+        Logger::warn(str::format("Transitioning ", this, " vkimage: ", m_image.image, " from: ", m_barrierInfo.layout, " to: ", layout, " writeAccess: ", writeAccess, " writeStage: ", writeStage, " info stages: ", m_info.stages, " info access: ", m_info.access, " info layout:", m_info.layout));
+      }
+
+      barriers.accessImage(this, subresources,
+          VK_IMAGE_LAYOUT_UNDEFINED, 0, 0,
+          layout, writeStage, writeAccess);
+
+      m_barrierInfo.layout = layout;
+      m_barrierInfo.readAccess = 0;
+      m_barrierInfo.readStages = 0;
+      m_barrierInfo.writeAccess = writeAccess;
+      m_barrierInfo.writeStages = writeStage;
+    }
+    return needsBarrier;
+  }
+
+  bool DxvkImage::writeInit(DxvkBarrierSet& barriers, VkImageLayout layout, VkAccessFlags writeAccess, VkPipelineStageFlags writeStage) {
+    bool needsBarrier = writeNeedsBarrier(layout, writeAccess, writeStage);
+    if (likely(needsBarrier)) {
+      VkImageSubresourceRange subresources;
+      subresources.aspectMask     = formatInfo()->aspectMask;
+      subresources.baseArrayLayer = 0;
+      subresources.baseMipLevel   = 0;
+      subresources.layerCount     = m_info.numLayers;
+      subresources.levelCount     = m_info.mipLevels;
+
+      if (m_barrierInfo.layout != layout) {
+        Logger::warn(str::format("Transitioning ", this, " vkimage: ", m_image.image, " from: ", m_barrierInfo.layout, " to: ", layout, " writeAccess: ", writeAccess, " writeStage: ", writeStage, " info stages: ", m_info.stages, " info access: ", m_info.access, " info layout:", m_info.layout));
+      }
+
+      barriers.accessImage(this, subresources,
+        VK_IMAGE_LAYOUT_PREINITIALIZED, 0, 0,
+        layout, writeStage, writeAccess);
+
+      m_barrierInfo.layout = layout;
+      m_barrierInfo.readAccess = 0;
+      m_barrierInfo.readStages = 0;
+      m_barrierInfo.writeAccess = writeAccess;
+      m_barrierInfo.writeStages = writeStage;
+    }
+    return needsBarrier;
+  }
+
+  bool DxvkImage::writeNeedsBarrier(VkImageLayout layout, VkAccessFlags writeAccess, VkPipelineStageFlags writeStage) {
+    return layout != m_barrierInfo.layout || m_barrierInfo.writeAccess != 0 || m_barrierInfo.readAccess != 0;
+  }
+  bool DxvkImage::readNeedsBarrier(VkImageLayout layout, VkAccessFlags readAccess, VkPipelineStageFlags readStage) {
+    return layout != m_barrierInfo.layout || m_barrierInfo.writeAccess != 0 && (!(m_barrierInfo.readAccess & readAccess) || !(m_barrierInfo.readStages & readStage));
   }
 }

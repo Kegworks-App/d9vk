@@ -81,6 +81,11 @@ namespace dxvk {
   }
 
 
+  bool DxvkMetaBlitRenderPass::emitBarriers(DxvkBarrierSet& barriers) {
+    return m_dstImage->write(barriers, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+  }
+
+
   VkImageView DxvkMetaBlitRenderPass::createDstView() {
     std::array<VkImageViewType, 3> viewTypes = {{
       VK_IMAGE_VIEW_TYPE_1D_ARRAY,
@@ -147,8 +152,8 @@ namespace dxvk {
     attachment.storeOp          = VK_ATTACHMENT_STORE_OP_STORE;
     attachment.stencilLoadOp    = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     attachment.stencilStoreOp   = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    attachment.initialLayout    = m_dstImage->info().layout;
-    attachment.finalLayout      = m_dstImage->info().layout;
+    attachment.initialLayout    = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    attachment.finalLayout      = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     
     VkAttachmentReference attachmentRef;
     attachmentRef.attachment    = 0;

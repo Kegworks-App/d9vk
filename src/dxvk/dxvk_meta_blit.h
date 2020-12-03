@@ -128,6 +128,8 @@ namespace dxvk {
 
     DxvkMetaBlitPass pass() const;
 
+    bool emitBarriers(DxvkBarrierSet& barriers);
+
   private:
 
     Rc<vk::DeviceFn>  m_vkd;

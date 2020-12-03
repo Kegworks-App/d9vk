@@ -58,6 +58,17 @@ namespace dxvk {
       m_srcAccess |= srcAccess;
       m_dstAccess |= dstAccess;
     } else {
+
+      for (auto& imgBarrier : m_imgBarriers) {
+        if (imgBarrier.image == image->handle() && (imgBarrier.newLayout != dstLayout)) {
+          Logger::err(str::format("Already found barrier image: ", imgBarrier.image, " old Layout: ", imgBarrier.oldLayout, " new layout: ", imgBarrier.newLayout, " NOW ON TOP OF THAT: old layout:", srcLayout, " new layout: ", dstLayout));
+          /*imgBarrier.newLayout = dstLayout;
+          imgBarrier.srcAccessMask |= srcAccess;
+          imgBarrier.dstAccessMask |= dstAccess;
+          return;*/
+        }
+      }
+
       VkImageMemoryBarrier barrier;
       barrier.sType                       = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
       barrier.pNext                       = nullptr;

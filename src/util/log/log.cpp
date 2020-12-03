@@ -61,7 +61,7 @@ namespace dxvk {
       std::string       line;
 
       while (std::getline(stream, line, '\n')) {
-        std::cerr << prefix << line << std::endl;
+        std::cout << prefix << line << std::endl;
 
         if (m_fileStream)
           m_fileStream << prefix << line << std::endl;

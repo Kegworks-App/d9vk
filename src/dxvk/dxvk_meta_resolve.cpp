@@ -23,9 +23,11 @@ namespace dxvk {
   : m_vkd(vkd),
     m_dstImageView(dstImageView),
     m_srcImageView(srcImageView),
+    m_discard(discardDst),
     m_srcStencilView(srcStencilView),
     m_renderPass  (createShaderRenderPass(discardDst)),
-    m_framebuffer (createShaderFramebuffer()) { }
+    m_framebuffer (createShaderFramebuffer()),
+    m_useShader(true) { }
 
 
   DxvkMetaResolveRenderPass::DxvkMetaResolveRenderPass(
@@ -37,8 +39,10 @@ namespace dxvk {
   : m_vkd(vkd),
     m_dstImageView(dstImageView),
     m_srcImageView(srcImageView),
+    m_discard(modeD != VK_RESOLVE_MODE_NONE_KHR && modeS != VK_RESOLVE_MODE_NONE_KHR),
     m_renderPass  (createAttachmentRenderPass(modeD, modeS)),
-    m_framebuffer (createAttachmentFramebuffer()) { }
+    m_framebuffer (createAttachmentFramebuffer()),
+    m_useShader(false) { }
   
 
   DxvkMetaResolveRenderPass::~DxvkMetaResolveRenderPass() {
@@ -51,6 +55,10 @@ namespace dxvk {
     auto formatInfo = m_dstImageView->formatInfo();
     bool isColorImage = (formatInfo->aspectMask & VK_IMAGE_ASPECT_COLOR_BIT);
 
+    VkImageLayout layout = isColorImage
+      ? m_dstImageView->pickLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+      : m_dstImageView->pickLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+
     VkAttachmentDescription attachment;
     attachment.flags            = 0;
     attachment.format           = m_dstImageView->info().format;
@@ -59,18 +67,14 @@ namespace dxvk {
     attachment.storeOp          = VK_ATTACHMENT_STORE_OP_STORE;
     attachment.stencilLoadOp    = VK_ATTACHMENT_LOAD_OP_LOAD;
     attachment.stencilStoreOp   = VK_ATTACHMENT_STORE_OP_STORE;
-    attachment.initialLayout    = m_dstImageView->imageInfo().layout;
-    attachment.finalLayout      = m_dstImageView->imageInfo().layout;
+    attachment.initialLayout    = layout;
+    attachment.finalLayout      = layout;
 
     if (discard) {
       attachment.loadOp         = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
       attachment.stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
       attachment.initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED;
     }
-
-    VkImageLayout layout = isColorImage
-      ? m_dstImageView->pickLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
-      : m_dstImageView->pickLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
     
     VkAttachmentReference dstRef;
     dstRef.attachment    = 0;
@@ -88,33 +92,6 @@ namespace dxvk {
     subpass.preserveAttachmentCount = 0;
     subpass.pPreserveAttachments    = nullptr;
 
-    VkPipelineStageFlags cpyStages = 0;
-    VkAccessFlags        cpyAccess = 0;
-
-    if (isColorImage) {
-      cpyStages |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-      cpyAccess |= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
-      if (!discard)
-        cpyAccess |= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
-    } else {
-      cpyStages |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT
-                |  VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-      cpyAccess |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-
-      if (!discard)
-        cpyAccess |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
-    }
-
-    // Resolve targets are required to be render targets
-    VkPipelineStageFlags extStages = m_dstImageView->imageInfo().stages | m_srcImageView->imageInfo().stages;
-    VkAccessFlags        extAccess = m_dstImageView->imageInfo().access;
-
-    std::array<VkSubpassDependency, 2> dependencies = {{
-      { VK_SUBPASS_EXTERNAL, 0, cpyStages, cpyStages, 0,         cpyAccess, 0 },
-      { 0, VK_SUBPASS_EXTERNAL, cpyStages, extStages, cpyAccess, extAccess, 0 },
-    }};
-
     VkRenderPassCreateInfo info;
     info.sType                  = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
     info.pNext                  = nullptr;
@@ -123,8 +100,8 @@ namespace dxvk {
     info.pAttachments           = &attachment;
     info.subpassCount           = 1;
     info.pSubpasses             = &subpass;
-    info.dependencyCount        = dependencies.size();
-    info.pDependencies          = dependencies.data();
+    info.dependencyCount        = 0;
+    info.pDependencies          = nullptr;
 
     VkRenderPass result = VK_NULL_HANDLE;
     if (m_vkd->vkCreateRenderPass(m_vkd->device(), &info, nullptr, &result) != VK_SUCCESS)
@@ -136,6 +113,9 @@ namespace dxvk {
   VkRenderPass DxvkMetaResolveRenderPass::createAttachmentRenderPass(
           VkResolveModeFlagBitsKHR modeD,
           VkResolveModeFlagBitsKHR modeS) const {
+    VkImageLayout srcLayout = m_srcImageView->pickLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+    VkImageLayout dstLayout = m_dstImageView->pickLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+
     std::array<VkAttachmentDescription2KHR, 2> attachments;
     attachments[0].sType          = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2_KHR;
     attachments[0].pNext          = nullptr;
@@ -146,8 +126,8 @@ namespace dxvk {
     attachments[0].storeOp        = VK_ATTACHMENT_STORE_OP_STORE;
     attachments[0].stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_LOAD;
     attachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
-    attachments[0].initialLayout  = m_srcImageView->imageInfo().layout;
-    attachments[0].finalLayout    = m_srcImageView->imageInfo().layout;
+    attachments[0].initialLayout  = srcLayout;
+    attachments[0].finalLayout    = srcLayout;
 
     attachments[1].sType          = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2_KHR;
     attachments[1].pNext          = nullptr;
@@ -158,10 +138,10 @@ namespace dxvk {
     attachments[1].storeOp        = VK_ATTACHMENT_STORE_OP_STORE;
     attachments[1].stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_LOAD;
     attachments[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
-    attachments[1].initialLayout  = m_dstImageView->imageInfo().layout;
-    attachments[1].finalLayout    = m_dstImageView->imageInfo().layout;
+    attachments[1].initialLayout  = dstLayout;
+    attachments[1].finalLayout    = dstLayout;
 
-    if (modeD != VK_RESOLVE_MODE_NONE_KHR && modeS != VK_RESOLVE_MODE_NONE_KHR) {
+    if (m_discard) {
       attachments[1].loadOp         = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
       attachments[1].stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
       attachments[1].initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -171,14 +151,14 @@ namespace dxvk {
     srcRef.sType                = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2_KHR;
     srcRef.pNext                = nullptr;
     srcRef.attachment           = 0;
-    srcRef.layout               = m_srcImageView->pickLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+    srcRef.layout               = srcLayout;
     srcRef.aspectMask           = m_srcImageView->formatInfo()->aspectMask;
 
     VkAttachmentReference2KHR dstRef;
     dstRef.sType                = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2_KHR;
     dstRef.pNext                = nullptr;
     dstRef.attachment           = 1;
-    dstRef.layout               = m_dstImageView->pickLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+    dstRef.layout               = dstLayout;
     dstRef.aspectMask           = m_dstImageView->formatInfo()->aspectMask;
 
     VkSubpassDescriptionDepthStencilResolveKHR subpassResolve;
@@ -203,16 +183,6 @@ namespace dxvk {
     subpass.preserveAttachmentCount = 0;
     subpass.pPreserveAttachments = nullptr;
 
-    VkPipelineStageFlags cpyStages = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-    VkPipelineStageFlags extStages = m_dstImageView->imageInfo().stages | m_srcImageView->imageInfo().stages;
-    VkAccessFlags cpyAccess = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
-    VkAccessFlags extAccess = m_dstImageView->imageInfo().access;
-
-    std::array<VkSubpassDependency2KHR, 2> dependencies = {{
-      { VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2_KHR, nullptr, VK_SUBPASS_EXTERNAL, 0, cpyStages, cpyStages, 0,         cpyAccess, 0 },
-      { VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2_KHR, nullptr, 0, VK_SUBPASS_EXTERNAL, cpyStages, extStages, cpyAccess, extAccess, 0 },
-    }};
-
     VkRenderPassCreateInfo2KHR info;
     info.sType                  = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO_2_KHR;
     info.pNext                  = nullptr;
@@ -221,8 +191,8 @@ namespace dxvk {
     info.pAttachments           = attachments.data();
     info.subpassCount           = 1;
     info.pSubpasses             = &subpass;
-    info.dependencyCount        = dependencies.size();
-    info.pDependencies          = dependencies.data();
+    info.dependencyCount        = 0;
+    info.pDependencies          = nullptr;
     info.correlatedViewMaskCount = 0;
     info.pCorrelatedViewMasks   = nullptr;
 
@@ -280,6 +250,46 @@ namespace dxvk {
     if (m_vkd->vkCreateFramebuffer(m_vkd->device(), &fboInfo, nullptr, &result) != VK_SUCCESS)
       throw DxvkError("DxvkMetaResolveRenderPass: Failed to create target framebuffer");
     return result;
+  }
+
+  bool DxvkMetaResolveRenderPass::emitBarriers(DxvkBarrierSet& barriers) {
+    bool needsBarrier = false;
+    auto formatInfo = m_dstImageView->formatInfo();
+    bool isColorImage = (formatInfo->aspectMask & VK_IMAGE_ASPECT_COLOR_BIT);
+
+    if (m_useShader) {
+      auto formatInfo = m_dstImageView->formatInfo();
+      bool isColorImage = (formatInfo->aspectMask & VK_IMAGE_ASPECT_COLOR_BIT);
+      VkPipelineStageFlags cpyStages = 0;
+      VkAccessFlags        cpyAccess = 0;
+      VkImageLayout        layout    = VK_IMAGE_LAYOUT_UNDEFINED;
+
+      if (isColorImage) {
+        layout = m_dstImageView->pickLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+        cpyStages |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        cpyAccess |= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+        if (!m_discard)
+          cpyAccess |= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
+      } else {
+        layout = m_dstImageView->pickLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+        cpyStages |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT
+                  |  VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+        cpyAccess |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+        if (!m_discard)
+          cpyAccess |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
+      }
+      needsBarrier |= m_dstImageView->image()->write(barriers, layout, cpyAccess, cpyStages);
+    } else {
+      needsBarrier |= m_srcImageView->image()->read(barriers, m_srcImageView->pickLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL), VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT);
+      if (m_discard)
+        needsBarrier |= m_dstImageView->image()->writeDiscard(barriers, m_dstImageView->pickLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL), VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT);
+      else
+        needsBarrier |= m_dstImageView->image()->write(barriers, m_dstImageView->pickLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL), VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT);
+    }
+
+    return needsBarrier;
   }
 
 
@@ -408,6 +418,10 @@ namespace dxvk {
     auto formatInfo = imageFormatInfo(key.format);
     bool isColorImage = (formatInfo->aspectMask & VK_IMAGE_ASPECT_COLOR_BIT);
 
+    VkImageLayout layout = isColorImage
+      ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+      : VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
     VkAttachmentDescription attachment;
     attachment.flags            = 0;
     attachment.format           = key.format;
@@ -416,12 +430,8 @@ namespace dxvk {
     attachment.storeOp          = VK_ATTACHMENT_STORE_OP_STORE;
     attachment.stencilLoadOp    = VK_ATTACHMENT_LOAD_OP_LOAD;
     attachment.stencilStoreOp   = VK_ATTACHMENT_STORE_OP_STORE;
-    attachment.initialLayout    = VK_IMAGE_LAYOUT_GENERAL;
-    attachment.finalLayout      = VK_IMAGE_LAYOUT_GENERAL;
-
-    VkImageLayout layout = isColorImage
-      ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-      : VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    attachment.initialLayout    = layout;
+    attachment.finalLayout      = layout;
     
     VkAttachmentReference attachmentRef;
     attachmentRef.attachment    = 0;

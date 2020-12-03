@@ -1,4 +1,5 @@
 #include "dxvk_meta_mipgen.h"
+#include "dxvk_barrier.h"
 
 namespace dxvk {
 
@@ -43,21 +44,14 @@ namespace dxvk {
     
     return extent;
   }
-  
-  
+
+
+  bool DxvkMetaMipGenRenderPass::emitBarriers(DxvkBarrierSet& barriers) {
+    return m_view->image()->write(barriers, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+  }
+
+
   VkRenderPass DxvkMetaMipGenRenderPass::createRenderPass() const {
-    std::array<VkSubpassDependency, 2> subpassDeps = {{
-      { VK_SUBPASS_EXTERNAL, 0,
-        m_view->imageInfo().stages,
-        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-        0, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, 0 },
-      { 0, VK_SUBPASS_EXTERNAL,
-        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-        m_view->imageInfo().stages,
-        VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-        m_view->imageInfo().access, 0 },
-    }};
-    
     VkAttachmentDescription attachment;
     attachment.flags            = 0;
     attachment.format           = m_view->info().format;
@@ -67,7 +61,7 @@ namespace dxvk {
     attachment.stencilLoadOp    = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     attachment.stencilStoreOp   = VK_ATTACHMENT_STORE_OP_DONT_CARE;
     attachment.initialLayout    = VK_IMAGE_LAYOUT_UNDEFINED;
-    attachment.finalLayout      = m_view->imageInfo().layout;
+    attachment.finalLayout      = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     
     VkAttachmentReference attachmentRef;
     attachmentRef.attachment    = 0;
@@ -93,9 +87,9 @@ namespace dxvk {
     info.pAttachments           = &attachment;
     info.subpassCount           = 1;
     info.pSubpasses             = &subpass;
-    info.dependencyCount        = subpassDeps.size();
-    info.pDependencies          = subpassDeps.data();
-    
+    info.dependencyCount        = 0;
+    info.pDependencies          = nullptr;
+
     VkRenderPass result = VK_NULL_HANDLE;
     if (m_vkd->vkCreateRenderPass(m_vkd->device(), &info, nullptr, &result) != VK_SUCCESS)
       throw DxvkError("DxvkMetaMipGenRenderPass: Failed to create render pass");

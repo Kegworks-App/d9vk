@@ -27,6 +27,7 @@ namespace dxvk {
     m_dstImageView  (dstImageView),
     m_srcImageView  (srcImageView),
     m_srcStencilView(srcStencilView),
+    m_discard       (discardDst),
     m_renderPass    (createRenderPass(discardDst)),
     m_framebuffer   (createFramebuffer()) {
 
@@ -42,8 +43,9 @@ namespace dxvk {
   VkRenderPass DxvkMetaCopyRenderPass::createRenderPass(bool discard) const {
     auto aspect = m_dstImageView->info().aspect;
 
-    VkPipelineStageFlags cpyStages = 0;
-    VkAccessFlags        cpyAccess = 0;
+    VkImageLayout layout = (aspect & VK_IMAGE_ASPECT_COLOR_BIT)
+      ? m_dstImageView->pickLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+      : m_dstImageView->pickLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 
     VkAttachmentDescription attachment;
     attachment.flags            = 0;
@@ -53,8 +55,8 @@ namespace dxvk {
     attachment.storeOp          = VK_ATTACHMENT_STORE_OP_STORE;
     attachment.stencilLoadOp    = VK_ATTACHMENT_LOAD_OP_LOAD;
     attachment.stencilStoreOp   = VK_ATTACHMENT_STORE_OP_STORE;
-    attachment.initialLayout    = m_dstImageView->imageInfo().layout;
-    attachment.finalLayout      = m_dstImageView->imageInfo().layout;
+    attachment.initialLayout    = layout;
+    attachment.finalLayout      = layout;
 
     if (discard) {
       attachment.loadOp         = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -64,9 +66,7 @@ namespace dxvk {
     
     VkAttachmentReference attachmentRef;
     attachmentRef.attachment    = 0;
-    attachmentRef.layout        = (aspect & VK_IMAGE_ASPECT_COLOR_BIT)
-      ? m_dstImageView->pickLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
-      : m_dstImageView->pickLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+    attachmentRef.layout        = layout;
     
     VkSubpassDescription subpass;
     subpass.flags                   = 0;
@@ -83,32 +83,14 @@ namespace dxvk {
     if (aspect & VK_IMAGE_ASPECT_COLOR_BIT) {
       subpass.colorAttachmentCount  = 1;
       subpass.pColorAttachments     = &attachmentRef;
-
-      cpyStages |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-      cpyAccess |= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
-      if (!discard)
-        cpyAccess |= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
     } else {
       subpass.pDepthStencilAttachment = &attachmentRef;
-
-      cpyStages |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT
-                |  VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-      cpyAccess |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-
-      if (!discard)
-        cpyAccess |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
     }
 
     // We have to be somewhat conservative here since we cannot assume
     // that the backend blocks stages that are only used for meta ops
     VkPipelineStageFlags extStages = m_dstImageView->imageInfo().stages | m_srcImageView->imageInfo().stages;
     VkAccessFlags        extAccess = m_dstImageView->imageInfo().access;
-
-    std::array<VkSubpassDependency, 2> dependencies = {{
-      { VK_SUBPASS_EXTERNAL, 0, extStages, cpyStages, 0,         cpyAccess, 0 },
-      { 0, VK_SUBPASS_EXTERNAL, cpyStages, extStages, cpyAccess, extAccess, 0 },
-    }};
 
     VkRenderPassCreateInfo info;
     info.sType                  = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -118,13 +100,42 @@ namespace dxvk {
     info.pAttachments           = &attachment;
     info.subpassCount           = 1;
     info.pSubpasses             = &subpass;
-    info.dependencyCount        = dependencies.size();
-    info.pDependencies          = dependencies.data();
+    info.dependencyCount        = 0;
+    info.pDependencies          = nullptr;
 
     VkRenderPass result = VK_NULL_HANDLE;
     if (m_vkd->vkCreateRenderPass(m_vkd->device(), &info, nullptr, &result) != VK_SUCCESS)
       throw DxvkError("DxvkMetaCopyRenderPass: Failed to create render pass");
     return result;
+  }
+
+
+  bool DxvkMetaCopyRenderPass::emitBarriers(DxvkBarrierSet& barriers) {
+    auto aspect = m_dstImageView->info().aspect;
+
+    VkPipelineStageFlags cpyStages = 0;
+    VkAccessFlags        cpyAccess = 0;
+
+    if (aspect & VK_IMAGE_ASPECT_COLOR_BIT) {
+      cpyStages |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+      cpyAccess |= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+      if (!m_discard)
+        cpyAccess |= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
+    } else {
+      cpyStages |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT
+                |  VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+      cpyAccess |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+      if (!m_discard)
+        cpyAccess |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
+    }
+
+    VkImageLayout dstLayout = (aspect & VK_IMAGE_ASPECT_COLOR_BIT)
+      ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+      : VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+    return m_dstImageView->image()->write(barriers, dstLayout, cpyAccess, cpyStages);
   }
 
 
@@ -311,6 +322,10 @@ namespace dxvk {
     const DxvkMetaCopyPipelineKey&  key) const {
     auto aspect = imageFormatInfo(key.format)->aspectMask;
 
+    VkImageLayout layout = (aspect & VK_IMAGE_ASPECT_COLOR_BIT)
+      ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+      : VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
     VkAttachmentDescription attachment;
     attachment.flags            = 0;
     attachment.format           = key.format;
@@ -319,15 +334,13 @@ namespace dxvk {
     attachment.storeOp          = VK_ATTACHMENT_STORE_OP_STORE;
     attachment.stencilLoadOp    = VK_ATTACHMENT_LOAD_OP_LOAD;
     attachment.stencilStoreOp   = VK_ATTACHMENT_STORE_OP_STORE;
-    attachment.initialLayout    = VK_IMAGE_LAYOUT_GENERAL;
-    attachment.finalLayout      = VK_IMAGE_LAYOUT_GENERAL;
-    
+    attachment.initialLayout    = layout;
+    attachment.finalLayout      = layout;
+
     VkAttachmentReference attachmentRef;
     attachmentRef.attachment    = 0;
-    attachmentRef.layout        = (aspect & VK_IMAGE_ASPECT_COLOR_BIT)
-      ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-      : VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-    
+    attachmentRef.layout        = layout;
+
     VkSubpassDescription subpass;
     subpass.flags                   = 0;
     subpass.pipelineBindPoint       = VK_PIPELINE_BIND_POINT_GRAPHICS;

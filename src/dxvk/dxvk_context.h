@@ -1112,7 +1112,8 @@ namespace dxvk {
     
     void resetRenderPassOps(
       const DxvkRenderTargets&    renderTargets,
-            DxvkRenderPassOps&    renderPassOps);
+            DxvkRenderPassOps&    renderPassOps,
+            bool                  present);
 
     void startTransformFeedback();
     void pauseTransformFeedback();
@@ -1155,23 +1156,10 @@ namespace dxvk {
     template<bool Indexed, bool Indirect>
     bool commitGraphicsState();
     
-    void commitComputeInitBarriers();
-    void commitComputePostBarriers();
+    void commitComputeBarriers();
     
     template<bool Indexed, bool Indirect, bool DoEmit>
     void commitGraphicsBarriers();
-
-    template<bool DoEmit>
-    DxvkAccessFlags checkGfxBufferBarrier(
-      const DxvkBufferSlice&          slice,
-            VkPipelineStageFlags      stages,
-            VkAccessFlags             access);
-
-    template<bool DoEmit>
-    DxvkAccessFlags checkGfxImageBarrier(
-      const Rc<DxvkImageView>&        imageView,
-            VkPipelineStageFlags      stages,
-            VkAccessFlags             access);
 
     DxvkAccessFlags checkFramebufferBarrier();
 
