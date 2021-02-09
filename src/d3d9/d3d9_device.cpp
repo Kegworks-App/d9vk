@@ -4567,7 +4567,12 @@ namespace dxvk {
     VkMemoryPropertyFlags memoryFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
                                       | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 
-    Rc<DxvkBuffer> buffer = m_dxvkDevice->createBuffer(info, memoryFlags);
+    Rc<DxvkBuffer> buffer;
+    if (Size > 1024) {
+      buffer = m_dxvkDevice->createBuffer(info, memoryFlags, 32 << 20);
+    } else {
+      buffer = m_dxvkDevice->createBuffer(info, memoryFlags);
+    }
 
     const uint32_t slotId = computeResourceSlotId(
       ShaderStage, DxsoBindingType::ConstantBuffer,
