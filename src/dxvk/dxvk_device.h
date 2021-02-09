@@ -284,6 +284,18 @@ namespace dxvk {
             VkMemoryPropertyFlags memoryType);
     
     /**
+     * \brief Creates a buffer object
+     * 
+     * \param [in] createInfo Buffer create info
+     * \param [in] memoryType Memory type flags
+     * \returns The buffer object
+     */
+    Rc<DxvkBuffer> createBuffer(
+      const DxvkBufferCreateInfo& createInfo,
+            VkMemoryPropertyFlags memoryType,
+            VkDeviceSize          maxBufferSize);
+    
+    /**
      * \brief Creates a buffer view
      * 
      * \param [in] buffer The buffer to view

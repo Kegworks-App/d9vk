@@ -128,6 +128,14 @@ namespace dxvk {
   }
   
   
+  Rc<DxvkBuffer> DxvkDevice::createBuffer(
+    const DxvkBufferCreateInfo& createInfo,
+          VkMemoryPropertyFlags memoryType,
+          VkDeviceSize          maxBufferSize) {
+    return new DxvkBuffer(this, createInfo, m_objects.memoryManager(), memoryType, maxBufferSize);
+  }
+  
+  
   Rc<DxvkBufferView> DxvkDevice::createBufferView(
     const Rc<DxvkBuffer>&           buffer,
     const DxvkBufferViewCreateInfo& createInfo) {

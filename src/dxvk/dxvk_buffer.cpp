@@ -9,7 +9,8 @@ namespace dxvk {
           DxvkDevice*           device,
     const DxvkBufferCreateInfo& createInfo,
           DxvkMemoryAllocator&  memAlloc,
-          VkMemoryPropertyFlags memFlags)
+          VkMemoryPropertyFlags memFlags,
+          VkDeviceSize          maxBufferSize)
   : m_device        (device),
     m_info          (createInfo),
     m_memAlloc      (&memAlloc),
@@ -21,11 +22,8 @@ namespace dxvk {
     m_physSliceStride = align(createInfo.size, sliceAlignment);
     m_physSliceCount  = std::max<VkDeviceSize>(1, 256 / m_physSliceStride);
 
-    // Limit size of multi-slice buffers to reduce fragmentation
-    constexpr VkDeviceSize MaxBufferSize = 4 << 20;
-
-    m_physSliceMaxCount = MaxBufferSize >= m_physSliceStride
-      ? MaxBufferSize / m_physSliceStride
+    m_physSliceMaxCount = maxBufferSize >= m_physSliceStride
+      ? maxBufferSize / m_physSliceStride
       : 1;
 
     // Allocate the initial set of buffer slices
