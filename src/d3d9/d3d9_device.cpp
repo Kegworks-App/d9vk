@@ -4454,7 +4454,10 @@ namespace dxvk {
     uint32_t offset = respectUserBounds ? OffsetToLock : 0;
     uint32_t size   = respectUserBounds ? std::min(SizeToLock, desc.Size - offset) : desc.Size;
 
-    pResource->DirtyRange().Conjoin(D3D9Range(offset, offset + size));
+    if (desc.Pool != D3DPOOL_DEFAULT)
+      pResource->DirtyRange().Conjoin(D3D9Range(offset, offset + size));
+    else
+      pResource->DirtyRange().Conjoin(D3D9Range(0, desc.Size));
 
     Rc<DxvkBuffer> mappingBuffer = pResource->GetBuffer<D3D9_COMMON_BUFFER_TYPE_MAPPING>();
 
