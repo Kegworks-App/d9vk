@@ -1768,7 +1768,7 @@ namespace dxvk {
 
     const DxsoOpcode opcode = ctx.instruction.opcode;
     switch (opcode) {
-      case DxsoOpcode::Add:
+      case DxsoOpcode::Add: {
         result.id = m_module.opFAdd(typeId,
           emitRegisterLoad(src[0], mask).id,
           emitRegisterLoad(src[1], mask).id);
@@ -1779,27 +1779,62 @@ namespace dxvk {
           emitRegisterLoad(src[1], mask).id);
         break;
       case DxsoOpcode::Mad:
-        if (!m_moduleInfo.options.longMad) {
+        const DxsoRegisterValue factor1 = emitRegisterLoad(src[0], mask);
+        const DxsoRegisterValue factor2 = emitRegisterLoad(src[1], mask);
+        if (!m_moduleInfo.options.longMad && m_moduleInfo.options.d3d9FloatEmulation != D3D9FloatEmulation::Strict) {
+
           result.id = m_module.opFFma(typeId,
-            emitRegisterLoad(src[0], mask).id,
-            emitRegisterLoad(src[1], mask).id,
+            factor1.id,
+            factor2.id,
             emitRegisterLoad(src[2], mask).id);
         }
         else {
           result.id = m_module.opFMul(typeId,
-            emitRegisterLoad(src[0], mask).id,
-            emitRegisterLoad(src[1], mask).id);
+            factor1.id,
+            factor2.id);
+
+          if (m_moduleInfo.options.d3d9FloatEmulation == D3D9FloatEmulation::Strict) {
+            DxsoRegisterValue cmp;
+            cmp.type  = { DxsoScalarType::Bool, result.type.ccount };
+
+            const uint32_t cmp1 = m_module.opFOrdEqual(getVectorTypeId(cmp.type),
+              factor1.id, m_module.constfReplicant(0.0f, cmp.type.ccount));
+            const uint32_t cmp2 = m_module.opFOrdEqual(getVectorTypeId(cmp.type),
+              factor2.id, m_module.constfReplicant(0.0f, cmp.type.ccount));
+
+            cmp.id = m_module.opLogicalOr(getVectorTypeId(cmp.type), cmp1, cmp2);
+
+            result.id = m_module.opSelect(typeId, cmp.id,
+              m_module.constfReplicant(0.0f, cmp.type.ccount), result.id);
+          }
 
           result.id = m_module.opFAdd(typeId,
             result.id,
             emitRegisterLoad(src[2], mask).id);
         }
-        break;
-      case DxsoOpcode::Mul:
+      } break;
+      case DxsoOpcode::Mul: {
+        const DxsoRegisterValue factor1 = emitRegisterLoad(src[0], mask);
+        const DxsoRegisterValue factor2 = emitRegisterLoad(src[1], mask);
         result.id = m_module.opFMul(typeId,
-          emitRegisterLoad(src[0], mask).id,
-          emitRegisterLoad(src[1], mask).id);
-        break;
+          factor1.id,
+          factor2.id);
+
+        if (m_moduleInfo.options.d3d9FloatEmulation == D3D9FloatEmulation::Strict) {
+          DxsoRegisterValue cmp;
+          cmp.type  = { DxsoScalarType::Bool, result.type.ccount };
+
+          const uint32_t cmp1 = m_module.opFOrdEqual(getVectorTypeId(cmp.type),
+            factor1.id, m_module.constfReplicant(0.0f, cmp.type.ccount));
+          const uint32_t cmp2 = m_module.opFOrdEqual(getVectorTypeId(cmp.type),
+            factor2.id, m_module.constfReplicant(0.0f, cmp.type.ccount));
+
+          cmp.id = m_module.opLogicalOr(getVectorTypeId(cmp.type), cmp1, cmp2);
+
+          result.id = m_module.opSelect(typeId, cmp.id,
+            m_module.constfReplicant(0.0f, cmp.type.ccount), result.id);
+        }
+      } break;
       case DxsoOpcode::Rcp:
         result.id = m_module.opFDiv(typeId,
           m_module.constfReplicant(1.0f, result.type.ccount),
