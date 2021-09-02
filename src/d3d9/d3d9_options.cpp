@@ -84,8 +84,14 @@ namespace dxvk {
                             0, 0);
     applyTristate(this->generalHazards, config.getOption<Tristate>("d3d9.generalHazards", Tristate::Auto));
 
-    this->d3d9FloatEmulation = true; // <-- Future Extension?
-    applyTristate(this->d3d9FloatEmulation, config.getOption<Tristate>("d3d9.floatEmulation", Tristate::Auto));
+    std::string floatEmulation = config.getOption<std::string>("d3d9.floatEmulation", "True");
+    if (floatEmulation == "Strict") {
+      d3d9FloatEmulation  = D3D9FloatEmulation::Strict;
+    } else if (floatEmulation == "False") {
+      d3d9FloatEmulation  = D3D9FloatEmulation::Disabled;
+    } else {
+      d3d9FloatEmulation  = D3D9FloatEmulation::Enabled;
+    }
   }
 
 }

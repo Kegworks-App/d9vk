@@ -4,8 +4,15 @@
 #include "../dxvk/dxvk_device.h"
 
 #include "d3d9_include.h"
+#include <string>
 
 namespace dxvk {
+
+  enum D3D9FloatEmulation {
+    Disabled,
+    Enabled,
+    Strict
+  };
 
   struct D3D9Options {
 
@@ -83,7 +90,7 @@ namespace dxvk {
     uint32_t maxAvailableMemory;
 
     /// D3D9 Floating Point Emulation (anything * 0 = 0)
-    bool d3d9FloatEmulation;
+    D3D9FloatEmulation d3d9FloatEmulation;
 
     /// Support the DF16 & DF24 texture format
     bool supportDFFormats;
