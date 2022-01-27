@@ -3684,7 +3684,7 @@ namespace dxvk {
     if (unlikely(Type == D3DSAMP_MIPMAPLODBIAS)) {
       if (unlikely(Value == Fetch4Enabled)) {
         m_fetch4Enabled |= 1u << StateSampler;
-        if (state[StateSampler][D3DSAMP_MAGFILTER] == D3DTEXF_POINT)
+        if (state[StateSampler][D3DSAMP_MAGFILTER] == D3DTEXF_POINT && state[StateSampler][D3DSAMP_MINFILTER] == D3DTEXF_POINT)
           m_fetch4 |= 1u << StateSampler;
       }
       else if (unlikely(Value == Fetch4Disabled)) {
@@ -3694,7 +3694,14 @@ namespace dxvk {
     }
 
     if (unlikely(Type == D3DSAMP_MAGFILTER && (m_fetch4Enabled & (1u << StateSampler)))) {
-      if (Value == D3DTEXF_POINT)
+      if (Value == D3DTEXF_POINT && state[StateSampler][D3DSAMP_MINFILTER] == D3DTEXF_POINT)
+        m_fetch4 |=   1u << StateSampler;
+      else
+        m_fetch4 &= ~(1u << StateSampler);
+    }
+
+    if (unlikely(Type == D3DSAMP_MINFILTER && (m_fetch4Enabled & (1u << StateSampler)))) {
+      if (Value == D3DTEXF_POINT && state[StateSampler][D3DSAMP_MAGFILTER] == D3DTEXF_POINT)
         m_fetch4 |=   1u << StateSampler;
       else
         m_fetch4 &= ~(1u << StateSampler);
