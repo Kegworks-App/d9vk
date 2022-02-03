@@ -182,7 +182,8 @@ namespace dxvk {
   : m_vkd             (device->vkd()),
     m_device          (device),
     m_devProps        (device->adapter()->deviceProperties()),
-    m_memProps        (device->adapter()->memoryProperties()) {
+    m_memProps        (device->adapter()->memoryProperties()),
+    m_bda             (device->features().khrBufferDeviceAddress.bufferDeviceAddress) {
     for (uint32_t i = 0; i < m_memProps.memoryHeapCount; i++) {
       m_memHeaps[i].properties = m_memProps.memoryHeaps[i];
       m_memHeaps[i].stats      = DxvkMemoryStats { 0, 0 };
@@ -417,9 +418,17 @@ namespace dxvk {
     prio.pNext            = dedAllocInfo;
     prio.priority         = priority;
 
+    VkMemoryAllocateFlagsInfo flagsInfo;
+    flagsInfo.sType       = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO;
+    flagsInfo.pNext       = useMemoryPriority ? &prio : prio.pNext;
+    flagsInfo.flags       = 0;
+    if (m_bda) {
+      flagsInfo.flags    |= VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT;
+    }
+
     VkMemoryAllocateInfo info;
     info.sType            = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    info.pNext            = useMemoryPriority ? &prio : prio.pNext;
+    info.pNext            = &flagsInfo;
     info.allocationSize   = size;
     info.memoryTypeIndex  = type->memTypeId;
 

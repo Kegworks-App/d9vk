@@ -313,6 +313,7 @@ namespace dxvk {
     const DxvkDevice*                      m_device;
     const VkPhysicalDeviceProperties       m_devProps;
     const VkPhysicalDeviceMemoryProperties m_memProps;
+    const bool                             m_bda;
     
     dxvk::mutex                                     m_mutex;
     std::array<DxvkMemoryHeap, VK_MAX_MEMORY_HEAPS> m_memHeaps;
