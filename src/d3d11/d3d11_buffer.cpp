@@ -69,6 +69,10 @@ namespace dxvk {
       info.access |= VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
     }
 
+    if (pDevice->GetDXVKDevice()->features().khrBufferDeviceAddress.bufferDeviceAddress) {
+      info.usage |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+    }
+
     // Create the buffer and set the entire buffer slice as mapped,
     // so that we only have to update it when invalidating th buffer
     m_buffer = m_parent->GetDXVKDevice()->createBuffer(info, GetMemoryFlags());
