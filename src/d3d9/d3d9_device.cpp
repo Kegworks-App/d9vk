@@ -6649,7 +6649,7 @@ namespace dxvk {
       });
 
       auto WorldView    = m_state.transforms[GetTransformIndex(D3DTS_VIEW)] * m_state.transforms[GetTransformIndex(D3DTS_WORLD)];
-      auto NormalMatrix = inverse(WorldView);
+      auto NormalMatrix = transpose(inverse(WorldView));
 
       D3D9FixedFunctionVS* data = reinterpret_cast<D3D9FixedFunctionVS*>(slice.mapPtr);
       data->WorldView    = WorldView;

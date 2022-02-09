@@ -1,6 +1,7 @@
 #include <cstring>
 
 #include <d3d9.h>
+#include <d3d9types.h>
 #include <d3dcompiler.h>
 
 #include "../test_utils.h"
@@ -289,12 +290,30 @@ public:
     m_device->SetVertexDeclaration(m_decl.ptr());
 
 	float vertexData[] = {
-		-1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 1, -1, 0, 1, 1, -1, -1, 0, 0, 1,
-
-		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    -1, -1, 0,  0, 0, -1,  0, 0,
+    -1, 1, 0,  0, 0, -1,  0, 1,
+    1, 1, 0,  0, 0, -1,  1, 1,
+    1, 1, 0,  0, 0, -1,  1, 1,
+    1, -1, 0,  0, 0, -1,  1, 0,
+    -1, -1, 0,  0, 0, -1,  0, 0,
 	};
 
-	m_device->DrawPrimitiveUP(D3DPT_TRIANGLEFAN, 2, vertexData, 20);
+  m_device->SetPixelShader(nullptr);
+  m_device->SetVertexShader(nullptr);
+  m_device->SetRenderState(D3DRS_LIGHTING, 1);
+  m_device->SetFVF(D3DFVF_XYZ | D3DFVF_TEX1 | D3DFVF_NORMAL);
+  D3DLIGHT9 light;
+  light.Type = D3DLIGHT_DIRECTIONAL;
+  light.Direction = D3DVECTOR { 0, 0, 1 };
+  light.Diffuse = D3DCOLORVALUE { 1, 1, 1, 1};
+  m_device->SetLight(0, &light);
+  D3DMATERIAL9 material = {};
+  material.Diffuse = D3DCOLORVALUE { 1, 1, 1, 1 };
+  m_device->SetMaterial(&material);
+  m_device->SetRenderState(D3DRS_DIFFUSEMATERIALSOURCE, D3DMCS_MATERIAL);
+  //m_device->SetTransform(D3DTRANSFORMSTATETYPE state, const D3DMATRIX *matrix)
+
+	m_device->DrawPrimitiveUP(D3DPT_TRIANGLELIST, 2, vertexData, 32);
 	//m_device->DrawPrimitiveUP(D3DPT_TRIANGLEFAN, 3, vertexData, 20);
 
     //m_device->DrawPrimitive(D3DPT_TRIANGLELIST, 0, 1);

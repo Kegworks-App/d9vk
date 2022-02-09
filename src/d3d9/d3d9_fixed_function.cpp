@@ -1078,6 +1078,7 @@ namespace dxvk {
 
                  atten  = m_module.opSelect(m_floatType, m_module.opFOrdGreaterThan(bool_t, d, range), m_module.constf32(0.0f), atten);
                  atten  = m_module.opSelect(m_floatType, isDirectional, m_module.constf32(1.0f), atten);
+        m_module.setDebugName(atten, "atten");
 
         // Spot Lighting
         {
@@ -1093,12 +1094,16 @@ namespace dxvk {
                    spotAtten  = m_module.opFClamp(m_floatType, spotAtten, m_module.constf32(0.0f), m_module.constf32(1.0f));
 
                    spotAtten = m_module.opFMul(m_floatType, atten, spotAtten);
+        m_module.setDebugName(spotAtten, "spotAtten");
                    atten     = m_module.opSelect(m_floatType, isSpot, spotAtten, atten);
+        m_module.setDebugName(atten, "atten");
         }
 
 
         uint32_t hitDot = m_module.opDot(m_floatType, normal, hitDir);
+        m_module.setDebugName(hitDot, "hitDot");
                  hitDot = m_module.opFClamp(m_floatType, hitDot, m_module.constf32(0.0f), m_module.constf32(1.0f));
+        m_module.setDebugName(hitDot, "hitDot");
 
         uint32_t diffuseness = m_module.opFMul(m_floatType, hitDot, atten);
 
