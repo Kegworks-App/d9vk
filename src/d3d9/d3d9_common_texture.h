@@ -255,6 +255,18 @@ namespace dxvk {
      */
     bool CreateBufferSubresource(UINT Subresource);
 
+
+    void UnmapLockingData(UINT Subresource) {
+      m_lockingData[Subresource].Unmap();
+    }
+
+    void UnmapLockingData() {
+      const uint32_t subresources = CountSubresources();
+      for (uint32_t i = 0; i < subresources; i++) {
+        m_lockingData[i].Unmap();
+      }
+    }
+
     /**
      * \brief Destroys a buffer
      * Destroys mapping and staging buffers for a given subresource
@@ -488,6 +500,14 @@ namespace dxvk {
      */
     VkDeviceSize GetMipSize(UINT Subresource) const;
 
+    void SetMappingFrame(uint64_t Frame) {
+      m_mappingFrame = Frame;
+    }
+
+    uint64_t GetMappingFrame() const {
+      return m_mappingFrame;
+    }
+
   private:
 
     D3D9DeviceEx*                 m_device;
@@ -536,6 +556,8 @@ namespace dxvk {
     D3DTEXTUREFILTERTYPE          m_mipFilter = D3DTEXF_LINEAR;
 
     std::array<D3DBOX, 6>         m_dirtyBoxes;
+
+    uint64_t                      m_mappingFrame;
 
     Rc<DxvkImage> CreatePrimaryImage(D3DRESOURCETYPE ResourceType, bool TryOffscreenRT, HANDLE* pSharedHandle) const;
 

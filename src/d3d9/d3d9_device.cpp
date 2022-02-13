@@ -2,6 +2,7 @@
 
 #include "d3d9_annotation.h"
 #include "d3d9_common_buffer.h"
+#include "d3d9_common_texture.h"
 #include "d3d9_interface.h"
 #include "d3d9_swapchain.h"
 #include "d3d9_caps.h"
@@ -4221,7 +4222,7 @@ namespace dxvk {
       });
     } else {
       const bool alloced = pResource->AllocLockingData(Subresource);
-      mapPtr = pResource->GetLockingData(Subresource);
+      mapPtr = MapTexture(pResource, Subresource);
 
       // We do not need to wait for the resource in the event the
       // calling app promises not to overwrite data that is in use
@@ -4414,6 +4415,12 @@ namespace dxvk {
       pResource->SetNeedsReadback(Subresource, true);
     }
 
+#ifdef D3D9_ALLOW_UNMAPPING
+    if (unlikely(pResource->GetMapMode() == D3D9_COMMON_TEXTURE_MAP_MODE_UNMAPPABLE && (m_d3d9Options.textureUnmapDelay == 0 || m_memoryAllocator.HasAddressSpacePressure()))) {
+      pResource->UnmapLockingData(Subresource);
+    }
+#endif
+
     return D3D_OK;
   }
 
@@ -4501,7 +4508,7 @@ namespace dxvk {
       VkDeviceSize rowAlignment = 1;
       DxvkBufferSlice copySrcSlice;
       if (pSrcTexture->DoesStagingBufferUploads(SrcSubresource)) {
-        const void* mapPtr = pSrcTexture->GetLockingData(SrcSubresource);
+        const void* mapPtr = MapTexture(pSrcTexture, SrcSubresource);
         VkDeviceSize dirtySize = extentBlockCount.width * extentBlockCount.height * extentBlockCount.depth * formatInfo->elementSize;
         D3D9BufferSlice slice = AllocTempBuffer<false>(dirtySize);
         copySrcSlice = slice.slice;
@@ -4514,6 +4521,11 @@ namespace dxvk {
           // The resource has not been mapped before.
           std::memset(slice.mapPtr, 0, dirtySize);
         }
+#ifdef D3D9_ALLOW_UNMAPPING
+        if (unlikely(pSrcTexture->GetMapMode() == D3D9_COMMON_TEXTURE_MAP_MODE_UNMAPPABLE && (m_d3d9Options.textureUnmapDelay == 0 || m_memoryAllocator.HasAddressSpacePressure()))) {
+          pSrcTexture->UnmapLockingData(SrcSubresource);
+        }
+#endif
       } else {
         const DxvkBufferSliceHandle srcSlice = pSrcTexture->GetMappedSlice(SrcSubresource);
         copySrcSlice = DxvkBufferSlice(pSrcTexture->GetBuffer(SrcSubresource), copySrcOffset, srcSlice.length);
@@ -4542,7 +4554,7 @@ namespace dxvk {
     }
     else {
       const DxvkFormatInfo* formatInfo = imageFormatInfo(pDestTexture->GetFormatMapping().FormatColor);
-      const void* mapPtr = pSrcTexture->GetLockingData(SrcSubresource);
+      const void* mapPtr = MapTexture(pSrcTexture, SrcSubresource);
 
       // Add more blocks for the other planes that we might have.
       // TODO: PLEASE CLEAN ME
@@ -4566,6 +4578,12 @@ namespace dxvk {
       util::packImageData(
         slice.mapPtr, mapPtr, srcTexLevelExtentBlockCount, formatInfo->elementSize,
         pitch, std::min(convertFormat.PlaneCount, 2u) * pitch * srcTexLevelExtentBlockCount.height);
+
+#ifdef D3D9_ALLOW_UNMAPPING
+      if (unlikely(pSrcTexture->GetMapMode() == D3D9_COMMON_TEXTURE_MAP_MODE_UNMAPPABLE && (m_d3d9Options.textureUnmapDelay == 0 || m_memoryAllocator.HasAddressSpacePressure()))) {
+        pSrcTexture->UnmapLockingData(SrcSubresource);
+      }
+#endif
 
       Flush();
       SynchronizeCsThread(DxvkCsThread::SynchronizeAll);
@@ -4661,7 +4679,7 @@ namespace dxvk {
     }
     else {
       const bool alloced = pResource->AllocLockingData();
-      mapPtr = pResource->GetLockingData();
+      mapPtr = MapBuffer(pResource);
 
       // NOOVERWRITE promises that they will not write in a currently used area.
       // Therefore we can skip waiting for these two cases.
@@ -4716,10 +4734,7 @@ namespace dxvk {
   HRESULT D3D9DeviceEx::FlushBuffer(
         D3D9CommonBuffer*       pResource) {
     auto dstBuffer = pResource->GetBufferSlice<D3D9_COMMON_BUFFER_TYPE_REAL>();
-    void* mapPtr = pResource->GetLockingData();
-    if (unlikely(mapPtr == nullptr)) {
-      return D3D_OK;
-    }
+    void* mapPtr = MapBuffer(pResource);
 
     D3D9Range& range = pResource->DirtyRange();
 
@@ -4729,6 +4744,12 @@ namespace dxvk {
       copySrcSlice = slice.slice;
       void* srcData = reinterpret_cast<uint8_t*>(mapPtr) + range.min;
       memcpy(slice.mapPtr, srcData, range.max - range.min);
+
+#ifdef D3D9_ALLOW_UNMAPPING
+      if (unlikely(pResource->GetMapMode() == D3D9_COMMON_BUFFER_MAP_MODE_UNMAPPABLE && (m_d3d9Options.bufferUnmapDelay == 0 || m_memoryAllocator.HasAddressSpacePressure()))) {
+        pResource->UnmapLockingData();
+      }
+#endif
     } else {
       copySrcSlice = DxvkBufferSlice(pResource->GetBuffer<D3D9_COMMON_BUFFER_TYPE_MAPPING>(), range.min, range.max - range.min);
     }
@@ -4769,6 +4790,12 @@ namespace dxvk {
       return D3D_OK;
 
     pResource->SetMapFlags(0);
+
+#ifdef D3D9_ALLOW_UNMAPPING
+    if (unlikely(pResource->GetMapMode() == D3D9_COMMON_BUFFER_MAP_MODE_UNMAPPABLE && (m_d3d9Options.bufferUnmapDelay == 0 || m_memoryAllocator.HasAddressSpacePressure()))) {
+      pResource->UnmapLockingData();
+    }
+#endif
 
     if (pResource->Desc()->Pool != D3DPOOL_DEFAULT)
       return D3D_OK;
@@ -6115,7 +6142,7 @@ namespace dxvk {
 
     for (uint32_t i = 0; i < caps::MaxStreams; i++) {
       auto* vbo = GetCommonBuffer(m_state.vertexBuffers[i].vertexBuffer);
-      if (vbo != nullptr && vbo->NeedsUpload())
+      if (vbo != nullptr && vbo->NeedsUpload() && vbo->GetLockingData() != nullptr)
         FlushBuffer(vbo);
     }
 
@@ -6131,7 +6158,7 @@ namespace dxvk {
       GenerateTextureMips(texturesToGen);
 
     auto* ibo = GetCommonBuffer(m_state.indices);
-    if (ibo != nullptr && ibo->NeedsUpload())
+    if (ibo != nullptr && ibo->NeedsUpload() && ibo->GetLockingData() != nullptr)
       FlushBuffer(ibo);
 
     UpdateFog();
@@ -7426,6 +7453,144 @@ namespace dxvk {
     // immediately after a flush, we need to use the sequence number
     // of the previously submitted chunk to prevent deadlocks.
     return m_csChunk->empty() ? m_csSeqNum : m_csSeqNum + 1;
+  }
+
+
+  void* D3D9DeviceEx::MapTexture(D3D9CommonTexture* pTexture, UINT Subresource) {
+    // Will only be called inside the device lock
+    void *ptr = pTexture->GetLockingData(Subresource);
+
+#ifdef D3D9_ALLOW_UNMAPPING
+    if (unlikely(m_memoryAllocator.HasAddressSpacePressure())) {
+      // A game might load a ton of resources in a single frame
+      // (on a loading screen for example)
+      // Unmapping can't wait for the next frame.
+      for (auto iter = m_mappedTextures.begin(); iter != m_mappedTextures.end();) {
+        if ((*iter)->IsAnySubresourceLocked() || *iter == pTexture) {
+          iter++;
+          continue;
+        }
+
+        (*iter)->UnmapLockingData();
+        iter = m_mappedTextures.erase(iter);
+      }
+
+      for (auto iter = m_mappedBuffers.begin(); iter != m_mappedBuffers.end();) {
+        if ((*iter)->GetLockCount() != 0) {
+          iter++;
+          continue;
+        }
+
+        (*iter)->UnmapLockingData();
+        iter = m_mappedBuffers.erase(iter);
+      }
+    }
+
+    if (m_d3d9Options.textureUnmapDelay != 0 && pTexture->GetMapMode() == D3D9_COMMON_TEXTURE_MAP_MODE_UNMAPPABLE) {
+      m_mappedTextures.insert(pTexture);
+      pTexture->SetMappingFrame(m_frameCounter);
+    }
+#endif
+
+    return ptr;
+  }
+
+
+  void* D3D9DeviceEx::MapBuffer(D3D9CommonBuffer* pBuffer) {
+    // Will only be called inside the device lock
+    void *ptr = pBuffer->GetLockingData();
+
+#ifdef D3D9_ALLOW_UNMAPPING
+    if (unlikely(m_memoryAllocator.HasAddressSpacePressure())) {
+      // A game might load a ton of resources in a single frame
+      // (on a loading screen for example)
+      // Unmapping can't wait for the next frame.
+      for (auto iter = m_mappedTextures.begin(); iter != m_mappedTextures.end();) {
+        if ((*iter)->IsAnySubresourceLocked()) {
+          iter++;
+          continue;
+        }
+
+        (*iter)->UnmapLockingData();
+        iter = m_mappedTextures.erase(iter);
+      }
+
+      for (auto iter = m_mappedBuffers.begin(); iter != m_mappedBuffers.end();) {
+        if ((*iter)->GetLockCount() != 0 || *iter == pBuffer) {
+          iter++;
+          continue;
+        }
+
+        (*iter)->UnmapLockingData();
+        iter = m_mappedBuffers.erase(iter);
+      }
+    }
+
+    if (m_d3d9Options.bufferUnmapDelay != 0 && pBuffer->GetMapMode() == D3D9_COMMON_BUFFER_MAP_MODE_UNMAPPABLE) {
+      m_mappedBuffers.insert(pBuffer);
+      pBuffer->SetMappingFrame(m_frameCounter);
+    }
+#endif
+
+    return ptr;
+  }
+
+  void D3D9DeviceEx::TouchMappedTexture(D3D9CommonTexture* pTexture) {
+#ifdef D3D9_ALLOW_UNMAPPING
+    if (pTexture->GetMapMode() != D3D9_COMMON_TEXTURE_MAP_MODE_UNMAPPABLE)
+      return;
+
+    D3D9DeviceLock lock = LockDevice();
+    pTexture->SetMappingFrame(m_frameCounter);
+#endif
+  }
+
+  void D3D9DeviceEx::RemoveMappedTexture(D3D9CommonTexture* pTexture) {
+#ifdef D3D9_ALLOW_UNMAPPING
+    if (pTexture->GetMapMode() != D3D9_COMMON_TEXTURE_MAP_MODE_UNMAPPABLE)
+      return;
+
+    D3D9DeviceLock lock = LockDevice();
+    m_mappedTextures.erase(pTexture);
+#endif
+  }
+
+  void D3D9DeviceEx::RemoveMappedBuffer(D3D9CommonBuffer* pBuffer) {
+#ifdef D3D9_ALLOW_UNMAPPING
+    if (pBuffer->GetMapMode() != D3D9_COMMON_BUFFER_MAP_MODE_UNMAPPABLE)
+      return;
+
+    D3D9DeviceLock lock = LockDevice();
+    m_mappedBuffers.erase(pBuffer);
+#endif
+  }
+
+  void D3D9DeviceEx::UnmapResources() {
+    // Will only be called inside the device lock
+#ifdef D3D9_ALLOW_UNMAPPING
+    const bool force = m_memoryAllocator.HasAddressSpacePressure();
+    for (auto iter = m_mappedTextures.begin(); iter != m_mappedTextures.end();) {
+      const bool mappingBufferUnused = (m_frameCounter - (*iter)->GetMappingFrame() > uint32_t(m_d3d9Options.textureUnmapDelay) || force) && !(*iter)->IsAnySubresourceLocked();
+      if (!mappingBufferUnused) {
+         iter++;
+        continue;
+      }
+
+      (*iter)->UnmapLockingData();
+      iter = m_mappedTextures.erase(iter);
+    }
+
+    for (auto iter = m_mappedBuffers.begin(); iter != m_mappedBuffers.end();) {
+      const bool mappingBufferUnused = (m_frameCounter - (*iter)->GetMappingFrame() > uint32_t(m_d3d9Options.bufferUnmapDelay) || force) && (*iter)->GetLockCount() == 0;
+      if (!mappingBufferUnused) {
+         iter++;
+        continue;
+      }
+
+      (*iter)->UnmapLockingData();
+      iter = m_mappedBuffers.erase(iter);
+    }
+#endif
   }
 
 }
