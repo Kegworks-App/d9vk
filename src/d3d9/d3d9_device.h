@@ -26,6 +26,7 @@
 
 #include "d3d9_shader_permutations.h"
 
+#include <unordered_set>
 #include <vector>
 #include <type_traits>
 #include <unordered_map>
@@ -933,6 +934,15 @@ namespace dxvk {
       return &m_memoryAllocator;
     }
 
+    void BumpFrame() {
+      m_frameCounter++;
+      UnmapTextures();
+    }
+
+    void* MapTexture(D3D9CommonTexture* pTexture, UINT Subresource);
+    void TouchMappedTexture(D3D9CommonTexture* pTexture);
+    void RemoveMappedTexture(D3D9CommonTexture* pTexture);
+
   private:
 
     DxvkCsChunkRef AllocCsChunk() {
@@ -1144,6 +1154,8 @@ namespace dxvk {
       D3D9CommonTexture* pResource,
       UINT Subresource);
 
+    void UnmapTextures();
+
     uint64_t GetCurrentSequenceNumber();
 
     Com<D3D9InterfaceEx>            m_parent;
@@ -1279,6 +1291,12 @@ namespace dxvk {
     std::atomic<int32_t>            m_samplerCount    = { 0 };
 
     Direct3DState9                  m_state;
+
+    uint64_t                        m_frameCounter = 0;
+
+#ifdef D3D9_ALLOW_UNMAPPING
+    std::unordered_set<D3D9CommonTexture*> m_mappedTextures;
+#endif
 
   };
 
