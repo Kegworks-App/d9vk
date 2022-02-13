@@ -154,6 +154,9 @@ namespace dxvk {
 
     /// Disable direct buffer mapping
     bool allowDirectBufferMapping;
+
+    /// How many frames need to pass before texture data gets unmapped
+    int32_t textureUnmapDelay;
   };
 
 }
