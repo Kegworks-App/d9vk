@@ -199,7 +199,7 @@ namespace dxvk {
 
     void PreLoad();
 
-    inline bool RetainManagedMappingBuffer() {
+    inline bool DoesRetainManagedMappingBuffer() {
       return m_managedReadbackCount > 16;
     }
 

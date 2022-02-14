@@ -4209,11 +4209,7 @@ namespace dxvk {
         ctx->invalidateBuffer(cImageBuffer, cBufferSlice);
       });
     }
-    else if ((managed && !needsReadback) || scratch || systemmem) {
-      // Managed and scratch resources
-      // are meant to be able to provide readback without waiting.
-      // We always keep a copy of them in system memory for this reason.
-      // No need to wait as its not in use.
+    else {
       physSlice = pResource->GetMappedSlice(Subresource);
 
       // We do not need to wait for the resource in the event the
@@ -4221,26 +4217,23 @@ namespace dxvk {
       // or is reading. Remember! This will only trigger for MANAGED resources
       // that cannot get affected by GPU, therefore readonly is A-OK for NOT waiting.
       const bool usesStagingBuffer = pResource->DoesStagingBufferUploads(Subresource);
-      const bool skipWait = (scratch || managed || (systemmem && !needsReadback))
+      const bool skipWait = (scratch || managed || systemmem) && !needsReadback
         && (usesStagingBuffer || readOnly);
 
-      if (alloced) {
+      if (alloced && !needsReadback) {
         std::memset(physSlice.mapPtr, 0, physSlice.length);
       }
       else if (!skipWait) {
-        if (!(Flags & D3DLOCK_DONOTWAIT) && !WaitForResource(mappedBuffer, D3DLOCK_DONOTWAIT))
+        if (!(Flags & D3DLOCK_DONOTWAIT) && !needsReadback && !WaitForResource(mappedBuffer, D3DLOCK_DONOTWAIT))
           pResource->EnableStagingBufferUploads(Subresource);
 
-        if (!WaitForResource(mappedBuffer, Flags))
-          return D3DERR_WASSTILLDRAWING;
-      }
-    }
-    else {
-      physSlice = pResource->GetMappedSlice(Subresource);
-
-      if (!alloced || needsReadback) {
         if (unlikely(needsReadback)) {
           pResource->NotifyReadback();
+          if (!m_managedCleanupThresholdBumpedInFrame) {
+            Logger::warn(str::format("Bumped threshold to: ", m_managedCleanupThreshold));
+            m_managedCleanupThreshold += 256;
+            m_managedCleanupThresholdBumpedInFrame = true;
+          }
 
           Rc<DxvkImage> resourceImage = pResource->GetImage();
 
@@ -4314,12 +4307,6 @@ namespace dxvk {
 
         if (!WaitForResource(mappedBuffer, Flags))
           return D3DERR_WASSTILLDRAWING;
-      } else {
-        // If we are a new alloc, and we weren't written by the GPU
-        // that means that we are a newly initialized
-        // texture, and hence can just memset -> 0 and
-        // avoid a wait here.
-        std::memset(physSlice.mapPtr, 0, physSlice.length);
       }
     }
 
@@ -4645,11 +4632,15 @@ namespace dxvk {
         std::memset(physSlice.mapPtr, 0, physSlice.length);
       }
       else if (!skipWait) {
-        if (!(Flags & D3DLOCK_DONOTWAIT) && !WaitForResource(mappingBuffer, D3DLOCK_DONOTWAIT))
+        if (!(Flags & D3DLOCK_DONOTWAIT) && !needsReadback && !WaitForResource(mappingBuffer, D3DLOCK_DONOTWAIT))
           pResource->EnableStagingBufferUploads();
 
         if (unlikely(needsReadback)) {
           pResource->NotifyReadback();
+          if (!m_managedCleanupThresholdBumpedInFrame) {
+            m_managedCleanupThreshold += 4;
+            m_managedCleanupThresholdBumpedInFrame = true;
+          }
 
           EmitCs([
             cMappingBuffer = mappingBuffer,
@@ -7383,7 +7374,7 @@ namespace dxvk {
 
     D3D9DeviceLock lock = LockDevice();
 
-    if (pResource->RetainManagedMappingBuffer())
+    if (pResource->DoesRetainManagedMappingBuffer())
       return;
 
     auto existing = m_managedTextures.find(pResource);
@@ -7398,7 +7389,7 @@ namespace dxvk {
     if (!env::is32BitHostPlatform())
       return;
 
-    if (!IsPoolManaged(pResource->Desc()->Pool) || pResource->RetainManagedMappingBuffer())
+    if (!IsPoolManaged(pResource->Desc()->Pool) || pResource->DoesRetainManagedMappingBuffer())
       return;
 
     auto existing = m_managedBuffers.find(pResource);
@@ -7426,8 +7417,9 @@ namespace dxvk {
 
     for (auto iter = m_managedTextures.begin(); iter != m_managedTextures.end();) {
       const bool needsUpload = iter->first->NeedsAnyUpload();
-      const bool forceUpload = needsUpload && m_frameCounter - iter->second > 256;
-      const bool mappingBufferUnused = (!needsUpload || forceUpload) && m_frameCounter - iter->second > 16;
+      const bool forceUpload = needsUpload && m_frameCounter - iter->second > m_managedCleanupThreshold;
+      const bool retainBuffer = iter->first->DoesRetainManagedMappingBuffer();
+      const bool mappingBufferUnused = (!needsUpload || forceUpload) && m_frameCounter - iter->second > m_managedCleanupThreshold * 2 && !retainBuffer;
 
       if (forceUpload) {
         // The texture was marked dirty but never actually used.
@@ -7440,7 +7432,7 @@ namespace dxvk {
           iter->first->DestroyBufferSubresource(i);
         }
         iter = m_managedTextures.erase(iter);
-      } else if (iter->first->RetainManagedMappingBuffer()) {
+      } else if (retainBuffer) {
         iter = m_managedTextures.erase(iter);
       } else {
         iter++;
@@ -7449,8 +7441,9 @@ namespace dxvk {
 
     for (auto iter = m_managedBuffers.begin(); iter != m_managedBuffers.end();) {
       const bool needsUpload = iter->first->NeedsUpload();
-      const bool forceUpload = needsUpload && m_frameCounter - iter->second > 256;
-      const bool mappingBufferUnused = (!needsUpload || forceUpload) && m_frameCounter - iter->second > 16;
+      const bool forceUpload = needsUpload && m_frameCounter - iter->second > m_managedCleanupThreshold;
+      const bool retainBuffer = iter->first->DoesRetainManagedMappingBuffer();
+      const bool mappingBufferUnused = (!needsUpload || forceUpload) && m_frameCounter - iter->second > m_managedCleanupThreshold * 2 && !retainBuffer;
 
       if (forceUpload) {
         // The texture was marked dirty but never actually used.
@@ -7461,7 +7454,7 @@ namespace dxvk {
       if (mappingBufferUnused) {
         iter->first->DestroyStagingBuffer();
         iter = m_managedBuffers.erase(iter);
-      } else if (iter->first->RetainManagedMappingBuffer()) {
+      } else if (retainBuffer) {
         iter = m_managedBuffers.erase(iter);
       } else {
         iter++;

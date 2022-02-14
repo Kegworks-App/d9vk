@@ -437,7 +437,7 @@ namespace dxvk {
     static VkImageType GetImageTypeFromResourceType(
             D3DRESOURCETYPE  Dimension);
 
-    inline bool RetainManagedMappingBuffer() {
+    inline bool DoesRetainManagedMappingBuffer() {
       return m_managedReadbackCount > 16;
     }
 

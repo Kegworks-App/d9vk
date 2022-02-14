@@ -1267,6 +1267,9 @@ namespace dxvk {
 
     Direct3DState9                  m_state;
 
+    uint32_t                        m_managedCleanupThreshold = 16;
+    bool                            m_managedCleanupThresholdBumpedInFrame = false;
+
     uint64_t                                         m_frameCounter = 0;
     std::unordered_map<D3D9CommonTexture*, uint64_t> m_managedTextures;
     std::unordered_map<D3D9CommonBuffer*, uint64_t>  m_managedBuffers;
