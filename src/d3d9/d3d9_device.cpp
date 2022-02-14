@@ -4240,6 +4240,7 @@ namespace dxvk {
 
       if (!alloced || needsReadback) {
         if (unlikely(needsReadback)) {
+          pResource->NotifyReadback();
 
           Rc<DxvkImage> resourceImage = pResource->GetImage();
 
@@ -4648,6 +4649,8 @@ namespace dxvk {
           pResource->EnableStagingBufferUploads();
 
         if (unlikely(needsReadback)) {
+          pResource->NotifyReadback();
+
           EmitCs([
             cMappingBuffer = mappingBuffer,
             cBuffer = pResource->GetBuffer<D3D9_COMMON_BUFFER_TYPE_REAL>()
@@ -7380,6 +7383,9 @@ namespace dxvk {
 
     D3D9DeviceLock lock = LockDevice();
 
+    if (pResource->RetainManagedMappingBuffer())
+      return;
+
     auto existing = m_managedTextures.find(pResource);
     if (existing != m_managedTextures.end()) {
       existing->second = m_frameCounter;
@@ -7392,7 +7398,7 @@ namespace dxvk {
     if (!env::is32BitHostPlatform())
       return;
 
-    if (!IsPoolManaged(pResource->Desc()->Pool))
+    if (!IsPoolManaged(pResource->Desc()->Pool) || pResource->RetainManagedMappingBuffer())
       return;
 
     auto existing = m_managedBuffers.find(pResource);
@@ -7434,6 +7440,8 @@ namespace dxvk {
           iter->first->DestroyBufferSubresource(i);
         }
         iter = m_managedTextures.erase(iter);
+      } else if (iter->first->RetainManagedMappingBuffer()) {
+        iter = m_managedTextures.erase(iter);
       } else {
         iter++;
       }
@@ -7452,6 +7460,8 @@ namespace dxvk {
 
       if (mappingBufferUnused) {
         iter->first->DestroyStagingBuffer();
+        iter = m_managedBuffers.erase(iter);
+      } else if (iter->first->RetainManagedMappingBuffer()) {
         iter = m_managedBuffers.erase(iter);
       } else {
         iter++;
