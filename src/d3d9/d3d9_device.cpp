@@ -4620,6 +4620,9 @@ namespace dxvk {
     if (desc.Usage & D3DUSAGE_DYNAMIC)
       Flags &= ~D3DLOCK_DONOTWAIT;
 
+
+    bool alloced = pResource->CreateStagingBuffer();
+
     // We only bounds check for MANAGED.
     // (TODO: Apparently this is meant to happen for DYNAMIC too but I am not sure
     //  how that works given it is meant to be a DIRECT access..?)
@@ -4674,11 +4677,11 @@ namespace dxvk {
       const bool usesStagingBuffer = pResource->DoesStagingBufferUploads();
       const bool directMapping = pResource->GetMapMode() == D3D9_COMMON_BUFFER_MAP_MODE_DIRECT;
       const bool skipWait = (!needsReadback && (usesStagingBuffer || readOnly || (noOverlap && !directMapping))) || noOverwrite;
-      if (!skipWait) {
-        if (unlikely(needsReadback)) {
-          Logger::warn("Buffer readback is unimplemented.");
-          // Remember to update the sequence number when implementing buffer readback.
-        } else if (!(Flags & D3DLOCK_DONOTWAIT) && !WaitForResource(mappingBuffer, pResource->GetMappingBufferSequenceNumber(), D3DLOCK_DONOTWAIT))
+      if (alloced && !needsReadback) {
+        std::memset(physSlice.mapPtr, 0, physSlice.length);
+      }
+      else if (!skipWait) {
+        if (!(Flags & D3DLOCK_DONOTWAIT) && !WaitForResource(mappingBuffer, pResource->GetMappingBufferSequenceNumber(), D3DLOCK_DONOTWAIT))
           pResource->EnableStagingBufferUploads();
 
         if (!WaitForResource(mappingBuffer, pResource->GetMappingBufferSequenceNumber(), Flags))
@@ -4713,6 +4716,9 @@ namespace dxvk {
         D3D9CommonBuffer*       pResource) {
     auto dstBuffer = pResource->GetBufferSlice<D3D9_COMMON_BUFFER_TYPE_REAL>();
     auto srcSlice = pResource->GetMappedSlice();
+    if (unlikely(srcSlice.mapPtr == nullptr)) {
+      return D3D_OK;
+    }
 
     D3D9Range& range = pResource->DirtyRange();
 
