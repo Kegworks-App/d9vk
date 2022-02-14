@@ -11,10 +11,11 @@ namespace dxvk {
     : m_parent ( pDevice ), m_desc ( *pDesc ),
       m_mapMode(DetermineMapMode(pDevice->GetOptions())) {
     m_buffer = CreateBuffer();
-    if (m_mapMode == D3D9_COMMON_BUFFER_MAP_MODE_BUFFER)
-      m_stagingBuffer = CreateStagingBuffer();
 
-    m_sliceHandle = GetMapBuffer()->getSliceHandle();
+    if (m_mapMode == D3D9_COMMON_BUFFER_MAP_MODE_BUFFER)
+      CreateStagingBuffer();
+    else if (m_mapMode == D3D9_COMMON_BUFFER_MAP_MODE_DIRECT)
+      m_sliceHandle = m_buffer->getSliceHandle();
 
     if (m_desc.Pool != D3DPOOL_DEFAULT)
       m_dirtyRange = D3D9Range(0, m_desc.Size);
@@ -112,7 +113,10 @@ namespace dxvk {
   }
 
 
-  Rc<DxvkBuffer> D3D9CommonBuffer::CreateStagingBuffer() const {
+  bool D3D9CommonBuffer::CreateStagingBuffer() {
+    if (m_stagingBuffer != nullptr || GetMapMode() != D3D9_COMMON_BUFFER_MAP_MODE_BUFFER)
+      return false;
+
     DxvkBufferCreateInfo  info;
     info.size   = m_desc.Size;
     info.stages = VK_PIPELINE_STAGE_HOST_BIT
@@ -126,12 +130,14 @@ namespace dxvk {
     if (!(m_desc.Usage & D3DUSAGE_WRITEONLY))
       info.access |= VK_ACCESS_HOST_READ_BIT;
 
-    VkMemoryPropertyFlags memoryFlags = 
+    VkMemoryPropertyFlags memoryFlags =
       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
     | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
     | VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
 
-    return m_parent->GetDXVKDevice()->createBuffer(info, memoryFlags);
+    m_stagingBuffer = m_parent->GetDXVKDevice()->createBuffer(info, memoryFlags);
+    m_sliceHandle = m_stagingBuffer->getSliceHandle();
+    return true;
   }
 
 }
