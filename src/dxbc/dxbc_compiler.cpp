@@ -23,7 +23,8 @@ namespace dxvk {
     m_isgn       (isgn),
     m_osgn       (osgn),
     m_psgn       (psgn),
-    m_analysis   (&analysis) {
+    m_analysis   (&analysis),
+    m_name       (fileName) {
     // Declare an entry point ID. We'll need it during the
     // initialization phase where the execution mode is set.
     m_entryPointId = m_module.allocateId();
@@ -254,13 +255,31 @@ namespace dxvk {
         shaderOptions.xfbStrides[i] = m_moduleInfo.xfb->strides[i];
     }
 
+
+    SpirvCodeBuffer module;
+
+    const std::string replacementPath = env::getEnvVar("DXVK_SHADER_REPLACEMENT_PATH");
+    if (replacementPath.size() != 0) {
+      std::ifstream stream;
+      stream.open(str::format(replacementPath, "/", m_name, ".spv").c_str());
+        Logger::warn(str::format("Looking for shader: ", replacementPath, "/", m_name, ".spv"));
+      if (stream) {
+        Logger::warn(str::format("Replaced shader: ", m_name));
+        module = { stream };
+      }
+    }
+
+    if (likely(module.size() == 0)) {
+      module = m_module.compile();
+    }
+
     // Create the shader module object
     return new DxvkShader(
       m_programInfo.shaderStage(),
       m_resourceSlots.size(),
       m_resourceSlots.data(),
       m_interfaceSlots,
-      m_module.compile(),
+      module,
       shaderOptions,
       std::move(m_immConstData));
   }

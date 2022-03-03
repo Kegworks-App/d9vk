@@ -543,6 +543,8 @@ namespace dxvk {
     // Global state stuff
     bool m_precise = true;
 
+    std::string m_name;
+
     /////////////////////////////////////////////////////
     // Shader interface and metadata declaration methods
     void emitDcl(
