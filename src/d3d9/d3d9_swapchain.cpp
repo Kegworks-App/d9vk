@@ -1076,6 +1076,7 @@ namespace dxvk {
     if (m_hud != nullptr) {
       m_hud->addItem<hud::HudClientApiItem>("api", 1, GetApiName());
       m_hud->addItem<hud::HudSamplerCount>("samplers", -1, m_parent);
+      m_hud->addItem<hud::HudManagedMemory>("memory", -1, m_parent);
     }
   }
 
