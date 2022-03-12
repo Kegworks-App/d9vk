@@ -11,7 +11,8 @@ namespace dxvk {
     const Rc<vk::InstanceFn>& vki,
           VkPhysicalDevice    handle)
   : m_vki           (vki),
-    m_handle        (handle) {
+    m_handle        (handle),
+    m_formats       (this) {
     this->initHeapAllocInfo();
     this->queryExtensions();
     this->queryDeviceInfo();

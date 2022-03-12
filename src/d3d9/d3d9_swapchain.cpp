@@ -383,9 +383,11 @@ namespace dxvk {
     bool similar = AreFormatsSimilar(srcFormat, dstFormat);
 
     if (!similar || srcImage->info().extent != dstTexInfo->GetExtent()) {
+      const DxvkFormatProperties& formatProps = m_device->lookupFormat(dstTexInfo->GetFormatMapping().FormatColor);
+
       DxvkImageCreateInfo blitCreateInfo;
       blitCreateInfo.type          = VK_IMAGE_TYPE_2D;
-      blitCreateInfo.format        = dstTexInfo->GetFormatMapping().FormatColor;
+      blitCreateInfo.format        = formatProps.vkFormat;
       blitCreateInfo.flags         = 0;
       blitCreateInfo.sampleCount   = VK_SAMPLE_COUNT_1_BIT;
       blitCreateInfo.extent        = dstTexInfo->GetExtent();
@@ -436,9 +438,9 @@ namespace dxvk {
 
       m_parent->EmitCs([
         cDstImage = blittedSrc,
-        cDstMap   = dstTexInfo->GetMapping().Swizzle,
+        cDstMap   = m_device->lookupFormat(dstTexInfo->GetMapping().FormatColor).wSwizzle,
         cSrcImage = srcImage,
-        cSrcMap   = srcTexInfo->GetMapping().Swizzle,
+        cSrcMap   = m_device->lookupFormat(srcTexInfo->GetMapping().FormatColor).rSwizzle,
         cBlitInfo = blitInfo
       ] (DxvkContext* ctx) {
         ctx->blitImage(

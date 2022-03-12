@@ -3,6 +3,7 @@
 #include "dxvk_device_info.h"
 #include "dxvk_extensions.h"
 #include "dxvk_include.h"
+#include "dxvk_format.h"
 
 namespace dxvk {
   
@@ -255,6 +256,16 @@ namespace dxvk {
      * \returns \c true if the system has unified memory.
      */
     bool isUnifiedMemoryArchitecture() const;
+
+    /**
+     * \brief Looks up format
+     *
+     * \param [in] format Format to look up
+     * \returns Reference to format property struct
+     */
+    const DxvkFormatProperties& lookupFormat(DxvkFormat format) const {
+      return m_formats.lookup(format);
+    }
     
   private:
     
@@ -265,6 +276,8 @@ namespace dxvk {
     DxvkNameSet         m_deviceExtensions;
     DxvkDeviceInfo      m_deviceInfo;
     DxvkDeviceFeatures  m_deviceFeatures;
+
+    DxvkFormatMap       m_formats;
 
     bool                m_hasMemoryBudget;
     

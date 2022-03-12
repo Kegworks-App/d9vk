@@ -657,7 +657,7 @@ namespace dxvk {
     D3D9_VK_FORMAT_MAPPING LookupFormat(
       D3D9Format            Format) const;
 
-    const DxvkFormatInfo* UnsupportedFormatInfo(
+      const DxvkFormatProperties* UnsupportedFormatInfo(
       D3D9Format            Format) const;
 
     bool WaitForResource(
@@ -685,7 +685,7 @@ namespace dxvk {
     uint32_t CalcImageLockOffset(
             uint32_t                SlicePitch,
             uint32_t                RowPitch,
-      const DxvkFormatInfo*         FormatInfo,
+      const DxvkFormatProperties*   FormatProps,
       const D3DBOX*                 pBox);
 
     /**

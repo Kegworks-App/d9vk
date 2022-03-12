@@ -36,6 +36,11 @@ namespace dxvk {
 
     m_mapping = pDevice->LookupFormat(m_desc.Format);
 
+    if (m_desc.Usage & (D3DUSAGE_RENDERTARGET | D3DUSAGE_DEPTHSTENCIL)) {
+      const DxvkFormatProperties& formatProps = m_device->GetDXVKDevice()->lookupFormat(m_mapping.FormatColor);
+      m_alphaSwizzleOne |= formatProps.rSwizzle.a == VK_COMPONENT_SWIZZLE_ONE || formatProps.wSwizzle.a == VK_COMPONENT_SWIZZLE_ONE;
+    }
+
     m_mapMode        = DetermineMapMode();
     m_shadow         = DetermineShadowState();
     m_supportsFetch4 = DetermineFetch4Compatibility();
@@ -198,31 +203,34 @@ namespace dxvk {
   VkDeviceSize D3D9CommonTexture::GetMipSize(UINT Subresource) const {
     const UINT MipLevel = Subresource % m_desc.MipLevels;
 
-    const DxvkFormatInfo* formatInfo = m_mapping.FormatColor != VK_FORMAT_UNDEFINED
-      ? imageFormatInfo(m_mapping.FormatColor)
+    const DxvkFormatProperties* formatProps = m_mapping.FormatColor != DxvkFormat::Unknown
+      ? &m_device->GetDXVKDevice()->lookupFormat(m_mapping.FormatColor)
       : m_device->UnsupportedFormatInfo(m_desc.Format);
 
     const VkExtent3D mipExtent = util::computeMipLevelExtent(
       GetExtent(), MipLevel);
     
     const VkExtent3D blockCount = util::computeBlockCount(
-      mipExtent, formatInfo->blockSize);
+      mipExtent, formatProps->blockSize);
 
     const uint32_t planeCount = m_mapping.ConversionFormatInfo.PlaneCount;
 
     return std::min(planeCount, 2u)
-         * align(formatInfo->elementSize * blockCount.width, 4)
+         * align(formatProps->elementSize * blockCount.width, 4)
          * blockCount.height
          * blockCount.depth;
   }
 
 
   Rc<DxvkImage> D3D9CommonTexture::CreatePrimaryImage(D3DRESOURCETYPE ResourceType, bool TryOffscreenRT, HANDLE* pSharedHandle) const {
+    DxvkFormat format = m_mapping.ConversionFormatInfo.FormatColor != DxvkFormat::Unknown
+                        ? m_mapping.ConversionFormatInfo.FormatColor
+                        : m_mapping.FormatColor;
+    const DxvkFormatProperties& formatProps = m_device->GetDXVKDevice()->lookupFormat(format);
+
     DxvkImageCreateInfo imageInfo;
     imageInfo.type            = GetImageTypeFromResourceType(ResourceType);
-    imageInfo.format          = m_mapping.ConversionFormatInfo.FormatColor != VK_FORMAT_UNDEFINED
-                              ? m_mapping.ConversionFormatInfo.FormatColor
-                              : m_mapping.FormatColor;
+    imageInfo.format          = formatProps.vkFormat;
     imageInfo.flags           = 0;
     imageInfo.sampleCount     = VK_SAMPLE_COUNT_1_BIT;
     imageInfo.extent.width    = m_desc.Width;
@@ -261,16 +269,16 @@ namespace dxvk {
     // The image must be marked as mutable if it can be reinterpreted
     // by a view with a different format. Depth-stencil formats cannot
     // be reinterpreted in Vulkan, so we'll ignore those.
-    auto formatProperties = imageFormatInfo(m_mapping.FormatColor);
+    bool isMutable     = m_mapping.FormatSrgb != DxvkFormat::Unknown;
+    bool isColorFormat = (formatProps.aspectMask & VK_IMAGE_ASPECT_COLOR_BIT) != 0;
 
-    bool isMutable     = m_mapping.FormatSrgb != VK_FORMAT_UNDEFINED;
-    bool isColorFormat = (formatProperties->aspectMask & VK_IMAGE_ASPECT_COLOR_BIT) != 0;
-
+    std::array<VkFormat, 2> viewFormats;
     if (isMutable && isColorFormat) {
+      viewFormats = { formatProps.vkFormat, m_device->GetDXVKDevice()->lookupFormat(m_mapping.Formats[1]).vkFormat };
       imageInfo.flags |= VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
 
       imageInfo.viewFormatCount = 2;
-      imageInfo.viewFormats     = m_mapping.Formats;
+      imageInfo.viewFormats     = viewFormats.data();
     }
 
     // Are we an RT, need to gen mips or an offscreen plain surface?
@@ -532,13 +540,15 @@ namespace dxvk {
           UINT                   Layer,
           UINT                   Lod,
           VkImageUsageFlags      UsageFlags,
-          bool                   Srgb) {    
+          bool                   Srgb) {
+    DxvkFormat format = m_mapping.ConversionFormatInfo.FormatColor != DxvkFormat::Unknown
+                        ? PickSRGB(m_mapping.ConversionFormatInfo.FormatColor, m_mapping.ConversionFormatInfo.FormatSrgb, Srgb)
+                        : PickSRGB(m_mapping.FormatColor, m_mapping.FormatSrgb, Srgb);
+    const DxvkFormatProperties& formatProps = m_device->GetDXVKDevice()->lookupFormat(format);
     DxvkImageViewCreateInfo viewInfo;
-    viewInfo.format    = m_mapping.ConversionFormatInfo.FormatColor != VK_FORMAT_UNDEFINED
-                       ? PickSRGB(m_mapping.ConversionFormatInfo.FormatColor, m_mapping.ConversionFormatInfo.FormatSrgb, Srgb)
-                       : PickSRGB(m_mapping.FormatColor, m_mapping.FormatSrgb, Srgb);
+    viewInfo.format    = formatProps.vkFormat;
     viewInfo.aspect    = imageFormatInfo(viewInfo.format)->aspectMask;
-    viewInfo.swizzle   = m_mapping.Swizzle;
+    viewInfo.swizzle   = formatProps.rSwizzle;
     viewInfo.usage     = UsageFlags;
     viewInfo.type      = GetImageViewTypeFromResourceType(m_type, Layer);
     viewInfo.minLevel  = Lod;

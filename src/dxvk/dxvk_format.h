@@ -7,7 +7,7 @@
 
 namespace dxvk {
 
-  class DxvkDevice;
+  class DxvkAdapter;
 
   /**
    * \brief DXVK format enum
@@ -84,6 +84,7 @@ namespace dxvk {
     RG32sf          = 61,
     RG32ui          = 62,
     RG32si          = 63,
+    RG4un           = 89, // TODO
     /* R */
     R8un            = 64,
     R8ui            = 65,
@@ -101,6 +102,7 @@ namespace dxvk {
     R32sf           = 77,
     R32ui           = 78,
     R32si           = 79,
+    R8srgb          = 88, // TODO
     /* A */
     A8un            = 80,
     /* D / DS */
@@ -131,6 +133,7 @@ namespace dxvk {
     GRGB8un_422     = 113,
     /* Multi-plane */
     NV12_420        = 120,
+
     /* Dummy value */
     Count
   };
@@ -217,7 +220,7 @@ namespace dxvk {
 
   public:
 
-    DxvkFormatMap(DxvkDevice* device);
+    DxvkFormatMap(DxvkAdapter* adapter);
     ~DxvkFormatMap();
 
     /**

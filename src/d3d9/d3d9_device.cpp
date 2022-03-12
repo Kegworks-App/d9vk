@@ -722,7 +722,7 @@ namespace dxvk {
     if (unlikely(srcTextureInfo->Desc()->Format != dstTextureInfo->Desc()->Format))
       return D3DERR_INVALIDCALL;
 
-    const DxvkFormatInfo* formatInfo = imageFormatInfo(dstTextureInfo->GetFormatMapping().FormatColor);
+    const DxvkFormatProperties& formatProps = m_dxvkDevice->lookupFormat(dstTextureInfo->GetFormatMapping().FormatColor);
 
     VkOffset3D srcOffset = { 0u, 0u, 0u };
     VkOffset3D dstOffset = { 0u, 0u, 0u };
@@ -736,22 +736,22 @@ namespace dxvk {
 
       extent = { uint32_t(pSourceRect->right - pSourceRect->left), uint32_t(pSourceRect->bottom - pSourceRect->top), 1 };
 
-      const bool extentAligned = extent.width % formatInfo->blockSize.width == 0
-        && extent.height % formatInfo->blockSize.height == 0;
+      const bool extentAligned = extent.width % formatProps.blockSize.width == 0
+        && extent.height % formatProps.blockSize.height == 0;
 
       if (pSourceRect->left < 0
         || pSourceRect->top < 0
         || pSourceRect->right <= pSourceRect->left
         || pSourceRect->bottom <= pSourceRect->top
-        || pSourceRect->left % formatInfo->blockSize.width != 0
-        || pSourceRect->top % formatInfo->blockSize.height != 0
+        || pSourceRect->left % formatProps.blockSize.width != 0
+        || pSourceRect->top % formatProps.blockSize.height != 0
         || (extent != texLevelExtent && !extentAligned))
         return D3DERR_INVALIDCALL;
     }
 
     if (pDestPoint != nullptr) {
-      if (pDestPoint->x % formatInfo->blockSize.width != 0
-        || pDestPoint->y % formatInfo->blockSize.height != 0
+      if (pDestPoint->x % formatProps.blockSize.width != 0
+        || pDestPoint->y % formatProps.blockSize.height != 0
         || pDestPoint->x < 0
         || pDestPoint->y < 0)
         return D3DERR_INVALIDCALL;
@@ -1094,9 +1094,9 @@ namespace dxvk {
 
       EmitCs([
         cDstImage = dstImage,
-        cDstMap   = dstTextureInfo->GetMapping().Swizzle,
+        cDstMap   = m_dxvkDevice->lookupFormat(dstTextureInfo->GetMapping().FormatColor).wSwizzle,
         cSrcImage = srcImage,
-        cSrcMap   = srcTextureInfo->GetMapping().Swizzle,
+        cSrcMap   = m_dxvkDevice->lookupFormat(srcTextureInfo->GetMapping().FormatColor).rSwizzle,
         cBlitInfo = blitInfo,
         cFilter   = stretch ? DecodeFilter(Filter) : VK_FILTER_NEAREST
       ] (DxvkContext* ctx) {
@@ -1276,7 +1276,7 @@ namespace dxvk {
     m_alphaSwizzleRTs &= ~(1 << RenderTargetIndex);
 
     if (rt != nullptr) {
-      if (texInfo->GetMapping().Swizzle.a == VK_COMPONENT_SWIZZLE_ONE)
+      if (texInfo->HasAlphaOneSwizzle())
         m_alphaSwizzleRTs |= 1 << RenderTargetIndex;
 
       if (texInfo->IsAutomaticMip())
@@ -1336,7 +1336,9 @@ namespace dxvk {
     m_flags.set(D3D9DeviceFlag::DirtyFramebuffer);
 
     if (ds != nullptr) {
-      float rValue = GetDepthBufferRValue(ds->GetCommonTexture()->GetFormatMapping().FormatColor);
+      DxvkFormat dxvkFormat = ds->GetCommonTexture()->GetFormatMapping().FormatColor;
+      auto& formatProps = m_dxvkDevice->lookupFormat(dxvkFormat);
+      float rValue = GetDepthBufferRValue(formatProps.vkFormat);
       if (m_depthBiasScale != rValue) {
         m_depthBiasScale = rValue;
         m_flags.set(D3D9DeviceFlag::DirtyDepthBias);
@@ -1451,7 +1453,7 @@ namespace dxvk {
       if (Flags & D3DCLEAR_STENCIL)
         depthAspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
 
-      depthAspectMask &= imageFormatInfo(m_state.depthStencil->GetCommonTexture()->GetFormatMapping().FormatColor)->aspectMask;
+      depthAspectMask &= m_dxvkDevice->lookupFormat(m_state.depthStencil->GetCommonTexture()->GetFormatMapping().FormatColor).aspectMask;
     }
 
     auto ClearImageView = [this](
@@ -4030,7 +4032,7 @@ namespace dxvk {
     return m_adapter->GetFormatMapping(Format);
   }
 
-  const DxvkFormatInfo* D3D9DeviceEx::UnsupportedFormatInfo(
+  const DxvkFormatProperties* D3D9DeviceEx::UnsupportedFormatInfo(
     D3D9Format            Format) const {
     return m_adapter->GetUnsupportedFormatInfo(Format);
   }
@@ -4076,7 +4078,7 @@ namespace dxvk {
   uint32_t D3D9DeviceEx::CalcImageLockOffset(
             uint32_t                SlicePitch,
             uint32_t                RowPitch,
-      const DxvkFormatInfo*         FormatInfo,
+      const DxvkFormatProperties*   FormatProps,
       const D3DBOX*                 pBox) {
     if (pBox == nullptr)
       return 0;
@@ -4085,12 +4087,12 @@ namespace dxvk {
 
     uint32_t elementSize = 1;
 
-    if (FormatInfo != nullptr) {
-      elementSize = FormatInfo->elementSize;
+    if (FormatProps != nullptr) {
+      elementSize = FormatProps->elementSize;
 
-      offsets[0] = offsets[0] / FormatInfo->blockSize.depth;
-      offsets[1] = offsets[1] / FormatInfo->blockSize.height;
-      offsets[2] = offsets[2] / FormatInfo->blockSize.width;
+      offsets[0] = offsets[0] / FormatProps->blockSize.depth;
+      offsets[1] = offsets[1] / FormatProps->blockSize.height;
+      offsets[2] = offsets[2] / FormatProps->blockSize.width;
     }
 
     return offsets[0] * SlicePitch +
@@ -4131,14 +4133,14 @@ namespace dxvk {
 
     auto& formatMapping = pResource->GetFormatMapping();
 
-    const DxvkFormatInfo* formatInfo = formatMapping.IsValid()
-      ? imageFormatInfo(formatMapping.FormatColor) : UnsupportedFormatInfo(pResource->Desc()->Format);
+    const DxvkFormatProperties* formatProps = formatMapping.IsValid()
+      ? &m_dxvkDevice->lookupFormat(formatMapping.FormatColor) : UnsupportedFormatInfo(pResource->Desc()->Format);
 
     auto subresource = pResource->GetSubresourceFromIndex(
-        formatInfo->aspectMask, Subresource);
+        formatProps->aspectMask, Subresource);
 
     VkExtent3D levelExtent = pResource->GetExtentMip(MipLevel);
-    VkExtent3D blockCount  = util::computeBlockCount(levelExtent, formatInfo->blockSize);
+    VkExtent3D blockCount  = util::computeBlockCount(levelExtent, formatProps->blockSize);
 
     const bool systemmem = desc.Pool == D3DPOOL_SYSTEMMEM;
     const bool managed   = IsPoolManaged(desc.Pool);
@@ -4300,7 +4302,7 @@ namespace dxvk {
     }
     else {
       // Data is tightly packed within the mapped buffer.
-      pLockedBox->RowPitch   = align(formatInfo->elementSize * blockCount.width, 4);
+      pLockedBox->RowPitch   = align(formatProps->elementSize * blockCount.width, 4);
       pLockedBox->SlicePitch = pLockedBox->RowPitch * blockCount.height;
     }
 
@@ -4341,7 +4343,7 @@ namespace dxvk {
     const uint32_t offset = CalcImageLockOffset(
       pLockedBox->SlicePitch,
       pLockedBox->RowPitch,
-      (!atiHack) ? formatInfo : nullptr,
+      (!atiHack) ? formatProps : nullptr,
       pBox);
 
 
@@ -4433,56 +4435,56 @@ namespace dxvk {
     // we need to copy its contents into the image
     const DxvkBufferSliceHandle srcSlice = pSrcTexture->GetMappedSlice(SrcSubresource);
 
-    auto formatInfo  = imageFormatInfo(image->info().format);
+    auto& formatProps = m_dxvkDevice->lookupFormat(pDestTexture->GetFormatMapping().FormatColor);
     auto srcSubresource = pSrcTexture->GetSubresourceFromIndex(
-      formatInfo->aspectMask, SrcSubresource);
+      formatProps.aspectMask, SrcSubresource);
 
     auto dstSubresource = pDestTexture->GetSubresourceFromIndex(
-      formatInfo->aspectMask, DestSubresource);
+      formatProps.aspectMask, DestSubresource);
     VkImageSubresourceLayers dstLayers = { dstSubresource.aspectMask, dstSubresource.mipLevel, dstSubresource.arrayLayer, 1 };
 
     VkExtent3D dstTexLevelExtent = image->mipLevelExtent(dstSubresource.mipLevel);
     VkExtent3D srcTexLevelExtent = util::computeMipLevelExtent(pSrcTexture->GetExtent(), srcSubresource.mipLevel);
-    VkExtent3D srcTexLevelExtentBlockCount = util::computeBlockCount(srcTexLevelExtent, formatInfo->blockSize);
+    VkExtent3D srcTexLevelExtentBlockCount = util::computeBlockCount(srcTexLevelExtent, formatProps.blockSize);
 
     auto convertFormat = pDestTexture->GetFormatMapping().ConversionFormatInfo;
 
     if (likely(convertFormat.FormatType == D3D9ConversionFormat_None)) {
       VkOffset3D alignedDestOffset = {
-        int32_t(alignDown(DestOffset.x, formatInfo->blockSize.width)),
-        int32_t(alignDown(DestOffset.y, formatInfo->blockSize.height)),
-        int32_t(alignDown(DestOffset.z, formatInfo->blockSize.depth))
+        int32_t(alignDown(DestOffset.x, formatProps.blockSize.width)),
+        int32_t(alignDown(DestOffset.y, formatProps.blockSize.height)),
+        int32_t(alignDown(DestOffset.z, formatProps.blockSize.depth))
       };
       VkOffset3D alignedSrcOffset = {
-        int32_t(alignDown(SrcOffset.x, formatInfo->blockSize.width)),
-        int32_t(alignDown(SrcOffset.y, formatInfo->blockSize.height)),
-        int32_t(alignDown(SrcOffset.z, formatInfo->blockSize.depth))
+        int32_t(alignDown(SrcOffset.x, formatProps.blockSize.width)),
+        int32_t(alignDown(SrcOffset.y, formatProps.blockSize.height)),
+        int32_t(alignDown(SrcOffset.z, formatProps.blockSize.depth))
       };
       SrcExtent.width += SrcOffset.x - alignedSrcOffset.x;
       SrcExtent.height += SrcOffset.y - alignedSrcOffset.y;
       SrcExtent.depth += SrcOffset.z - alignedSrcOffset.z;
-      VkExtent3D extentBlockCount = util::computeBlockCount(SrcExtent, formatInfo->blockSize);
-      VkExtent3D alignedExtent = util::computeBlockExtent(extentBlockCount, formatInfo->blockSize);
+      VkExtent3D extentBlockCount = util::computeBlockCount(SrcExtent, formatProps.blockSize);
+      VkExtent3D alignedExtent = util::computeBlockExtent(extentBlockCount, formatProps.blockSize);
 
       alignedExtent = util::snapExtent3D(alignedDestOffset, alignedExtent, dstTexLevelExtent);
       alignedExtent = util::snapExtent3D(alignedSrcOffset, alignedExtent, srcTexLevelExtent);
 
-      VkOffset3D srcOffsetBlockCount = util::computeBlockOffset(alignedSrcOffset, formatInfo->blockSize);
-      VkExtent3D srcTexLevelExtentBlockCount = util::computeBlockCount(srcTexLevelExtent, formatInfo->blockSize);
-      VkDeviceSize pitch = align(srcTexLevelExtentBlockCount.width * formatInfo->elementSize, 4);
+      VkOffset3D srcOffsetBlockCount = util::computeBlockOffset(alignedSrcOffset, formatProps.blockSize);
+      VkExtent3D srcTexLevelExtentBlockCount = util::computeBlockCount(srcTexLevelExtent, formatProps.blockSize);
+      VkDeviceSize pitch = align(srcTexLevelExtentBlockCount.width * formatProps.elementSize, 4);
       VkDeviceSize copySrcOffset = srcOffsetBlockCount.z * srcTexLevelExtentBlockCount.height * pitch
           + srcOffsetBlockCount.y * pitch
-          + srcOffsetBlockCount.x * formatInfo->elementSize;
+          + srcOffsetBlockCount.x * formatProps.elementSize;
 
       VkDeviceSize rowAlignment = 1;
       DxvkBufferSlice copySrcSlice;
       if (pSrcTexture->DoesStagingBufferUploads(SrcSubresource)) {
-        VkDeviceSize dirtySize = extentBlockCount.width * extentBlockCount.height * extentBlockCount.depth * formatInfo->elementSize;
+        VkDeviceSize dirtySize = extentBlockCount.width * extentBlockCount.height * extentBlockCount.depth * formatProps.elementSize;
         D3D9BufferSlice slice = AllocTempBuffer<false>(dirtySize);
         copySrcSlice = slice.slice;
         void* srcData = reinterpret_cast<uint8_t*>(srcSlice.mapPtr) + copySrcOffset;
         util::packImageData(
-          slice.mapPtr, srcData, extentBlockCount, formatInfo->elementSize,
+          slice.mapPtr, srcData, extentBlockCount, formatProps.elementSize,
           pitch, pitch * srcTexLevelExtentBlockCount.height);
       } else {
         TrackTextureMappingBufferSequenceNumber(pSrcTexture, SrcSubresource);
@@ -4507,8 +4509,6 @@ namespace dxvk {
       });
     }
     else {
-      const DxvkFormatInfo* formatInfo = imageFormatInfo(pDestTexture->GetFormatMapping().FormatColor);
-
       // Add more blocks for the other planes that we might have.
       // TODO: PLEASE CLEAN ME
       srcTexLevelExtentBlockCount.height *= std::min(convertFormat.PlaneCount, 2u);
@@ -4526,10 +4526,10 @@ namespace dxvk {
 
       // the converter can not handle the 4 aligned pitch so we always repack into a staging buffer
       D3D9BufferSlice slice = AllocTempBuffer<false>(srcSlice.length);
-      VkDeviceSize pitch = align(srcTexLevelExtentBlockCount.width * formatInfo->elementSize, 4);
+      VkDeviceSize pitch = align(srcTexLevelExtentBlockCount.width * formatProps.elementSize, 4);
 
       util::packImageData(
-        slice.mapPtr, srcSlice.mapPtr, srcTexLevelExtentBlockCount, formatInfo->elementSize,
+        slice.mapPtr, srcSlice.mapPtr, srcTexLevelExtentBlockCount, formatProps.elementSize,
         pitch, std::min(convertFormat.PlaneCount, 2u) * pitch * srcTexLevelExtentBlockCount.height);
 
       Flush();
@@ -6934,16 +6934,16 @@ namespace dxvk {
     const D3D9_VK_FORMAT_MAPPING srcFormatInfo = LookupFormat(srcDesc->Format);
     const D3D9_VK_FORMAT_MAPPING dstFormatInfo = LookupFormat(dstDesc->Format);
 
-    auto srcVulkanFormatInfo = imageFormatInfo(srcFormatInfo.FormatColor);
-    auto dstVulkanFormatInfo = imageFormatInfo(dstFormatInfo.FormatColor);
+    auto& srcVulkanFormatProps = m_dxvkDevice->lookupFormat(srcFormatInfo.FormatColor);
+    auto& dstVulkanFormatProps = m_dxvkDevice->lookupFormat(dstFormatInfo.FormatColor);
 
     const VkImageSubresource dstSubresource =
       dstTextureInfo->GetSubresourceFromIndex(
-        dstVulkanFormatInfo->aspectMask, 0);
+        dstVulkanFormatProps.aspectMask, 0);
 
     const VkImageSubresource srcSubresource =
       srcTextureInfo->GetSubresourceFromIndex(
-        srcVulkanFormatInfo->aspectMask, src->GetSubresource());
+        srcVulkanFormatProps.aspectMask, src->GetSubresource());
 
     const VkImageSubresourceLayers dstSubresourceLayers = {
       dstSubresource.aspectMask,

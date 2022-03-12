@@ -135,12 +135,12 @@ namespace dxvk {
   }};
   
 
-  DxvkFormatMap::DxvkFormatMap(DxvkDevice* device) {
+  DxvkFormatMap::DxvkFormatMap(DxvkAdapter* adapter) {
     for (const auto& e : g_formatProperties)
       m_formats[uint32_t(e.format)] = e;
 
     // Handle 4-4-4-4 formats here since we need to support those
-    if (!device->features().ext4444Formats.formatA4R4G4B4) {
+    if (!adapter->features().ext4444Formats.formatA4R4G4B4) {
       Logger::warn("Mapping DxvkFormat::BGRA4un to VK_FORMAT_B4G4R4A4_UNORM_PACK16");
 
       auto* format = &m_formats[uint32_t(DxvkFormat::BGRA4un)];
@@ -153,8 +153,6 @@ namespace dxvk {
     }
 
     // Check for format support
-    auto adapter = device->adapter();
-
     for (auto& format : m_formats) {
       if (format.vkFormat) {
         adapter->vki()->vkGetPhysicalDeviceFormatProperties(

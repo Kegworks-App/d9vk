@@ -142,8 +142,8 @@ namespace dxvk {
   struct D3D9_CONVERSION_FORMAT_INFO {
     D3D9ConversionFormat FormatType     = D3D9ConversionFormat_None;
     uint32_t             PlaneCount     = 1;
-    VkFormat             FormatColor    = VK_FORMAT_UNDEFINED;
-    VkFormat             FormatSrgb     = VK_FORMAT_UNDEFINED;
+    DxvkFormat           FormatColor    = DxvkFormat::Unknown;
+    DxvkFormat           FormatSrgb     = DxvkFormat::Unknown;
   };
 
   /**
@@ -154,18 +154,15 @@ namespace dxvk {
   struct D3D9_VK_FORMAT_MAPPING {
     union {
       struct {
-        VkFormat          FormatColor;                          ///< Corresponding color format
-        VkFormat          FormatSrgb;                           ///< Corresponding color format
+        DxvkFormat          FormatColor;                          ///< Corresponding color format
+        DxvkFormat          FormatSrgb;                           ///< Corresponding color format
       };
-      VkFormat            Formats[2];
+      DxvkFormat            Formats[2];
     };
-    VkImageAspectFlags    Aspect        = 0;                    ///< Defined aspects for the color format
-    VkComponentMapping    Swizzle       = {                     ///< Color component swizzle
-      VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
-      VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY };
+    VkImageAspectFlags    Aspect        = 0;                      ///< Defined aspects for the color format
     D3D9_CONVERSION_FORMAT_INFO ConversionFormatInfo = { };
 
-    bool IsValid() const { return FormatColor != VK_FORMAT_UNDEFINED; }
+    bool IsValid() const { return FormatColor != DxvkFormat::Unknown; }
   };
 
   D3D9_VK_FORMAT_MAPPING ConvertFormatUnfixed(D3D9Format Format);
@@ -201,7 +198,7 @@ namespace dxvk {
      *
      * \param [in] Format The D3D9 format to look up
      */
-    const DxvkFormatInfo* GetUnsupportedFormatInfo(
+    const DxvkFormatProperties* GetUnsupportedFormatInfo(
       D3D9Format            Format) const;
 
   private:
@@ -210,6 +207,8 @@ namespace dxvk {
       const Rc<DxvkAdapter>&      Adapter,
       VkFormat              Format,
       VkFormatFeatureFlags  Features) const;
+
+    Rc<DxvkAdapter> m_adapter;
 
     bool m_a4r4g4b4Support;
     bool m_d24s8Support;

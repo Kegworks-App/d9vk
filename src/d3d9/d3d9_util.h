@@ -110,7 +110,7 @@ namespace dxvk {
     rgba[2] = (float)((color & 0x000000ff))       / 255.0f;
   }
 
-  inline VkFormat PickSRGB(VkFormat format, VkFormat srgbFormat, bool srgb) {
+  inline DxvkFormat PickSRGB(DxvkFormat format, DxvkFormat srgbFormat, bool srgb) {
     return srgb ? srgbFormat : format;
   }
 

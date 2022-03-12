@@ -154,17 +154,17 @@ namespace dxvk {
       return D3DERR_NOTAVAILABLE;
 
     auto mapping = m_d3d9Formats.GetFormatMapping(CheckFormat);
-    if (mapping.FormatColor == VK_FORMAT_UNDEFINED)
+    if (mapping.FormatColor == DxvkFormat::Unknown)
       return D3DERR_NOTAVAILABLE;
 
-    if (mapping.FormatSrgb  == VK_FORMAT_UNDEFINED && srgb)
+    if (mapping.FormatSrgb  == DxvkFormat::Unknown && srgb)
       return D3DERR_NOTAVAILABLE;
 
     if (RType == D3DRTYPE_VERTEXBUFFER || RType == D3DRTYPE_INDEXBUFFER)
       return D3D_OK;
 
     // Let's actually ask Vulkan now that we got some quirks out the way!
-    return CheckDeviceVkFormat(mapping.FormatColor, Usage, RType);
+    return CheckDeviceDxvkFormat(mapping.FormatColor, Usage, RType);
   }
 
 
@@ -178,7 +178,7 @@ namespace dxvk {
       *pQualityLevels = 1;
 
     auto dst = ConvertFormatUnfixed(SurfaceFormat);
-    if (dst.FormatColor == VK_FORMAT_UNDEFINED)
+    if (dst.FormatColor == DxvkFormat::Unknown)
       return D3DERR_NOTAVAILABLE;
 
     if (MultiSampleType != D3DMULTISAMPLE_NONE
@@ -226,7 +226,7 @@ namespace dxvk {
       return D3D_OK;
 
     auto mapping = ConvertFormatUnfixed(RenderTargetFormat);
-    if (mapping.FormatColor == VK_FORMAT_UNDEFINED)
+    if (mapping.FormatColor == DxvkFormat::Unknown)
       return D3DERR_NOTAVAILABLE;
 
     return D3D_OK;
@@ -714,8 +714,8 @@ namespace dxvk {
   }
 
 
-  HRESULT D3D9Adapter::CheckDeviceVkFormat(
-          VkFormat        Format,
+  HRESULT D3D9Adapter::CheckDeviceDxvkFormat(
+          DxvkFormat      Format,
           DWORD           Usage,
           D3DRESOURCETYPE RType) {
     VkFormatFeatureFlags checkFlags = 0;
@@ -742,7 +742,8 @@ namespace dxvk {
       checkFlagsMipGen |= VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT;
     }
 
-    VkFormatProperties   fmtSupport  = m_adapter->formatProperties(Format);
+    DxvkFormatProperties properties  = m_adapter->lookupFormat(Format);
+    VkFormatProperties&   fmtSupport = properties.support;
     VkFormatFeatureFlags imgFeatures = fmtSupport.optimalTilingFeatures | fmtSupport.linearTilingFeatures;
 
     if ((imgFeatures & checkFlags) != checkFlags)

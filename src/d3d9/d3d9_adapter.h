@@ -83,14 +83,14 @@ namespace dxvk {
       return m_d3d9Formats.GetFormatMapping(Format);
     }
 
-    const DxvkFormatInfo* GetUnsupportedFormatInfo(D3D9Format Format) const {
+    const DxvkFormatProperties* GetUnsupportedFormatInfo(D3D9Format Format) const {
       return m_d3d9Formats.GetUnsupportedFormatInfo(Format);
     }
 
   private:
 
-    HRESULT CheckDeviceVkFormat(
-          VkFormat        Format,
+    HRESULT CheckDeviceDxvkFormat(
+          DxvkFormat      Format,
           DWORD           Usage,
           D3DRESOURCETYPE RType);
 

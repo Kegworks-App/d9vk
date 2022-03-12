@@ -184,7 +184,7 @@ namespace dxvk {
      * \returns Reference to format property struct
      */
     const DxvkFormatProperties& lookupFormat(DxvkFormat format) const {
-      return m_formats.lookup(format);
+      return m_adapter->lookupFormat(format);
     }
 
     /**
@@ -517,7 +517,6 @@ namespace dxvk {
     
     DxvkDevicePerfHints         m_perfHints;
     DxvkObjects                 m_objects;
-    DxvkFormatMap               m_formats;
 
     sync::Spinlock              m_statLock;
     DxvkStatCounters            m_statCounters;

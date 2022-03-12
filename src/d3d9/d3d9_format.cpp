@@ -10,87 +10,77 @@ namespace dxvk {
       case D3D9Format::R8G8B8: return {}; // Unsupported
 
       case D3D9Format::A8R8G8B8: return {
-        VK_FORMAT_B8G8R8A8_UNORM,
-        VK_FORMAT_B8G8R8A8_SRGB,
+        DxvkFormat::BGRA8un,
+        DxvkFormat::BGRA8srgb,
         VK_IMAGE_ASPECT_COLOR_BIT };
 
       case D3D9Format::X8R8G8B8: return {
-        VK_FORMAT_B8G8R8A8_UNORM,
-        VK_FORMAT_B8G8R8A8_SRGB,
-        VK_IMAGE_ASPECT_COLOR_BIT,
-        { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G,
-          VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_ONE }};
+        DxvkFormat::BGRX8un,
+        DxvkFormat::BGRX8srgb,
+        VK_IMAGE_ASPECT_COLOR_BIT };
 
       case D3D9Format::R5G6B5: return {
-        VK_FORMAT_R5G6B5_UNORM_PACK16,
-        VK_FORMAT_UNDEFINED,
+        DxvkFormat::B5G6R5un,
+        DxvkFormat::Unknown,
         VK_IMAGE_ASPECT_COLOR_BIT};
 
       case D3D9Format::X1R5G5B5: return {
-        VK_FORMAT_A1R5G5B5_UNORM_PACK16,
-        VK_FORMAT_UNDEFINED,
-        VK_IMAGE_ASPECT_COLOR_BIT,
-        { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G,
-          VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_ONE }};
+        DxvkFormat::BGR5X1un,
+        DxvkFormat::Unknown,
+        VK_IMAGE_ASPECT_COLOR_BIT };
 
       case D3D9Format::A1R5G5B5: return {
-        VK_FORMAT_A1R5G5B5_UNORM_PACK16,
-        VK_FORMAT_UNDEFINED,
+        DxvkFormat::BGR5A1un,
+        DxvkFormat::Unknown,
         VK_IMAGE_ASPECT_COLOR_BIT };
 
       case D3D9Format::A4R4G4B4: return {
-        VK_FORMAT_A4R4G4B4_UNORM_PACK16_EXT,
-        VK_FORMAT_UNDEFINED,
+        DxvkFormat::BGRA4un,
+        DxvkFormat::Unknown,
         VK_IMAGE_ASPECT_COLOR_BIT };
 
       case D3D9Format::R3G3B2: return {}; // Unsupported
 
       case D3D9Format::A8: return {
-        VK_FORMAT_R8_UNORM,
-        VK_FORMAT_UNDEFINED,
-        VK_IMAGE_ASPECT_COLOR_BIT,
-        { VK_COMPONENT_SWIZZLE_ZERO, VK_COMPONENT_SWIZZLE_ZERO,
-          VK_COMPONENT_SWIZZLE_ZERO, VK_COMPONENT_SWIZZLE_R }};
+        DxvkFormat::A8un, // TODO: zero swizzle?
+        DxvkFormat::Unknown,
+        VK_IMAGE_ASPECT_COLOR_BIT };
 
       case D3D9Format::A8R3G3B2: return {}; // Unsupported
 
       case D3D9Format::X4R4G4B4: return {
-        VK_FORMAT_A4R4G4B4_UNORM_PACK16_EXT,
-        VK_FORMAT_UNDEFINED,
+        DxvkFormat::BGRX4un,
+        DxvkFormat::Unknown,
         VK_IMAGE_ASPECT_COLOR_BIT };
 
       case D3D9Format::A2B10G10R10: return {
-        VK_FORMAT_A2B10G10R10_UNORM_PACK32, // The A2 is out of place here. This should be investigated.
-        VK_FORMAT_UNDEFINED,
+        DxvkFormat::RGB10A2un, // The A2 is out of place here. This should be investigated.
+        DxvkFormat::Unknown,
         VK_IMAGE_ASPECT_COLOR_BIT };
 
       case D3D9Format::A8B8G8R8: return {
-        VK_FORMAT_R8G8B8A8_UNORM,
-        VK_FORMAT_R8G8B8A8_SRGB,
+        DxvkFormat::RGBA8un,
+        DxvkFormat::RGBA8srgb,
         VK_IMAGE_ASPECT_COLOR_BIT };
 
       case D3D9Format::X8B8G8R8: return {
-        VK_FORMAT_R8G8B8A8_UNORM,
-        VK_FORMAT_R8G8B8A8_SRGB,
-        VK_IMAGE_ASPECT_COLOR_BIT,
-        { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G,
-          VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_ONE }};
+        DxvkFormat::RGBX8un,
+        DxvkFormat::RGBX8srgb,
+        VK_IMAGE_ASPECT_COLOR_BIT };
 
       case D3D9Format::G16R16: return {
-        VK_FORMAT_R16G16_UNORM,
-        VK_FORMAT_UNDEFINED,
-        VK_IMAGE_ASPECT_COLOR_BIT,
-        { VK_COMPONENT_SWIZZLE_R,   VK_COMPONENT_SWIZZLE_G,
-          VK_COMPONENT_SWIZZLE_ONE, VK_COMPONENT_SWIZZLE_ONE }};
+        DxvkFormat::RG16un, // TODO: one swizzles?
+        DxvkFormat::Unknown,
+        VK_IMAGE_ASPECT_COLOR_BIT };
 
       case D3D9Format::A2R10G10B10: return {
-        VK_FORMAT_A2R10G10B10_UNORM_PACK32,
-        VK_FORMAT_UNDEFINED,
+        DxvkFormat::BGR10A2un,
+        DxvkFormat::Unknown,
         VK_IMAGE_ASPECT_COLOR_BIT };
 
       case D3D9Format::A16B16G16R16: return {
-        VK_FORMAT_R16G16B16A16_UNORM,
-        VK_FORMAT_UNDEFINED,
+        DxvkFormat::RGBA16un,
+        DxvkFormat::Unknown,
         VK_IMAGE_ASPECT_COLOR_BIT };
 
       case D3D9Format::A8P8: return {}; // Unsupported
@@ -98,243 +88,213 @@ namespace dxvk {
       case D3D9Format::P8: return {}; // Unsupported
 
       case D3D9Format::L8: return {
-        VK_FORMAT_R8_UNORM,
-        VK_FORMAT_R8_SRGB,
-        VK_IMAGE_ASPECT_COLOR_BIT,
-        { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_R,
-          VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_ONE }};
+        DxvkFormat::R8un, // TODO swizzle
+        DxvkFormat::R8srgb,
+        VK_IMAGE_ASPECT_COLOR_BIT };
 
       case D3D9Format::A8L8: return {
-        VK_FORMAT_R8G8_UNORM,
-        VK_FORMAT_UNDEFINED,
-        VK_IMAGE_ASPECT_COLOR_BIT,
-        { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_R,
-          VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G }};
+        DxvkFormat::RG8un, // TODO swizzle
+        DxvkFormat::Unknown,
+        VK_IMAGE_ASPECT_COLOR_BIT };
 
       case D3D9Format::A4L4: return {
-        VK_FORMAT_R4G4_UNORM_PACK8,
-        VK_FORMAT_UNDEFINED,
-        VK_IMAGE_ASPECT_COLOR_BIT,
-        { VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_G,
-          VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_R }};
+        DxvkFormat::RG4un, // TODO swizzles
+        DxvkFormat::Unknown,
+        VK_IMAGE_ASPECT_COLOR_BIT };
 
       case D3D9Format::V8U8: return {
-        VK_FORMAT_R8G8_SNORM,
-        VK_FORMAT_UNDEFINED,
-        VK_IMAGE_ASPECT_COLOR_BIT,
-        { VK_COMPONENT_SWIZZLE_R,   VK_COMPONENT_SWIZZLE_G,
-          VK_COMPONENT_SWIZZLE_ONE, VK_COMPONENT_SWIZZLE_ONE }};
+        DxvkFormat::RG8sn, // TODO swizzles
+        DxvkFormat::Unknown,
+        VK_IMAGE_ASPECT_COLOR_BIT };
 
       case D3D9Format::L6V5U5: return {
         // Any PACK16 format will do...
-        VK_FORMAT_B5G6R5_UNORM_PACK16,
-        VK_FORMAT_UNDEFINED,
+        DxvkFormat::B5G6R5un, // TODO swizzle
+        DxvkFormat::Unknown,
         VK_IMAGE_ASPECT_COLOR_BIT,
-        { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G,
-          VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A },
         { D3D9ConversionFormat_L6V5U5, 1u,
         // Convert -> float (this is a mixed snorm and unorm type)
-          VK_FORMAT_R16G16B16A16_SFLOAT } };
+          DxvkFormat::RGBA16sf } };
 
       case D3D9Format::X8L8V8U8: return {
-        VK_FORMAT_B8G8R8A8_UNORM,
-        VK_FORMAT_UNDEFINED,
+        DxvkFormat::BGRA8un, // TODO swizzles
+        DxvkFormat::Unknown,
         VK_IMAGE_ASPECT_COLOR_BIT,
-        { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G,
-          VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_ONE },
         { D3D9ConversionFormat_X8L8V8U8, 1u,
         // Convert -> float (this is a mixed snorm and unorm type)
-          VK_FORMAT_R16G16B16A16_SFLOAT } };
+          DxvkFormat::RGBA16sf } };
 
       case D3D9Format::Q8W8V8U8: return {
-        VK_FORMAT_R8G8B8A8_SNORM,
-        VK_FORMAT_UNDEFINED,
+        DxvkFormat::RGBA8sn,
+        DxvkFormat::Unknown,
         VK_IMAGE_ASPECT_COLOR_BIT };
 
       case D3D9Format::V16U16: return {
-        VK_FORMAT_R16G16_SNORM,
-        VK_FORMAT_UNDEFINED,
-        VK_IMAGE_ASPECT_COLOR_BIT,
-        { VK_COMPONENT_SWIZZLE_R,   VK_COMPONENT_SWIZZLE_G,
-          VK_COMPONENT_SWIZZLE_ONE, VK_COMPONENT_SWIZZLE_ONE }};
+        DxvkFormat::RG16sn, // TODO swizzle
+        DxvkFormat::Unknown,
+        VK_IMAGE_ASPECT_COLOR_BIT };
 
       case D3D9Format::A2W10V10U10: return {
-        VK_FORMAT_A2B10G10R10_UNORM_PACK32,
-        VK_FORMAT_UNDEFINED,
+        DxvkFormat::RGB10A2un, // TODO: check swizzles
+        DxvkFormat::Unknown,
         VK_IMAGE_ASPECT_COLOR_BIT,
-        { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G,
-          VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A },
         { D3D9ConversionFormat_A2W10V10U10, 1u,
         // Convert -> float (this is a mixed snorm and unorm type)
-          VK_FORMAT_R16G16B16A16_SFLOAT } };
+          DxvkFormat::RGBA16sf } };
 
       case D3D9Format::UYVY: return {
-        VK_FORMAT_B8G8R8A8_UNORM,
-        VK_FORMAT_UNDEFINED,
+        DxvkFormat::BGRA8un,
+        DxvkFormat::Unknown,
         VK_IMAGE_ASPECT_COLOR_BIT,
-        { VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
-          VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY },
         { D3D9ConversionFormat_UYVY, 1u }
       };
 
       case D3D9Format::R8G8_B8G8: return {
-        VK_FORMAT_G8B8G8R8_422_UNORM, // This format may have been _SCALED in DX9.
-        VK_FORMAT_UNDEFINED,
+        DxvkFormat::RGBG8un_422, // This format may have been _SCALED in DX9.
+        DxvkFormat::Unknown,
         VK_IMAGE_ASPECT_COLOR_BIT };
 
       case D3D9Format::YUY2: return {
-        VK_FORMAT_B8G8R8A8_UNORM,
-        VK_FORMAT_UNDEFINED,
+        DxvkFormat::BGRA8un,
+        DxvkFormat::Unknown,
         VK_IMAGE_ASPECT_COLOR_BIT,
-        { VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
-          VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY },
         { D3D9ConversionFormat_YUY2, 1u }
       };
 
       case D3D9Format::G8R8_G8B8: return {
-        VK_FORMAT_B8G8R8G8_422_UNORM, // This format may have been _SCALED in DX9.
-        VK_FORMAT_UNDEFINED,
+        DxvkFormat::GRGB8un_422, // This format may have been _SCALED in DX9.
+        DxvkFormat::Unknown,
         VK_IMAGE_ASPECT_COLOR_BIT };
 
       case D3D9Format::DXT1: return {
-        VK_FORMAT_BC1_RGBA_UNORM_BLOCK,
-        VK_FORMAT_BC1_RGBA_SRGB_BLOCK,
+        DxvkFormat::BC1un,
+        DxvkFormat::BC1srgb,
         VK_IMAGE_ASPECT_COLOR_BIT };
 
       case D3D9Format::DXT2: return {
-        VK_FORMAT_BC2_UNORM_BLOCK,
-        VK_FORMAT_BC2_SRGB_BLOCK,
+        DxvkFormat::BC2un,
+        DxvkFormat::BC2srgb,
         VK_IMAGE_ASPECT_COLOR_BIT };
 
       case D3D9Format::DXT3: return {
-        VK_FORMAT_BC2_UNORM_BLOCK,
-        VK_FORMAT_BC2_SRGB_BLOCK,
+        DxvkFormat::BC2un,
+        DxvkFormat::BC2srgb,
         VK_IMAGE_ASPECT_COLOR_BIT };
 
       case D3D9Format::DXT4: return {
-        VK_FORMAT_BC3_UNORM_BLOCK,
-        VK_FORMAT_BC3_SRGB_BLOCK,
+        DxvkFormat::BC3un,
+        DxvkFormat::BC3srgb,
         VK_IMAGE_ASPECT_COLOR_BIT };
 
       case D3D9Format::DXT5: return {
-        VK_FORMAT_BC3_UNORM_BLOCK,
-        VK_FORMAT_BC3_SRGB_BLOCK,
+        DxvkFormat::BC3un,
+        DxvkFormat::BC3srgb,
         VK_IMAGE_ASPECT_COLOR_BIT };
 
       case D3D9Format::D16_LOCKABLE: return {
-        VK_FORMAT_D16_UNORM,
-        VK_FORMAT_UNDEFINED,
+        DxvkFormat::D16,
+        DxvkFormat::Unknown,
         VK_IMAGE_ASPECT_DEPTH_BIT };
 
       case D3D9Format::D32: return {
-        VK_FORMAT_D32_SFLOAT,
-        VK_FORMAT_UNDEFINED,
+        DxvkFormat::D32,
+        DxvkFormat::Unknown,
         VK_IMAGE_ASPECT_DEPTH_BIT };
 
       case D3D9Format::D15S1: return {}; // Unsupported (everywhere)
 
       case D3D9Format::D24S8: return {
-        VK_FORMAT_D24_UNORM_S8_UINT,
-        VK_FORMAT_UNDEFINED,
+        DxvkFormat::D24S8,
+        DxvkFormat::Unknown,
         VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT };
 
       case D3D9Format::D24X8: return {
-        VK_FORMAT_D24_UNORM_S8_UINT,
-        VK_FORMAT_UNDEFINED,
+        DxvkFormat::D24S8,
+        DxvkFormat::Unknown,
         VK_IMAGE_ASPECT_DEPTH_BIT };
 
       case D3D9Format::D24X4S4: return {}; // Unsupported (everywhere)
 
       case D3D9Format::D16: return {
-        VK_FORMAT_D16_UNORM,
-        VK_FORMAT_UNDEFINED,
+        DxvkFormat::D16,
+        DxvkFormat::Unknown,
         VK_IMAGE_ASPECT_DEPTH_BIT };
 
       case D3D9Format::D32F_LOCKABLE: return {
-        VK_FORMAT_D32_SFLOAT,
-        VK_FORMAT_UNDEFINED,
+        DxvkFormat::D32,
+        DxvkFormat::Unknown,
         VK_IMAGE_ASPECT_DEPTH_BIT };
 
       case D3D9Format::D24FS8: return {
-        VK_FORMAT_D24_UNORM_S8_UINT,
-        VK_FORMAT_UNDEFINED,
+        DxvkFormat::D24S8,
+        DxvkFormat::Unknown,
         VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT };
 
       case D3D9Format::D32_LOCKABLE: return {
-        VK_FORMAT_D32_SFLOAT,
-        VK_FORMAT_UNDEFINED,
+        DxvkFormat::D32,
+        DxvkFormat::Unknown,
         VK_IMAGE_ASPECT_DEPTH_BIT };
 
       case D3D9Format::S8_LOCKABLE: return {
-        VK_FORMAT_S8_UINT,
-        VK_FORMAT_UNDEFINED,
+        DxvkFormat::S8,
+        DxvkFormat::Unknown,
         VK_IMAGE_ASPECT_STENCIL_BIT };
 
       case D3D9Format::L16: return {
-        VK_FORMAT_R16_UNORM,
-        VK_FORMAT_UNDEFINED,
-        VK_IMAGE_ASPECT_COLOR_BIT,
-        { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_R,
-          VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_ONE }};
+        DxvkFormat::R16un, // TODO: swizzles
+        DxvkFormat::Unknown,
+        VK_IMAGE_ASPECT_COLOR_BIT };
 
       case D3D9Format::VERTEXDATA: return {
-        VK_FORMAT_R8_UINT,
-        VK_FORMAT_UNDEFINED,
+        DxvkFormat::R8ui,
+        DxvkFormat::Unknown,
         0 };
 
       case D3D9Format::INDEX16: return {
-        VK_FORMAT_R16_UINT,
-        VK_FORMAT_UNDEFINED,
+        DxvkFormat::R16ui,
+        DxvkFormat::Unknown,
         0 };
 
       case D3D9Format::INDEX32: return {
-        VK_FORMAT_R32_UINT,
-        VK_FORMAT_UNDEFINED,
+        DxvkFormat::R32ui,
+        DxvkFormat::Unknown,
         0 };
 
       case D3D9Format::Q16W16V16U16: return {
-        VK_FORMAT_R16G16B16A16_SNORM,
-        VK_FORMAT_UNDEFINED,
+        DxvkFormat::RGBA16sn,
+        DxvkFormat::Unknown,
         VK_IMAGE_ASPECT_COLOR_BIT };
 
       case D3D9Format::MULTI2_ARGB8: return {}; // Unsupported
 
       case D3D9Format::R16F: return {
-        VK_FORMAT_R16_SFLOAT,
-        VK_FORMAT_UNDEFINED,
-        VK_IMAGE_ASPECT_COLOR_BIT,
-        { VK_COMPONENT_SWIZZLE_R,   VK_COMPONENT_SWIZZLE_ONE,
-          VK_COMPONENT_SWIZZLE_ONE, VK_COMPONENT_SWIZZLE_ONE }};
+        DxvkFormat::R16sf, // TODO: one swizzle?
+        DxvkFormat::Unknown,
+        VK_IMAGE_ASPECT_COLOR_BIT };
 
       case D3D9Format::G16R16F: return {
-        VK_FORMAT_R16G16_SFLOAT,
-        VK_FORMAT_UNDEFINED,
-        VK_IMAGE_ASPECT_COLOR_BIT,
-        { VK_COMPONENT_SWIZZLE_R,   VK_COMPONENT_SWIZZLE_G,
-          VK_COMPONENT_SWIZZLE_ONE, VK_COMPONENT_SWIZZLE_ONE }};
+        DxvkFormat::RG16sf, // TODO: check if swizzles are ok (ONE for missing components)
+        DxvkFormat::Unknown,
+        VK_IMAGE_ASPECT_COLOR_BIT };
 
       case D3D9Format::A16B16G16R16F: return {
-        VK_FORMAT_R16G16B16A16_SFLOAT,
-        VK_FORMAT_UNDEFINED,
+        DxvkFormat::RGBA16sf,
+        DxvkFormat::Unknown,
         VK_IMAGE_ASPECT_COLOR_BIT };
 
       case D3D9Format::R32F: return {
-        VK_FORMAT_R32_SFLOAT,
-        VK_FORMAT_UNDEFINED,
-        VK_IMAGE_ASPECT_COLOR_BIT,
-        { VK_COMPONENT_SWIZZLE_R,   VK_COMPONENT_SWIZZLE_ONE,
-          VK_COMPONENT_SWIZZLE_ONE, VK_COMPONENT_SWIZZLE_ONE }};
+        DxvkFormat::R32sf,
+        DxvkFormat::Unknown,
+        VK_IMAGE_ASPECT_COLOR_BIT };
 
       case D3D9Format::G32R32F: return {
-        VK_FORMAT_R32G32_SFLOAT,
-        VK_FORMAT_UNDEFINED,
-        VK_IMAGE_ASPECT_COLOR_BIT,
-        { VK_COMPONENT_SWIZZLE_R,   VK_COMPONENT_SWIZZLE_G,
-          VK_COMPONENT_SWIZZLE_ONE, VK_COMPONENT_SWIZZLE_ONE }};
+        DxvkFormat::RG32sf,
+        DxvkFormat::Unknown,
+        VK_IMAGE_ASPECT_COLOR_BIT };
 
       case D3D9Format::A32B32G32R32F: return {
-        VK_FORMAT_R32G32B32A32_SFLOAT,
-        VK_FORMAT_UNDEFINED,
+        DxvkFormat::RGBA32sf,
+        DxvkFormat::Unknown,
         VK_IMAGE_ASPECT_COLOR_BIT };
 
       case D3D9Format::CxV8U8: return {}; // Unsupported
@@ -342,44 +302,36 @@ namespace dxvk {
       case D3D9Format::A1: return {}; // Unsupported
 
       case D3D9Format::A2B10G10R10_XR_BIAS: return {
-        VK_FORMAT_A2B10G10R10_SNORM_PACK32,
-        VK_FORMAT_UNDEFINED,
+        DxvkFormat::RGB10A2un,
+        DxvkFormat::Unknown,
         VK_IMAGE_ASPECT_COLOR_BIT };
 
       case D3D9Format::BINARYBUFFER: return {
-        VK_FORMAT_R8_UINT,
-        VK_FORMAT_UNDEFINED,
+        DxvkFormat::R8ui,
+        DxvkFormat::Unknown,
         0 };
 
       case D3D9Format::ATI1: return {
-        VK_FORMAT_BC4_UNORM_BLOCK,
-        VK_FORMAT_UNDEFINED,
-        VK_IMAGE_ASPECT_COLOR_BIT,
-        { VK_COMPONENT_SWIZZLE_R,    VK_COMPONENT_SWIZZLE_ZERO,
-          VK_COMPONENT_SWIZZLE_ZERO, VK_COMPONENT_SWIZZLE_ONE }};
+        DxvkFormat::BC4un, // TODO: swizzles?
+        DxvkFormat::Unknown,
+        VK_IMAGE_ASPECT_COLOR_BIT };
 
       case D3D9Format::ATI2: return {
-        VK_FORMAT_BC5_UNORM_BLOCK,
-        VK_FORMAT_UNDEFINED,
-        VK_IMAGE_ASPECT_COLOR_BIT,
-        { VK_COMPONENT_SWIZZLE_G,   VK_COMPONENT_SWIZZLE_R,
-          VK_COMPONENT_SWIZZLE_ONE, VK_COMPONENT_SWIZZLE_ONE }};
+        DxvkFormat::BC5un, // TODO: swizzles?
+        DxvkFormat::Unknown,
+        VK_IMAGE_ASPECT_COLOR_BIT };
 
       case D3D9Format::INST: return {}; // Driver hack, handled elsewhere
 
       case D3D9Format::DF24: return {
-        VK_FORMAT_D24_UNORM_S8_UINT,
-        VK_FORMAT_UNDEFINED,
-        VK_IMAGE_ASPECT_DEPTH_BIT,
-        { VK_COMPONENT_SWIZZLE_R,    VK_COMPONENT_SWIZZLE_ZERO,
-          VK_COMPONENT_SWIZZLE_ZERO, VK_COMPONENT_SWIZZLE_ONE }};
+        DxvkFormat::D24, // TODO: swizzles? // TODO: D24S8?
+        DxvkFormat::Unknown,
+        VK_IMAGE_ASPECT_DEPTH_BIT};
 
       case D3D9Format::DF16: return {
-        VK_FORMAT_D16_UNORM,
-        VK_FORMAT_UNDEFINED,
-        VK_IMAGE_ASPECT_DEPTH_BIT,
-        { VK_COMPONENT_SWIZZLE_R,    VK_COMPONENT_SWIZZLE_ZERO,
-          VK_COMPONENT_SWIZZLE_ZERO, VK_COMPONENT_SWIZZLE_ONE }};
+        DxvkFormat::D16, // TODO: swizzles?
+        DxvkFormat::Unknown,
+        VK_IMAGE_ASPECT_DEPTH_BIT };
 
       case D3D9Format::NULL_FORMAT: return {}; // Driver hack, handled elsewhere
 
@@ -396,28 +348,22 @@ namespace dxvk {
       case D3D9Format::ATOC: return {}; // Driver hack, handled elsewhere
 
       case D3D9Format::INTZ: return {
-        VK_FORMAT_D24_UNORM_S8_UINT,
-        VK_FORMAT_UNDEFINED,
-        VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT,
-        { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_R,
-          VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_R }};
+        DxvkFormat::D24S8, // TODO: swizzles?
+        DxvkFormat::Unknown,
+        VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT };
 
       case D3D9Format::NV12: return {
-        VK_FORMAT_R8_UNORM,
-        VK_FORMAT_UNDEFINED,
+        DxvkFormat::R8un,
+        DxvkFormat::Unknown,
         VK_IMAGE_ASPECT_COLOR_BIT,
-        { VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
-          VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY },
-        { D3D9ConversionFormat_NV12, 2u, VK_FORMAT_B8G8R8A8_UNORM }
+        { D3D9ConversionFormat_NV12, 2u, DxvkFormat::BGRA8un }
       };
 
       case D3D9Format::YV12: return {
-        VK_FORMAT_R8_UNORM,
-        VK_FORMAT_UNDEFINED,
+        DxvkFormat::R8un,
+        DxvkFormat::Unknown,
         VK_IMAGE_ASPECT_COLOR_BIT,
-        { VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
-          VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY },
-        { D3D9ConversionFormat_YV12, 3u, VK_FORMAT_B8G8R8A8_UNORM }
+        { D3D9ConversionFormat_YV12, 3u, DxvkFormat::BGRA8un }
       };
 
       case D3D9Format::RAWZ: return {}; // Unsupported
@@ -430,7 +376,8 @@ namespace dxvk {
 
   D3D9VkFormatTable::D3D9VkFormatTable(
     const Rc<DxvkAdapter>& adapter,
-    const D3D9Options&     options) {
+    const D3D9Options&     options)
+    : m_adapter(adapter) {
     m_dfSupport = options.supportDFFormats;
     m_x4r4g4b4Support = options.supportX4R4G4B4;
     m_d32supportFinal = options.supportD32;
@@ -469,9 +416,6 @@ namespace dxvk {
           D3D9Format          Format) const {
     D3D9_VK_FORMAT_MAPPING mapping = ConvertFormatUnfixed(Format);
 
-    if (Format == D3D9Format::X4R4G4B4 && !m_x4r4g4b4Support)
-      return D3D9_VK_FORMAT_MAPPING();
-
     if (Format == D3D9Format::DF16 && !m_dfSupport)
       return D3D9_VK_FORMAT_MAPPING();
 
@@ -480,40 +424,22 @@ namespace dxvk {
 
     if (Format == D3D9Format::D32 && !m_d32supportFinal)
       return D3D9_VK_FORMAT_MAPPING();
-    
-    if (!m_d24s8Support && mapping.FormatColor == VK_FORMAT_D24_UNORM_S8_UINT)
-      mapping.FormatColor = VK_FORMAT_D32_SFLOAT_S8_UINT;
-
-    if (!m_d16s8Support && mapping.FormatColor == VK_FORMAT_D16_UNORM_S8_UINT)
-      mapping.FormatColor = m_d24s8Support ? VK_FORMAT_D24_UNORM_S8_UINT : VK_FORMAT_D32_SFLOAT_S8_UINT;
-
-    if (!m_a4r4g4b4Support && mapping.FormatColor == VK_FORMAT_A4R4G4B4_UNORM_PACK16_EXT) {
-      VkComponentSwizzle alphaSwizzle = Format == D3D9Format::A4R4G4B4
-        ? VK_COMPONENT_SWIZZLE_B
-        : VK_COMPONENT_SWIZZLE_ONE;
-
-      mapping.FormatColor = VK_FORMAT_B4G4R4A4_UNORM_PACK16;
-      mapping.Swizzle     = {
-        VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_R,
-        VK_COMPONENT_SWIZZLE_A, alphaSwizzle };
-    }
 
     return mapping;
   }
 
-
-  const DxvkFormatInfo* D3D9VkFormatTable::GetUnsupportedFormatInfo(
+  const DxvkFormatProperties* D3D9VkFormatTable::GetUnsupportedFormatInfo(
     D3D9Format            Format) const {
-    static const DxvkFormatInfo r8b8g8      = { 3, VK_IMAGE_ASPECT_COLOR_BIT };
-    static const DxvkFormatInfo r3g3b2      = { 1, VK_IMAGE_ASPECT_COLOR_BIT };
-    static const DxvkFormatInfo a8r3g3b2    = { 2, VK_IMAGE_ASPECT_COLOR_BIT };
-    static const DxvkFormatInfo a8p8        = { 2, VK_IMAGE_ASPECT_COLOR_BIT };
-    static const DxvkFormatInfo p8          = { 1, VK_IMAGE_ASPECT_COLOR_BIT };
-    static const DxvkFormatInfo l6v5u5      = { 2, VK_IMAGE_ASPECT_COLOR_BIT };
-    static const DxvkFormatInfo x8l8v8u8    = { 4, VK_IMAGE_ASPECT_COLOR_BIT };
-    static const DxvkFormatInfo a2w10v10u10 = { 4, VK_IMAGE_ASPECT_COLOR_BIT };
-    static const DxvkFormatInfo cxv8u8      = { 2, VK_IMAGE_ASPECT_COLOR_BIT };
-    static const DxvkFormatInfo unknown     = {};
+    static const DxvkFormatProperties r8b8g8      = { DxvkFormat::Unknown, DxvkFormatType::None, VK_FORMAT_UNDEFINED, VK_IMAGE_ASPECT_COLOR_BIT, 3 };
+    static const DxvkFormatProperties r3g3b2      = { DxvkFormat::Unknown, DxvkFormatType::None, VK_FORMAT_UNDEFINED, VK_IMAGE_ASPECT_COLOR_BIT, 1 };
+    static const DxvkFormatProperties a8r3g3b2    = { DxvkFormat::Unknown, DxvkFormatType::None, VK_FORMAT_UNDEFINED, VK_IMAGE_ASPECT_COLOR_BIT, 2 };
+    static const DxvkFormatProperties a8p8        = { DxvkFormat::Unknown, DxvkFormatType::None, VK_FORMAT_UNDEFINED, VK_IMAGE_ASPECT_COLOR_BIT, 2 };
+    static const DxvkFormatProperties p8          = { DxvkFormat::Unknown, DxvkFormatType::None, VK_FORMAT_UNDEFINED, VK_IMAGE_ASPECT_COLOR_BIT, 1 };
+    static const DxvkFormatProperties l6v5u5      = { DxvkFormat::Unknown, DxvkFormatType::None, VK_FORMAT_UNDEFINED, VK_IMAGE_ASPECT_COLOR_BIT, 2 };
+    static const DxvkFormatProperties x8l8v8u8    = { DxvkFormat::Unknown, DxvkFormatType::None, VK_FORMAT_UNDEFINED, VK_IMAGE_ASPECT_COLOR_BIT, 4 };
+    static const DxvkFormatProperties a2w10v10u10 = { DxvkFormat::Unknown, DxvkFormatType::None, VK_FORMAT_UNDEFINED, VK_IMAGE_ASPECT_COLOR_BIT, 4 };
+    static const DxvkFormatProperties cxv8u8      = { DxvkFormat::Unknown, DxvkFormatType::None, VK_FORMAT_UNDEFINED, VK_IMAGE_ASPECT_COLOR_BIT, 2 };
+    static const DxvkFormatProperties unknown     = {};
 
     switch (Format) {
       case D3D9Format::R8G8B8:

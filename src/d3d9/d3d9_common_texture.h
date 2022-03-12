@@ -284,7 +284,7 @@ namespace dxvk {
      * \returns Whether the format is sRGB compatible.
      */
     bool IsSrgbCompatible() const {
-      return m_mapping.FormatSrgb;
+      return m_mapping.FormatSrgb != DxvkFormat::Unknown;
     }
 
     /**
@@ -461,6 +461,10 @@ namespace dxvk {
         : 0ull;
     }
 
+    bool HasAlphaOneSwizzle() const {
+      return m_alphaSwizzleOne;
+    }
+
   private:
 
     D3D9DeviceEx*                 m_device;
@@ -478,6 +482,7 @@ namespace dxvk {
       uint64_t>                   m_seqs = { };
 
     D3D9_VK_FORMAT_MAPPING        m_mapping;
+    bool                          m_alphaSwizzleOne = false;
 
     bool                          m_shadow; //< Depth Compare-ness
     bool                          m_supportsFetch4;
