@@ -36,11 +36,12 @@ namespace dxvk {
 
     m_mapping = pDevice->LookupFormat(m_desc.Format);
 
-    m_mapMode        = DetermineMapMode();
+    m_mapMode        = DetermineMapMode(m_desc.Pool == D3DPOOL_SYSTEMMEM && pSharedHandle);
     m_shadow         = DetermineShadowState();
     m_supportsFetch4 = DetermineFetch4Compatibility();
 
-    if (m_mapMode == D3D9_COMMON_TEXTURE_MAP_MODE_BACKED) {
+    const bool createImage = m_desc.Pool != D3DPOOL_SYSTEMMEM && m_desc.Pool != D3DPOOL_SCRATCH && m_desc.Format != D3D9Format::NULL_FORMAT;
+    if (createImage) {
       bool plainSurface = m_type == D3DRTYPE_SURFACE &&
                           !(m_desc.Usage & (D3DUSAGE_RENDERTARGET | D3DUSAGE_DEPTHSTENCIL));
 
@@ -165,10 +166,34 @@ namespace dxvk {
     return D3D_OK;
   }
 
+  bool D3D9CommonTexture::AllocLockingData(UINT Subresource) {
+    if (m_mapMode != D3D9_COMMON_TEXTURE_MAP_MODE_UNMAPPABLE) {
+      return CreateBufferSubresource(Subresource);
+    }
+
+    D3D9Memory& memory = m_lockingData[Subresource];
+    if (likely(memory))
+      return false;
+
+    memory = m_device->GetAllocator()->Alloc(GetMipSize(Subresource));
+    memory.Map();
+    return true;
+  }
+
+  void* D3D9CommonTexture::GetLockingData(UINT Subresource) {
+    if (unlikely(m_mappedSlices[Subresource].mapPtr != nullptr || m_mapMode != D3D9_COMMON_TEXTURE_MAP_MODE_UNMAPPABLE))
+      return m_mappedSlices[Subresource].mapPtr;
+
+    D3D9Memory& memory = m_lockingData[Subresource];
+    memory.Map();
+    return memory.Ptr();
+  }
 
   bool D3D9CommonTexture::CreateBufferSubresource(UINT Subresource) {
-    if (m_buffers[Subresource] != nullptr)
+    if (likely(m_buffers[Subresource] != nullptr))
       return false;
+
+    m_lockingData[Subresource] = D3D9Memory();
 
     DxvkBufferCreateInfo info;
     info.size   = GetMipSize(Subresource);
@@ -477,6 +502,20 @@ namespace dxvk {
     return VK_IMAGE_LAYOUT_GENERAL;
   }
 
+  D3D9_COMMON_TEXTURE_MAP_MODE D3D9CommonTexture::DetermineMapMode(bool hasInitialData) const {
+    if (m_desc.Format == D3D9Format::NULL_FORMAT)
+    return D3D9_COMMON_TEXTURE_MAP_MODE_NONE;
+
+#ifdef D3D9_ALLOW_UNMAPPING
+    if (m_desc.Pool != D3DPOOL_DEFAULT && !hasInitialData)
+        return D3D9_COMMON_TEXTURE_MAP_MODE_UNMAPPABLE;
+#endif
+
+    if (m_desc.Pool == D3DPOOL_SYSTEMMEM || m_desc.Pool == D3DPOOL_SCRATCH)
+    return D3D9_COMMON_TEXTURE_MAP_MODE_SYSTEMMEM;
+
+    return D3D9_COMMON_TEXTURE_MAP_MODE_BACKED;
+  }
 
   void D3D9CommonTexture::ExportImageInfo() {
     /* From MSDN:

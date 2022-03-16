@@ -336,6 +336,7 @@ namespace dxvk {
     if (unlikely(dstTexInfo->Desc()->Pool != D3DPOOL_SYSTEMMEM))
       return D3DERR_INVALIDCALL;
 
+    dstTexInfo->CreateBufferSubresource(dst->GetSubresource());
     Rc<DxvkBuffer> dstBuffer = dstTexInfo->GetBuffer(dst->GetSubresource());
     Rc<DxvkImage>  srcImage  = srcTexInfo->GetImage();
 
