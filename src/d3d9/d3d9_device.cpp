@@ -890,21 +890,27 @@ namespace dxvk {
     uint32_t pitchBlocks = uint32_t(pitch / srcFormatInfo->elementSize);
     VkExtent2D dstExtent = VkExtent2D{ pitchBlocks,
                                        texLevelExtentBlockCount.height * pitchBlocks };
+    srcTexInfo->NotifyGetRTData();
+    if (srcTexInfo->DoesEarlyCopy() && srcTexInfo->GetBuffer(src->GetSubresource()) != nullptr) {
+      const Rc<DxvkBuffer>& srcBuffer = srcTexInfo->GetBuffer(src->GetSubresource());
+      WaitForResource(srcBuffer, srcTexInfo->GetMappingBufferSequenceNumber(src->GetSubresource()), 0);
+      std::memcpy(dstBuffer->mapPtr(0), srcBuffer->mapPtr(0), std::min(dstBuffer->info().size, srcBuffer->info().size));
+    } else {
+      EmitCs([
+        cBuffer       = dstBuffer,
+        cImage        = srcImage,
+        cSubresources = srcSubresourceLayers,
+        cLevelExtent  = srcExtent,
+        cDstExtent    = dstExtent
+      ] (DxvkContext* ctx) {
+        ctx->copyImageToBuffer(cBuffer, 0, 4, 0,
+          cImage, cSubresources, VkOffset3D { 0, 0, 0 },
+          cLevelExtent);
+      });
 
-    EmitCs([
-      cBuffer       = dstBuffer,
-      cImage        = srcImage,
-      cSubresources = srcSubresourceLayers,
-      cLevelExtent  = srcExtent,
-      cDstExtent    = dstExtent
-    ] (DxvkContext* ctx) {
-      ctx->copyImageToBuffer(cBuffer, 0, 4, 0,
-        cImage, cSubresources, VkOffset3D { 0, 0, 0 },
-        cLevelExtent);
-    });
-
-    dstTexInfo->SetNeedsReadback(dst->GetSubresource(), true);
-    TrackTextureMappingBufferSequenceNumber(dstTexInfo, dst->GetSubresource());
+      dstTexInfo->SetNeedsReadback(dst->GetSubresource(), true);
+      TrackTextureMappingBufferSequenceNumber(dstTexInfo, dst->GetSubresource());
+    }
 
     return D3D_OK;
   }
@@ -1268,6 +1274,39 @@ namespace dxvk {
 
     if (m_state.renderTargets[RenderTargetIndex] == rt)
       return D3D_OK;
+
+    const auto& oldRt = m_state.renderTargets[RenderTargetIndex];
+    if (likely(oldRt != nullptr)) {
+      D3D9CommonTexture* oldRTTexInfo = oldRt->GetCommonTexture();
+      oldRTTexInfo->NotifyUnbind();
+      const Rc<DxvkImage>& image = oldRTTexInfo->GetImage();
+      if (unlikely(oldRTTexInfo->DoesEarlyCopy())) {
+        if (unlikely(oldRTTexInfo->GetBuffer(oldRt->GetSubresource()) == nullptr))
+          oldRTTexInfo->CreateBufferSubresource(oldRt->GetSubresource());
+
+        const Rc<DxvkBuffer>& buffer = oldRTTexInfo->GetBuffer(oldRt->GetSubresource());
+
+        uint32_t subresourceIndex = oldRt->GetSubresource();
+
+        auto formatInfo = oldRTTexInfo->GetImage()->formatInfo();
+        auto subresource = oldRTTexInfo->GetSubresourceFromIndex(
+          formatInfo->aspectMask, subresourceIndex);
+        auto subresourceLayers = vk::makeSubresourceLayers(subresource);
+
+        VkExtent3D levelExtent = oldRTTexInfo->GetExtentMip(subresourceIndex);
+
+        EmitCs([
+          cImage = image,
+          cDstBuffer = buffer,
+          cLevelExtent = levelExtent,
+          cSubresourceLayers = subresourceLayers
+        ] (DxvkContext* ctx) {
+          ctx->copyImageToBuffer(cDstBuffer, 0, 4, 0, cImage, cSubresourceLayers, { 0, 0 }, cLevelExtent);
+        });
+
+        TrackTextureMappingBufferSequenceNumber(oldRTTexInfo, subresourceIndex);
+      }
+    }
 
     // Do a strong flush if the first render target is changed.
     FlushImplicit(RenderTargetIndex == 0 ? TRUE : FALSE);
@@ -4391,6 +4430,7 @@ namespace dxvk {
     bool shouldToss  = pResource->GetMapMode() == D3D9_COMMON_TEXTURE_MAP_MODE_BACKED;
          shouldToss &= !pResource->IsDynamic();
          shouldToss &= !pResource->IsManaged() || m_d3d9Options.evictManagedOnUnlock;
+         shouldToss &= !(pResource->Desc()->Usage & D3DUSAGE_RENDERTARGET) && pResource->DoesEarlyCopy();
 
     if (shouldToss) {
       pResource->DestroyBufferSubresource(Subresource);

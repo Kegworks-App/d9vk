@@ -461,6 +461,18 @@ namespace dxvk {
         : 0ull;
     }
 
+    void NotifyGetRTData() {
+      m_getRtDataMask |= 1;
+    }
+
+    void NotifyUnbind() {
+      m_getRtDataMask <<= 1;
+    }
+
+    bool DoesEarlyCopy() {
+      return bit::popcnt(m_getRtDataMask) >= 4 && m_image->info().sampleCount == VK_SAMPLE_COUNT_1_BIT;
+    }
+
   private:
 
     D3D9DeviceEx*                 m_device;
@@ -499,6 +511,8 @@ namespace dxvk {
     D3D9SubresourceBitset         m_needsUpload = { };
 
     D3D9SubresourceBitset         m_uploadUsingStaging = { };
+
+    uint32_t                      m_getRtDataMask = 0;
 
     DWORD                         m_exposedMipLevels = 0;
 
