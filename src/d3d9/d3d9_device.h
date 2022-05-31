@@ -1296,6 +1296,7 @@ namespace dxvk {
 
 #ifdef D3D9_ALLOW_UNMAPPING
     std::unordered_set<D3D9CommonTexture*> m_mappedTextures;
+    std::unordered_set<D3D9CommonBuffer*> m_mappedBuffers;
 #endif
 
   };
