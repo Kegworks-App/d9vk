@@ -5,6 +5,7 @@
 
 #include "d3d9_device_child.h"
 #include "d3d9_format.h"
+#include "d3d9_mem.h"
 
 namespace dxvk {
 
@@ -13,7 +14,8 @@ namespace dxvk {
    */
   enum D3D9_COMMON_BUFFER_MAP_MODE {
     D3D9_COMMON_BUFFER_MAP_MODE_BUFFER,
-    D3D9_COMMON_BUFFER_MAP_MODE_DIRECT
+    D3D9_COMMON_BUFFER_MAP_MODE_DIRECT,
+    D3D9_COMMON_BUFFER_MAP_MODE_UNMAPPABLE,
   };
 
   /**
@@ -89,11 +91,7 @@ namespace dxvk {
     /**
     * \brief Determine the mapping mode of the buffer, (ie. direct mapping or backed)
     */
-    inline D3D9_COMMON_BUFFER_MAP_MODE DetermineMapMode(const D3D9Options* options) const {
-      return (m_desc.Pool == D3DPOOL_DEFAULT && (m_desc.Usage & (D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY)) && options->allowDirectBufferMapping)
-        ? D3D9_COMMON_BUFFER_MAP_MODE_DIRECT
-        : D3D9_COMMON_BUFFER_MAP_MODE_BUFFER;
-    }
+    D3D9_COMMON_BUFFER_MAP_MODE DetermineMapMode(const D3D9Options* options) const;
 
     /**
     * \brief Get the mapping mode of the buffer, (ie. direct mapping or backed)
@@ -192,7 +190,7 @@ namespace dxvk {
      */
     inline bool NeedsUpload() { return m_desc.Pool != D3DPOOL_DEFAULT && !m_dirtyRange.IsDegenerate(); }
 
-    inline bool DoesStagingBufferUploads() const { return m_uploadUsingStaging; }
+    inline bool DoesStagingBufferUploads() const { return m_mapMode == D3D9_COMMON_BUFFER_MAP_MODE_UNMAPPABLE || m_uploadUsingStaging; }
 
     inline void EnableStagingBufferUploads() {
       if (GetMapMode() != D3D9_COMMON_BUFFER_MAP_MODE_BUFFER)
@@ -230,6 +228,10 @@ namespace dxvk {
         : DxvkCsThread::SynchronizeAll;
     }
 
+    bool AllocLockingData();
+
+    void* GetLockingData();
+
   private:
 
     Rc<DxvkBuffer> CreateBuffer() const;
@@ -256,7 +258,7 @@ namespace dxvk {
     Rc<DxvkBuffer>              m_buffer;
     Rc<DxvkBuffer>              m_stagingBuffer;
 
-    DxvkBufferSliceHandle       m_sliceHandle;
+    DxvkBufferSliceHandle       m_sliceHandle = { };
 
     D3D9Range                   m_dirtyRange;
     D3D9Range                   m_gpuReadingRange;
@@ -264,6 +266,8 @@ namespace dxvk {
     uint32_t                    m_lockCount = 0;
 
     uint64_t                    m_seq = 0ull;
+
+    D3D9Memory                  m_lockingData = { };
 
   };
 
