@@ -1281,7 +1281,6 @@ namespace dxvk {
     std::atomic<int32_t>            m_samplerCount    = { 0 };
 
     Direct3DState9                  m_state;
-
   };
 
 }
