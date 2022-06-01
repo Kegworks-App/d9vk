@@ -80,6 +80,8 @@ namespace dxvk {
             D3D9DeviceEx*      pDevice,
       const D3D9_BUFFER_DESC*  pDesc);
 
+    ~D3D9CommonBuffer();
+
     HRESULT Lock(
             UINT   OffsetToLock,
             UINT   SizeToLock,
@@ -232,6 +234,18 @@ namespace dxvk {
 
     void* GetLockingData();
 
+    void SetMappingFrame(uint64_t Frame) {
+      m_mappingFrame = Frame;
+    }
+
+    uint64_t GetMappingFrame() const {
+      return m_mappingFrame;
+    }
+
+    void UnmapLockingData() {
+      m_lockingData.Unmap();
+    }
+
   private:
 
     Rc<DxvkBuffer> CreateBuffer() const;
@@ -268,6 +282,7 @@ namespace dxvk {
     uint64_t                    m_seq = 0ull;
 
     D3D9Memory                  m_lockingData = { };
+    uint64_t                    m_mappingFrame = 0;
 
   };
 
