@@ -21,12 +21,16 @@ namespace dxvk {
       m_dirtyRange = D3D9Range(0, m_desc.Size);
   }
 
+  D3D9CommonBuffer::~D3D9CommonBuffer() {
+    m_parent->RemoveMappedBuffer(this);
+  }
+
   D3D9_COMMON_BUFFER_MAP_MODE D3D9CommonBuffer::DetermineMapMode(const D3D9Options *options) const {
     if (m_desc.Pool == D3DPOOL_DEFAULT && (m_desc.Usage & (D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY)) && options->allowDirectBufferMapping)
       return D3D9_COMMON_BUFFER_MAP_MODE_DIRECT;
 
 #ifdef D3D9_ALLOW_UNMAPPING
-    if (!(m_desc.Usage & D3DUSAGE_DYNAMIC))
+    if (m_parent->GetOptions()->bufferUnmapDelay != 0 && !(m_desc.Usage & D3DUSAGE_DYNAMIC))
         return D3D9_COMMON_BUFFER_MAP_MODE_UNMAPPABLE;
 #endif
 

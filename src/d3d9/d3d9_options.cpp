@@ -73,6 +73,7 @@ namespace dxvk {
     this->deviceLocalConstantBuffers    = config.getOption<bool>        ("d3d9.deviceLocalConstantBuffers",    false);
     this->allowDirectBufferMapping      = config.getOption<bool>        ("d3d9.allowDirectBufferMapping",      true);
     this->textureUnmapDelay             = config.getOption<int32_t>     ("d3d9.textureUnmapDelay",             16);
+    this->bufferUnmapDelay              = config.getOption<int32_t>     ("d3d9.bufferUnmapDelay",              256);
 
     // If we are not Nvidia, enable general hazards.
     this->generalHazards = adapter != nullptr

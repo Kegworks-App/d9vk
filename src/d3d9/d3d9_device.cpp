@@ -4661,7 +4661,7 @@ namespace dxvk {
     }
     else {
       const bool alloced = pResource->AllocLockingData();
-      mapPtr = pResource->GetLockingData();
+      mapPtr = MapBuffer(pResource);
 
       // NOOVERWRITE promises that they will not write in a currently used area.
       // Therefore we can skip waiting for these two cases.
@@ -4716,7 +4716,7 @@ namespace dxvk {
   HRESULT D3D9DeviceEx::FlushBuffer(
         D3D9CommonBuffer*       pResource) {
     auto dstBuffer = pResource->GetBufferSlice<D3D9_COMMON_BUFFER_TYPE_REAL>();
-    void* mapPtr = pResource->GetLockingData();
+    void* mapPtr = MapBuffer(pResource);
     if (unlikely(mapPtr == nullptr)) {
       return D3D_OK;
     }
@@ -7427,6 +7427,21 @@ namespace dxvk {
     return ptr;
   }
 
+
+  void* D3D9DeviceEx::MapBuffer(D3D9CommonBuffer* pBuffer) {
+    // Will only be called inside the device lock
+    void *ptr = pBuffer->GetLockingData();
+
+#ifdef D3D9_ALLOW_UNMAPPING
+    if (pBuffer->GetMapMode() == D3D9_COMMON_BUFFER_MAP_MODE_UNMAPPABLE) {
+      m_mappedBuffers.insert(pBuffer);
+      pBuffer->SetMappingFrame(m_frameCounter);
+    }
+#endif
+
+    return ptr;
+  }
+
   void D3D9DeviceEx::TouchMappedTexture(D3D9CommonTexture* pTexture) {
 #ifdef D3D9_ALLOW_UNMAPPING
     if (pTexture->GetMapMode() != D3D9_COMMON_TEXTURE_MAP_MODE_UNMAPPABLE)
@@ -7447,7 +7462,17 @@ namespace dxvk {
 #endif
   }
 
-  void D3D9DeviceEx::UnmapTextures() {
+  void D3D9DeviceEx::RemoveMappedBuffer(D3D9CommonBuffer* pBuffer) {
+#ifdef D3D9_ALLOW_UNMAPPING
+    if (pBuffer->GetMapMode() != D3D9_COMMON_BUFFER_MAP_MODE_UNMAPPABLE)
+      return;
+
+    D3D9DeviceLock lock = LockDevice();
+    m_mappedBuffers.erase(pBuffer);
+#endif
+  }
+
+  void D3D9DeviceEx::UnmapResources() {
     // Will only be called inside the device lock
 #ifdef D3D9_ALLOW_UNMAPPING
     const bool force = m_memoryAllocator.MappedMemory() > 512 << 20;
@@ -7460,6 +7485,17 @@ namespace dxvk {
 
       (*iter)->UnmapLockingData();
       iter = m_mappedTextures.erase(iter);
+    }
+
+    for (auto iter = m_mappedBuffers.begin(); iter != m_mappedBuffers.end();) {
+      const bool mappingBufferUnused = (m_frameCounter - (*iter)->GetMappingFrame() > uint32_t(m_d3d9Options.bufferUnmapDelay) || force) && (*iter)->GetLockCount() == 0;
+      if (!mappingBufferUnused) {
+         iter++;
+        continue;
+      }
+
+      (*iter)->UnmapLockingData();
+      iter = m_mappedBuffers.erase(iter);
     }
 #endif
   }
