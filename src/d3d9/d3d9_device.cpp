@@ -3971,6 +3971,7 @@ namespace dxvk {
   template<bool UpBuffer>
   D3D9BufferSlice D3D9DeviceEx::AllocTempBuffer(VkDeviceSize size) {
     constexpr VkDeviceSize DefaultSize = 1 << 20;
+    constexpr uint32_t MaxRetainedBufferCount = 16;
 
     VkMemoryPropertyFlags memoryFlags
       = VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
@@ -3980,9 +3981,13 @@ namespace dxvk {
       memoryFlags |= VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
     }
 
+    uint32_t backingCount = 0;
     D3D9BufferSlice& currentSlice = UpBuffer ? m_upBuffer : m_managedUploadBuffer;
+    if (likely(currentSlice.slice.defined())) {
+      backingCount = currentSlice.slice.buffer()->backingBufferCount();
+    }
 
-    if (size <= DefaultSize) {
+    if (size <= DefaultSize && backingCount < MaxRetainedBufferCount) {
       if (unlikely(!currentSlice.slice.defined())) {
         DxvkBufferCreateInfo info;
         info.size   = DefaultSize;
