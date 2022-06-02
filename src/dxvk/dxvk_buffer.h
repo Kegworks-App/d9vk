@@ -289,7 +289,12 @@ namespace dxvk {
       std::unique_lock<sync::Spinlock> swapLock(m_swapMutex);
       m_nextSlices.push_back(slice);
     }
-    
+
+    uint32_t backingBufferCount() {
+      std::unique_lock<sync::Spinlock> swapLock(m_swapMutex);
+      return m_buffers.size();
+    }
+
   private:
 
     DxvkDevice*             m_device;
