@@ -406,11 +406,6 @@ namespace dxvk {
     bool NeedsUpload(UINT Subresource) const { return m_needsUpload.get(Subresource); }
     bool NeedsAnyUpload() { return m_needsUpload.any(); }
     void ClearNeedsUpload() { return m_needsUpload.clearAll();  }
-    bool DoesStagingBufferUploads(UINT Subresource) const { return m_mapMode == D3D9_COMMON_TEXTURE_MAP_MODE_UNMAPPABLE || m_uploadUsingStaging.get(Subresource); }
-
-    void EnableStagingBufferUploads(UINT Subresource) {
-      m_uploadUsingStaging.set(Subresource, true);
-    }
 
     void SetNeedsMipGen(bool value) { m_needsMipGen = value; }
     bool NeedsMipGen() const { return m_needsMipGen; }
