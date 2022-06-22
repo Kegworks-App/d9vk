@@ -2,6 +2,7 @@
 
 #include "d3d9_annotation.h"
 #include "d3d9_common_buffer.h"
+#include "d3d9_common_texture.h"
 #include "d3d9_interface.h"
 #include "d3d9_swapchain.h"
 #include "d3d9_caps.h"
@@ -4419,6 +4420,12 @@ namespace dxvk {
       pResource->SetNeedsReadback(Subresource, true);
     }
 
+#ifdef D3D9_ALLOW_UNMAPPING
+    if (pResource->GetMapMode() == D3D9_COMMON_TEXTURE_MAP_MODE_UNMAPPABLE && (m_d3d9Options.textureUnmapDelay == 0 || m_memoryAllocator.HasAddressSpacePresure())) {
+      pResource->UnmapLockingData(Subresource);
+    }
+#endif
+
     return D3D_OK;
   }
 
@@ -4519,6 +4526,11 @@ namespace dxvk {
           // The resource has not been mapped before.
           std::memset(slice.mapPtr, 0, dirtySize);
         }
+#ifdef D3D9_ALLOW_UNMAPPING
+        if (pSrcTexture->GetMapMode() == D3D9_COMMON_TEXTURE_MAP_MODE_UNMAPPABLE && (m_d3d9Options.textureUnmapDelay == 0 || m_memoryAllocator.HasAddressSpacePresure())) {
+          pSrcTexture->UnmapLockingData(SrcSubresource);
+        }
+#endif
       } else {
         const DxvkBufferSliceHandle srcSlice = pSrcTexture->GetMappedSlice(SrcSubresource);
         copySrcSlice = DxvkBufferSlice(pSrcTexture->GetBuffer(SrcSubresource), copySrcOffset, srcSlice.length);
@@ -4734,6 +4746,12 @@ namespace dxvk {
       copySrcSlice = slice.slice;
       void* srcData = reinterpret_cast<uint8_t*>(mapPtr) + range.min;
       memcpy(slice.mapPtr, srcData, range.max - range.min);
+
+#ifdef D3D9_ALLOW_UNMAPPING
+      if (pResource->GetMapMode() == D3D9_COMMON_BUFFER_MAP_MODE_UNMAPPABLE && (m_d3d9Options.bufferUnmapDelay == 0 || m_memoryAllocator.HasAddressSpacePresure())) {
+        pResource->UnmapLockingData();
+      }
+#endif
     } else {
       copySrcSlice = DxvkBufferSlice(pResource->GetBuffer<D3D9_COMMON_BUFFER_TYPE_MAPPING>(), range.min, range.max - range.min);
     }
@@ -4774,6 +4792,12 @@ namespace dxvk {
       return D3D_OK;
 
     pResource->SetMapFlags(0);
+
+#ifdef D3D9_ALLOW_UNMAPPING
+    if (pResource->GetMapMode() == D3D9_COMMON_BUFFER_MAP_MODE_UNMAPPABLE && (m_d3d9Options.bufferUnmapDelay == 0 || m_memoryAllocator.HasAddressSpacePresure())) {
+      pResource->UnmapLockingData();
+    }
+#endif
 
     if (pResource->Desc()->Pool != D3DPOOL_DEFAULT)
       return D3D_OK;
@@ -7423,7 +7447,7 @@ namespace dxvk {
     void *ptr = pTexture->GetLockingData(Subresource);
 
 #ifdef D3D9_ALLOW_UNMAPPING
-    if (pTexture->GetMapMode() == D3D9_COMMON_TEXTURE_MAP_MODE_UNMAPPABLE) {
+    if (m_d3d9Options.textureUnmapDelay != 0 && pTexture->GetMapMode() == D3D9_COMMON_TEXTURE_MAP_MODE_UNMAPPABLE) {
       m_mappedTextures.insert(pTexture);
       pTexture->SetMappingFrame(m_frameCounter);
     }
@@ -7438,7 +7462,7 @@ namespace dxvk {
     void *ptr = pBuffer->GetLockingData();
 
 #ifdef D3D9_ALLOW_UNMAPPING
-    if (pBuffer->GetMapMode() == D3D9_COMMON_BUFFER_MAP_MODE_UNMAPPABLE) {
+    if (m_d3d9Options.bufferUnmapDelay != 0 && pBuffer->GetMapMode() == D3D9_COMMON_BUFFER_MAP_MODE_UNMAPPABLE) {
       m_mappedBuffers.insert(pBuffer);
       pBuffer->SetMappingFrame(m_frameCounter);
     }
@@ -7480,7 +7504,7 @@ namespace dxvk {
   void D3D9DeviceEx::UnmapResources() {
     // Will only be called inside the device lock
 #ifdef D3D9_ALLOW_UNMAPPING
-    const bool force = m_memoryAllocator.MappedMemory() > 512 << 20;
+    const bool force = m_memoryAllocator.HasAddressSpacePresure();
     for (auto iter = m_mappedTextures.begin(); iter != m_mappedTextures.end();) {
       const bool mappingBufferUnused = (m_frameCounter - (*iter)->GetMappingFrame() > uint32_t(m_d3d9Options.textureUnmapDelay) || force) && !(*iter)->IsAnySubresourceLocked();
       if (!mappingBufferUnused) {

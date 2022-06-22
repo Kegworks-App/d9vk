@@ -255,6 +255,11 @@ namespace dxvk {
      */
     bool CreateBufferSubresource(UINT Subresource);
 
+
+    void UnmapLockingData(UINT Subresource) {
+      m_lockingData[Subresource].Unmap();
+    }
+
     void UnmapLockingData() {
       const uint32_t subresources = CountSubresources();
       for (uint32_t i = 0; i < subresources; i++) {

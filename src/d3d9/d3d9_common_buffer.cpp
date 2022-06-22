@@ -30,7 +30,7 @@ namespace dxvk {
       return D3D9_COMMON_BUFFER_MAP_MODE_DIRECT;
 
 #ifdef D3D9_ALLOW_UNMAPPING
-    if (m_parent->GetOptions()->bufferUnmapDelay != 0 && !(m_desc.Usage & D3DUSAGE_DYNAMIC))
+    if (m_parent->GetOptions()->bufferUnmapDelay != -1 && !(m_desc.Usage & D3DUSAGE_DYNAMIC))
         return D3D9_COMMON_BUFFER_MAP_MODE_UNMAPPABLE;
 #endif
 
