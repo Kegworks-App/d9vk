@@ -195,7 +195,7 @@ namespace dxvk {
       std::array<DxvkQueryData, MaxGpuQueries> queryData = { };
 
       for (uint32_t i = 0; i < MaxGpuQueries && m_query[i] != nullptr; i++) {
-        DxvkGpuQueryStatus status = m_query[i]->getData(queryData[i]);
+        DxvkGpuQueryStatus status = m_query[i]->getData(queryData[i], IsStalling());
 
         if (status == DxvkGpuQueryStatus::Invalid
          || status == DxvkGpuQueryStatus::Failed)

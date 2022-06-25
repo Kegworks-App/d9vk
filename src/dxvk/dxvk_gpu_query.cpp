@@ -31,7 +31,9 @@ namespace dxvk {
   }
 
 
-  DxvkGpuQueryStatus DxvkGpuQuery::getData(DxvkQueryData& queryData) const {
+  DxvkGpuQueryStatus DxvkGpuQuery::getData(
+          DxvkQueryData& queryData,
+          bool           wait) const {
     queryData = DxvkQueryData();
 
     if (!m_ended)
@@ -42,11 +44,11 @@ namespace dxvk {
       return DxvkGpuQueryStatus::Available;
     
     // Get query data from all associated handles
-    DxvkGpuQueryStatus status = getDataForHandle(queryData, m_handle);
+    DxvkGpuQueryStatus status = getDataForHandle(queryData, m_handle, wait);
 
     for (size_t i = 0; i < m_handles.size()
         && status == DxvkGpuQueryStatus::Available; i++)
-      status = getDataForHandle(queryData, m_handles[i]);
+      status = getDataForHandle(queryData, m_handles[i], wait);
     
     // Treat non-precise occlusion queries as available
     // if we already know the result will be non-zero
@@ -87,14 +89,19 @@ namespace dxvk {
 
   DxvkGpuQueryStatus DxvkGpuQuery::getDataForHandle(
           DxvkQueryData&      queryData,
-    const DxvkGpuQueryHandle& handle) const {
+    const DxvkGpuQueryHandle& handle,
+          bool                wait) const {
     DxvkQueryData tmpData;
 
     // Try to copy query data to temporary structure
+    VkQueryResultFlags flags = VK_QUERY_RESULT_64_BIT;
+    if (unlikely(wait)) {
+      flags |= VK_QUERY_RESULT_WAIT_BIT;
+    }
     VkResult result = m_vkd->vkGetQueryPoolResults(m_vkd->device(),
       handle.queryPool, handle.queryId, 1,
       sizeof(DxvkQueryData), &tmpData,
-      sizeof(DxvkQueryData), VK_QUERY_RESULT_64_BIT);
+      sizeof(DxvkQueryData), flags);
     
     if (result == VK_NOT_READY)
       return DxvkGpuQueryStatus::Pending;

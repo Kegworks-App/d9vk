@@ -182,7 +182,8 @@ namespace dxvk {
      * \returns Current query status
      */
     DxvkGpuQueryStatus getData(
-            DxvkQueryData&      queryData) const;
+            DxvkQueryData&      queryData,
+            bool                wait) const;
 
     /**
      * \brief Begins query
@@ -230,7 +231,8 @@ namespace dxvk {
     
     DxvkGpuQueryStatus getDataForHandle(
             DxvkQueryData&      queryData,
-      const DxvkGpuQueryHandle& handle) const;
+      const DxvkGpuQueryHandle& handle,
+            bool wait) const;
 
   };
 
