@@ -4147,6 +4147,10 @@ namespace dxvk {
     if (unlikely((Flags & (D3DLOCK_DISCARD | D3DLOCK_READONLY)) == (D3DLOCK_DISCARD | D3DLOCK_READONLY)))
       return D3DERR_INVALIDCALL;
 
+#ifdef D3D9_LOCKING_VALIDATION
+    pResource->ValidateHash(Subresource);
+#endif
+
     if (unlikely(!m_d3d9Options.allowDoNotWait))
       Flags &= ~D3DLOCK_DONOTWAIT;
 
@@ -4396,6 +4400,10 @@ namespace dxvk {
 
     pResource->SetLocked(Subresource, false);
 
+#ifdef D3D9_LOCKING_VALIDATION
+    pResource->UpdateHash(Subresource);
+#endif
+
     // Flush image contents from staging if we aren't read only
     // and we aren't deferring for managed.
     const D3DBOX& box = pResource->GetDirtyBox(Face);
@@ -4464,6 +4472,10 @@ namespace dxvk {
     VkOffset3D DestOffset
   ) {
     const Rc<DxvkImage> image = pDestTexture->GetImage();
+
+#ifdef D3D9_LOCKING_VALIDATION
+    pSrcTexture->ValidateHash(SrcSubresource);
+#endif
 
     // Now that data has been written into the buffer,
     // we need to copy its contents into the image
@@ -4625,6 +4637,10 @@ namespace dxvk {
     if (unlikely(ppbData == nullptr))
       return D3DERR_INVALIDCALL;
 
+#ifdef D3D9_LOCKING_VALIDATION
+    pResource->ValidateHash();
+#endif
+
     if (!m_d3d9Options.allowDiscard)
       Flags &= ~D3DLOCK_DISCARD;
 
@@ -4741,6 +4757,10 @@ namespace dxvk {
     auto dstBuffer = pResource->GetBufferSlice<D3D9_COMMON_BUFFER_TYPE_REAL>();
     void* mapPtr = MapBuffer(pResource);
 
+#ifdef D3D9_LOCKING_VALIDATION
+    pResource->ValidateHash();
+#endif
+
     D3D9Range& range = pResource->DirtyRange();
 
     DxvkBufferSlice copySrcSlice;
@@ -4787,6 +4807,10 @@ namespace dxvk {
 
     if (pResource->DecrementLockCount() != 0)
       return D3D_OK;
+
+#ifdef D3D9_LOCKING_VALIDATION
+    pResource->UpdateHash();
+#endif
 
     if (pResource->GetMapMode() == D3D9_COMMON_BUFFER_MAP_MODE_DIRECT)
       return D3D_OK;

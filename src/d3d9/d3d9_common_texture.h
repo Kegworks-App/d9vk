@@ -508,6 +508,26 @@ namespace dxvk {
       return m_mappingFrame;
     }
 
+#ifdef D3D9_LOCKING_VALIDATION
+    void UpdateHash(UINT Subresource) {
+      void* data = GetLockingData(Subresource);
+      m_hashes[Subresource] = Sha1Hash::compute(data, GetMipSize(Subresource));
+    }
+
+    bool ValidateHash(UINT Subresource) {
+      void* data = GetLockingData(Subresource);
+      if (data == nullptr) {
+        return true;
+      }
+      auto newHash = Sha1Hash::compute(data, GetMipSize(Subresource));
+      bool changed = newHash != m_hashes[Subresource];
+      if (changed) {
+        Logger::err(str::format("Application wrote to texture outside of Lock<->Unlock, Pool: ", m_desc.Pool, " Usage: ", m_desc.Usage, " Map mode: ", m_mapMode));
+      }
+      return !changed;
+    }
+#endif
+
   private:
 
     D3D9DeviceEx*                 m_device;
@@ -558,6 +578,11 @@ namespace dxvk {
     std::array<D3DBOX, 6>         m_dirtyBoxes;
 
     uint64_t                      m_mappingFrame;
+
+#ifdef D3D9_LOCKING_VALIDATION
+    D3D9SubresourceArray<
+      Sha1Hash>                   m_hashes = {};
+#endif
 
     Rc<DxvkImage> CreatePrimaryImage(D3DRESOURCETYPE ResourceType, bool TryOffscreenRT, HANDLE* pSharedHandle) const;
 

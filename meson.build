@@ -54,6 +54,10 @@ add_project_arguments(cc.get_supported_arguments(compiler_args), language: 'c')
 add_project_link_arguments(cpp.get_supported_link_arguments(link_args), language: 'cpp')
 add_project_link_arguments(cc.get_supported_link_arguments(link_args), language: 'c')
 
+if get_option('enable_d3d9') and get_option('enable_d3d9_lock_validation')
+  add_project_arguments('-DD3D9_LOCKING_VALIDATION', language : 'cpp')
+endif
+
 dxvk_include_path = include_directories('./include')
 
 if (cpu_family == 'x86_64')

@@ -246,6 +246,27 @@ namespace dxvk {
       m_lockingData.Unmap();
     }
 
+
+#ifdef D3D9_LOCKING_VALIDATION
+    void UpdateHash() {
+      void* data = GetLockingData();
+      m_hash = Sha1Hash::compute(data, m_desc.Size);
+    }
+
+    bool ValidateHash() {
+      void* data = GetLockingData();
+      if (data == nullptr) {
+        return true;
+      }
+      auto newHash = Sha1Hash::compute(data, m_desc.Size);
+      bool changed = newHash != m_hash;
+      if (changed) {
+        Logger::err(str::format("Application wrote to buffer outside of Lock<->Unlock, Pool: ", m_desc.Pool, " Usage: ", m_desc.Usage, " Type: ", m_desc.Type, " Map mode: ", m_mapMode));
+      }
+      return !changed;
+    }
+#endif
+
   private:
 
     Rc<DxvkBuffer> CreateBuffer() const;
@@ -283,6 +304,10 @@ namespace dxvk {
 
     D3D9Memory                  m_lockingData = { };
     uint64_t                    m_mappingFrame = 0;
+
+#ifdef D3D9_LOCKING_VALIDATION
+    Sha1Hash                   m_hash = {};
+#endif
 
   };
 
