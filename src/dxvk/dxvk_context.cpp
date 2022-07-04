@@ -37,6 +37,33 @@ namespace dxvk {
     }
 
     m_descriptorManager = new DxvkDescriptorManager(device.ptr(), type);
+
+    // Default destination barriers for graphics pipelines
+    m_globalRoGraphicsBarrier.stages = m_device->getShaderPipelineStages()
+                                     | VK_PIPELINE_STAGE_TRANSFER_BIT
+                                     | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
+                                     | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT
+                                     | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+    m_globalRoGraphicsBarrier.access = 0;
+
+    if (m_device->features().extTransformFeedback.transformFeedback)
+      m_globalRoGraphicsBarrier.stages |= VK_PIPELINE_STAGE_TRANSFORM_FEEDBACK_BIT_EXT;
+
+    m_globalRwGraphicsBarrier = m_globalRoGraphicsBarrier;
+    m_globalRwGraphicsBarrier.stages |= VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT
+                                     |  VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
+
+    m_globalRwGraphicsBarrier.access |= VK_ACCESS_INDIRECT_COMMAND_READ_BIT
+                                     |  VK_ACCESS_INDEX_READ_BIT
+                                     |  VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT
+                                     |  VK_ACCESS_UNIFORM_READ_BIT
+                                     |  VK_ACCESS_SHADER_READ_BIT
+                                     |  VK_ACCESS_COLOR_ATTACHMENT_READ_BIT
+                                     |  VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT
+                                     |  VK_ACCESS_TRANSFER_READ_BIT;
+
+    if (m_device->features().extTransformFeedback.transformFeedback)
+      m_globalRwGraphicsBarrier.access |= VK_ACCESS_TRANSFORM_FEEDBACK_COUNTER_READ_BIT_EXT;
   }
   
   
@@ -4120,41 +4147,58 @@ namespace dxvk {
     const auto& depthAttachment = framebufferInfo.getDepthTarget();
 
     if (depthAttachment.view != nullptr) {
-      m_execBarriers.accessImage(
-        depthAttachment.view->image(),
-        depthAttachment.view->imageSubresources(),
-        depthAttachment.layout,
-        VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
-        VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
-        VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
-        VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-        ops.depthOps.storeLayout,
-        depthAttachment.view->imageInfo().stages,
-        depthAttachment.view->imageInfo().access);
+      if (depthAttachment.layout != ops.depthOps.storeLayout) {
+        m_execBarriers.accessImage(
+          depthAttachment.view->image(),
+          depthAttachment.view->imageSubresources(),
+          depthAttachment.layout,
+          VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
+          VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+          VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
+          VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+          ops.depthOps.storeLayout,
+          depthAttachment.view->imageInfo().stages,
+          depthAttachment.view->imageInfo().access);
+      } else {
+        VkAccessFlags srcAccess = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
+
+        if (depthAttachment.layout != VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL)
+          srcAccess |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+        m_execBarriers.accessMemory(
+          VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
+          VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+          srcAccess,
+          depthAttachment.view->imageInfo().stages,
+          depthAttachment.view->imageInfo().access);
+      }
     }
 
     for (uint32_t i = 0; i < framebufferInfo.numAttachments(); i++) {
       const auto& colorAttachment = framebufferInfo.getColorTarget(i);
 
       if (colorAttachment.view != nullptr) {
-        m_execBarriers.accessImage(
-          colorAttachment.view->image(),
-          colorAttachment.view->imageSubresources(),
-          colorAttachment.layout,
-          VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-          VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
-          VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-          ops.colorOps[i].storeLayout,
-          colorAttachment.view->imageInfo().stages,
-          colorAttachment.view->imageInfo().access);
+        if (colorAttachment.layout != ops.colorOps[i].storeLayout) {
+          m_execBarriers.accessImage(
+            colorAttachment.view->image(),
+            colorAttachment.view->imageSubresources(),
+            colorAttachment.layout,
+            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+            VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
+            VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+            ops.colorOps[i].storeLayout,
+            colorAttachment.view->imageInfo().stages,
+            colorAttachment.view->imageInfo().access);
+        } else {
+          m_execBarriers.accessMemory(
+            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+            VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
+            VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+            colorAttachment.view->imageInfo().stages,
+            colorAttachment.view->imageInfo().access);
+        }
       }
     }
-
-    m_execBarriers.accessMemory(
-      ops.barrier.srcStages,
-      ops.barrier.srcAccess,
-      ops.barrier.dstStages,
-      ops.barrier.dstAccess);
 
     // Do not flush barriers here. This is intended since
     // we pre-record them when binding the framebuffer.
@@ -4249,26 +4293,21 @@ namespace dxvk {
   void DxvkContext::renderPassUnbindFramebuffer() {
     m_cmd->cmdEndRendering();
 
-    // TODO Try to get rid of this for performance reasons.
-    // This only exists to emulate render pass barriers.
-    m_execBarriers.recordCommands(m_cmd);
+    // If there are pending layout transitions, execute them immediately
+    // since the backend expects images to be in the store layout after
+    // a render pass instance. This is expected to be rare.
+    if (m_execBarriers.hasResourceBarriers())
+      m_execBarriers.recordCommands(m_cmd);
   }
   
   
   void DxvkContext::resetRenderPassOps(
     const DxvkRenderTargets&    renderTargets,
           DxvkRenderPassOps&    renderPassOps) {
-    VkAccessFlags access = 0;
-
     if (renderTargets.depth.view != nullptr) {
       renderPassOps.depthOps = DxvkDepthAttachmentOps {
         VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_LOAD_OP_LOAD,
         renderTargets.depth.layout, renderTargets.depth.layout };
-
-      access |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
-
-      if (renderTargets.depth.layout != VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL)
-        access |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
     } else {
       renderPassOps.depthOps = DxvkDepthAttachmentOps { };
     }
@@ -4279,18 +4318,10 @@ namespace dxvk {
             VK_ATTACHMENT_LOAD_OP_LOAD,
             renderTargets.color[i].layout,
             renderTargets.color[i].layout };
-
-        access |= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT
-               |  VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
       } else {
         renderPassOps.colorOps[i] = DxvkColorAttachmentOps { };
       }
     }
-
-    renderPassOps.barrier.srcStages = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
-    renderPassOps.barrier.srcAccess = access;
-    renderPassOps.barrier.dstStages = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
-    renderPassOps.barrier.dstAccess = access;
   }
   
   
@@ -4444,7 +4475,7 @@ namespace dxvk {
   }
   
   
-  bool DxvkContext::updateGraphicsPipelineState() {
+  bool DxvkContext::updateGraphicsPipelineState(DxvkGlobalPipelineBarrier srcBarrier) {
     // Set up vertex buffer strides for active bindings
     for (uint32_t i = 0; i < m_state.gp.state.il.bindingCount(); i++) {
       const uint32_t binding = m_state.gp.state.ilBindings[i].binding();
@@ -4483,6 +4514,20 @@ namespace dxvk {
     m_cmd->cmdBindPipeline(
       VK_PIPELINE_BIND_POINT_GRAPHICS,
       pipeline);
+
+    // Emit barrier based on pipeline properties, in order to avoid
+    // accidental write-after-read hazards after the render pass.
+    DxvkGlobalPipelineBarrier pipelineBarrier = m_state.gp.pipeline->getGlobalBarrier(m_state.gp.state);
+    srcBarrier.stages |= pipelineBarrier.stages;
+    srcBarrier.access |= pipelineBarrier.access;
+
+    DxvkGlobalPipelineBarrier dstBarrier = (srcBarrier.access & VK_ACCESS_SHADER_WRITE_BIT)
+      ? m_globalRwGraphicsBarrier
+      : m_globalRoGraphicsBarrier;
+
+    m_execBarriers.accessMemory(
+      srcBarrier.stages, srcBarrier.access,
+      dstBarrier.stages, dstBarrier.access);
 
     m_flags.clr(DxvkContextFlag::GpDirtyPipelineState);
     return true;
@@ -5145,7 +5190,19 @@ namespace dxvk {
       this->updateGraphicsShaderResources();
     
     if (m_flags.test(DxvkContextFlag::GpDirtyPipelineState)) {
-      if (unlikely(!this->updateGraphicsPipelineState()))
+      DxvkGlobalPipelineBarrier barrier = { };
+
+      if (Indexed) {
+        barrier.stages |= VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
+        barrier.access |= VK_ACCESS_INDEX_READ_BIT;
+      }
+
+      if (Indirect) {
+        barrier.stages |= VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT;
+        barrier.access |= VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
+      }
+
+      if (unlikely(!this->updateGraphicsPipelineState(barrier)))
         return false;
     }
     
