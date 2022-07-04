@@ -51,6 +51,8 @@ namespace dxvk {
 
     if (access.test(DxvkAccess::Write))
       m_dstAccess |= dstAccess;
+
+    m_allResourceAccess |= srcStages;
   }
 
 
@@ -211,8 +213,33 @@ namespace dxvk {
   bool DxvkBarrierSet::isBufferDirty(
     const DxvkBufferSliceHandle&    bufSlice,
           DxvkAccessFlags           bufAccess) {
-    return m_bufSlices.isDirty(bufSlice.handle,
-      DxvkBarrierBufferSlice(bufSlice.offset, bufSlice.length, bufAccess));
+    bool dirty = false;
+
+    if (m_allResourceAccess) {
+      VkAccessFlags bufFlags = m_allResourceAccess & (
+        VK_ACCESS_INDIRECT_COMMAND_READ_BIT |
+        VK_ACCESS_INDEX_READ_BIT |
+        VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT |
+        VK_ACCESS_UNIFORM_READ_BIT |
+        VK_ACCESS_SHADER_READ_BIT |
+        VK_ACCESS_SHADER_WRITE_BIT |
+        VK_ACCESS_TRANSFER_READ_BIT |
+        VK_ACCESS_TRANSFER_WRITE_BIT |
+        VK_ACCESS_MEMORY_READ_BIT |
+        VK_ACCESS_MEMORY_WRITE_BIT |
+        VK_ACCESS_TRANSFORM_FEEDBACK_WRITE_BIT_EXT |
+        VK_ACCESS_TRANSFORM_FEEDBACK_COUNTER_READ_BIT_EXT |
+        VK_ACCESS_TRANSFORM_FEEDBACK_COUNTER_WRITE_BIT_EXT);
+
+      dirty = (getAccessTypes(bufFlags) | bufAccess).test(DxvkAccess::Write);
+    }
+
+    if (!dirty) {
+      dirty = m_bufSlices.isDirty(bufSlice.handle,
+        DxvkBarrierBufferSlice(bufSlice.offset, bufSlice.length, bufAccess));
+    }
+
+    return dirty;
   }
 
 
@@ -220,8 +247,19 @@ namespace dxvk {
     const Rc<DxvkImage>&            image,
     const VkImageSubresourceRange&  imgSubres,
           DxvkAccessFlags           imgAccess) {
-    return m_imgSlices.isDirty(image->handle(),
-      DxvkBarrierImageSlice(imgSubres, imgAccess));
+    bool dirty = false;
+
+    if (m_allResourceAccess) {
+      VkAccessFlags imgFlags = m_allResourceAccess & image->info().access;
+      dirty = (getAccessTypes(imgFlags) | imgAccess).test(DxvkAccess::Write);
+    }
+
+    if (!dirty) {
+      m_imgSlices.isDirty(image->handle(),
+        DxvkBarrierImageSlice(imgSubres, imgAccess));
+    }
+
+    return dirty;
   }
 
 
@@ -280,8 +318,10 @@ namespace dxvk {
     m_srcAccess = 0;
     m_dstAccess = 0;
     
-    m_bufBarriers.resize(0);
-    m_imgBarriers.resize(0);
+    m_allResourceAccess = 0;
+
+    m_bufBarriers.clear();
+    m_imgBarriers.clear();
 
     m_bufSlices.clear();
     m_imgSlices.clear();

@@ -333,6 +333,13 @@ namespace dxvk {
       m_list.clear();
     }
 
+    /**
+     * \brief Checks whether the set is empty
+     */
+    bool empty() const {
+      return m_used == 0;
+    }
+
   private:
 
     struct ListEntry {
@@ -538,6 +545,11 @@ namespace dxvk {
     
     void reset();
 
+    bool hasResourceBarriers() const {
+      return !m_bufSlices.empty()
+          || !m_imgSlices.empty();
+    }
+
     static DxvkAccessFlags getAccessTypes(VkAccessFlags flags);
     
   private:
@@ -560,7 +572,9 @@ namespace dxvk {
 
     VkAccessFlags m_srcAccess = 0;
     VkAccessFlags m_dstAccess = 0;
-    
+
+    VkAccessFlags m_allResourceAccess = 0;
+
     std::vector<VkBufferMemoryBarrier> m_bufBarriers;
     std::vector<VkImageMemoryBarrier>  m_imgBarriers;
 
