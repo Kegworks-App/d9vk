@@ -160,6 +160,9 @@ namespace dxvk {
 
     /// Don't use non seamless cube maps
     bool seamlessCubes;
+
+    // Workaround for shadow acne in games that seemingly rely on the lower of D24 compared to D32
+    bool depthSampleWiggleRoom;
   };
 
 }

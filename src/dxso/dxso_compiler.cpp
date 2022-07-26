@@ -3278,6 +3278,12 @@ void DxsoCompiler::emitControlFlowGenericLoop(
 
     const uint32_t sampledImage = m_module.opLoad(samplerInfo.typeId, samplerInfo.varId);
 
+    if (depthCompare && m_moduleInfo.options.depthSampleWiggleRoom) {
+      uint32_t floatType = m_module.defFloatType(32);
+      const uint32_t bias = m_module.constf32(0.000244140625f); // 1/4096
+      reference = m_module.opFSub(floatType, reference, bias);
+    }
+
     uint32_t val;
 
     // No Fetch 4

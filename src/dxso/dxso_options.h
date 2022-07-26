@@ -57,6 +57,9 @@ namespace dxvk {
 
     /// Whether or not we can rely on robustness2 to handle oob constant access
     bool robustness2Supported;
+
+    // Workaround for shadow acne in games that seemingly rely on the lower of D24 compared to D32
+    bool depthSampleWiggleRoom;
   };
 
 }
