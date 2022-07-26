@@ -579,6 +579,12 @@ namespace dxvk {
     { R"(\\PortRoyale3\.exe$)", {{
       { "d3d9.allowDoNotWait",           "False" },
     }} },
+    /* Assassin's Creed games                   *
+     * Works around shadow acne on AMD GPUs
+       seemingly caused by the D24->D32 workaround */
+    { R"(\\(ACBSP|ACBMP|AssassinsCreedIIGame|ACRSP|ACRMP)\.exe$)", {{
+      { "d3d9.depthSampleWiggleRoom",    "True" },
+    }} },
   }};
 
 
