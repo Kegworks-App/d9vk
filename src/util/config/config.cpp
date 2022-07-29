@@ -599,6 +599,11 @@ namespace dxvk {
     { R"(\\yso_win\.exe$)", {{
       { "d3d9.maxFrameLatency",              "1" },
     }} },
+    /* Guitar Hero World Tour                   *
+     * Very prone to address space crashes      */
+    { R"(\\(GHWT|GHWT_Definitive)\.exe$)", {{
+      { "d3d9.textureMemory",               "16" },
+    }} },
   }};
 
 
