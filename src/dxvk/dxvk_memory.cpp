@@ -431,14 +431,15 @@ namespace dxvk {
           type->chunks.push_back(std::move(chunk));
         }
       }
+    }
 
-      if (memory && (flags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)) {
+    if (memory) {
+      type->heap->stats.memoryUsed += memory.m_length;
+
+      if (flags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) {
         memory.map();
       }
     }
-
-    if (memory)
-      type->heap->stats.memoryUsed += memory.m_length;
 
     return memory;
   }
