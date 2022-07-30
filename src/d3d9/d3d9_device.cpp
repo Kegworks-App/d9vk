@@ -4022,6 +4022,7 @@ namespace dxvk {
   D3D9BufferSlice D3D9DeviceEx::AllocStagingBuffer(VkDeviceSize size) {
     D3D9BufferSlice result;
     result.slice = m_stagingBuffer.alloc(256, size);
+    result.slice.buffer()->map();
     result.mapPtr = result.slice.mapPtr(0);
     return result;
   }
@@ -4477,6 +4478,8 @@ namespace dxvk {
         slice.mapPtr, srcData, extentBlockCount, formatInfo->elementSize,
         pitch, pitch * srcTexLevelExtentBlockCount.height);
 
+      slice.slice.buffer()->unmap();
+
       EmitCs([
         cSrcSlice       = slice.slice,
         cDstImage       = image,
@@ -4519,6 +4522,8 @@ namespace dxvk {
       util::packImageData(
         slice.mapPtr, mapPtr, srcTexLevelExtentBlockCount, formatInfo->elementSize,
         pitch, std::min(convertFormat.PlaneCount, 2u) * pitch * srcTexLevelExtentBlockCount.height);
+
+      slice.slice.buffer()->unmap();
 
       Flush();
       SynchronizeCsThread(DxvkCsThread::SynchronizeAll);
@@ -4665,6 +4670,8 @@ namespace dxvk {
     D3D9BufferSlice slice = AllocStagingBuffer(range.max - range.min);
     void* srcData = reinterpret_cast<uint8_t*>(srcSlice.mapPtr) + range.min;
     memcpy(slice.mapPtr, srcData, range.max - range.min);
+
+    slice.slice.buffer()->unmap();
 
     EmitCs([
       cDstSlice  = dstBuffer,
