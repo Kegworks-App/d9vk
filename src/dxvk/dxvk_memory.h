@@ -108,8 +108,7 @@ namespace dxvk {
       DxvkMemoryType*       type,
       VkDeviceMemory        memory,
       VkDeviceSize          offset,
-      VkDeviceSize          length,
-      void*                 mapPtr);
+      VkDeviceSize          length);
     DxvkMemory             (DxvkMemory&& other);
     DxvkMemory& operator = (DxvkMemory&& other);
     ~DxvkMemory();
@@ -164,7 +163,10 @@ namespace dxvk {
     operator bool () const {
       return m_memory != VK_NULL_HANDLE;
     }
-    
+
+    void map();
+    void unmap();
+
   private:
     
     DxvkMemoryAllocator*  m_alloc  = nullptr;
@@ -257,6 +259,13 @@ namespace dxvk {
      */
     bool isCompatible(const Rc<DxvkMemoryChunk>& other) const;
 
+    void* mapPtr() {
+      return m_memory.memPointer;
+    }
+
+    void incMapCount();
+    void decMapCount();
+
   private:
     
     struct FreeSlice {
@@ -270,6 +279,8 @@ namespace dxvk {
     DxvkMemoryFlags       m_hints;
     
     std::vector<FreeSlice> m_freeList;
+
+    std::atomic<uint32_t> m_mapCount = 0;
 
     bool checkHints(DxvkMemoryFlags hints) const;
     
