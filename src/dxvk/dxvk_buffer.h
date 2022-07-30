@@ -290,6 +290,9 @@ namespace dxvk {
       m_nextSlices.push_back(slice);
     }
 
+    void map(DxvkBufferSliceHandle& slice);
+    void unmap(const DxvkBufferSliceHandle& slice);
+
     void map();
     void unmap();
     
@@ -321,7 +324,7 @@ namespace dxvk {
     sync::Spinlock                      m_swapMutex;
     std::vector<DxvkBufferSliceHandle>  m_nextSlices;
 
-    bool                                m_isMapped = true;
+    std::atomic<bool>                   m_isMapped = true;
 
     void pushSlice(const DxvkBufferHandle& handle, uint32_t index) {
       DxvkBufferSliceHandle slice;
