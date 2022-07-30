@@ -479,8 +479,11 @@ namespace dxvk {
     if (useMemoryPriority)
       prio.pNext = std::exchange(info.pNext, &prio);
 
-    if (m_vkd->vkAllocateMemory(m_vkd->device(), &info, nullptr, &result.memHandle) != VK_SUCCESS)
+    VkResult allocResult = m_vkd->vkAllocateMemory(m_vkd->device(), &info, nullptr, &result.memHandle);
+    if (allocResult != VK_SUCCESS) {
+      Logger::err(str::format("Vulkan memory allocation failed: ", allocResult));
       return DxvkDeviceMemory();
+    }
 
     type->heap->stats.memoryAllocated += size;
     m_device->adapter()->notifyHeapMemoryAlloc(type->heapId, size);
