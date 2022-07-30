@@ -154,24 +154,35 @@ namespace dxvk {
   }
 
   void DxvkBuffer::map(DxvkBufferSliceHandle& slice) {
+    if (likely(m_buffer.buffer == slice.handle)) {
+      m_buffer.memory.map();
+      slice.mapPtr = m_buffer.memory.mapPtr(slice.offset);
+      return;
+    }
+
     std::unique_lock<sync::Spinlock> freeLock(m_freeMutex);
 
     for (auto& buffer : m_buffers) {
       if (buffer.buffer == slice.handle) {
         buffer.memory.map();
         slice.mapPtr = buffer.memory.mapPtr(slice.offset);
-        break;
+        return;
       }
     }
   }
 
   void DxvkBuffer::unmap(const DxvkBufferSliceHandle& slice) {
+    if (likely(m_buffer.buffer == slice.handle)) {
+      m_buffer.memory.unmap();
+      return;
+    }
+
     std::unique_lock<sync::Spinlock> freeLock(m_freeMutex);
 
     for (auto& buffer : m_buffers) {
       if (buffer.buffer == slice.handle) {
         buffer.memory.unmap();
-        break;
+        return;
       }
     }
   }
