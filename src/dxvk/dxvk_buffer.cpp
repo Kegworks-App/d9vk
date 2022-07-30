@@ -153,7 +153,51 @@ namespace dxvk {
     return result;
   }
 
+  void DxvkBuffer::map() {
+    // AAAAAAAAAAAAAAAAAAAAAAAAA
+    if (m_isMapped)
+      return;
 
+    std::unique_lock<sync::Spinlock> freeLock(m_freeMutex);
+    for (auto& buffer : m_buffers) {
+      if (buffer.buffer == m_physSlice.handle) {
+        buffer.memory.map();
+        m_physSlice.mapPtr = buffer.memory.mapPtr(m_physSlice.offset);
+        break;
+      }
+    }
+
+    for (auto& slice : m_freeSlices) {
+      for (auto& buffer : m_buffers) {
+        if (buffer.buffer == slice.handle) {
+          buffer.memory.map();
+          slice.mapPtr = buffer.memory.mapPtr(slice.offset);
+          break;
+        }
+      }
+    }
+
+    std::unique_lock<sync::Spinlock> swapLock(m_swapMutex);
+    for (auto& slice : m_nextSlices) {
+      for (auto& buffer : m_buffers) {
+        if (buffer.buffer == slice.handle) {
+          buffer.memory.map();
+          slice.mapPtr = buffer.memory.mapPtr(slice.offset);
+          break;
+        }
+      }
+    }
+  }
+
+  void DxvkBuffer::unmap() {
+    if (!m_isMapped)
+      return;
+
+    std::unique_lock<sync::Spinlock> freeLock(m_freeMutex);
+    for (auto& buffer : m_buffers) {
+      buffer.memory.unmap();
+    }
+  }
 
   
   DxvkBufferView::DxvkBufferView(

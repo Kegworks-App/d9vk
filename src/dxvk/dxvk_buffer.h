@@ -289,6 +289,9 @@ namespace dxvk {
       std::unique_lock<sync::Spinlock> swapLock(m_swapMutex);
       m_nextSlices.push_back(slice);
     }
+
+    void map();
+    void unmap();
     
   private:
 
@@ -317,6 +320,8 @@ namespace dxvk {
     alignas(CACHE_LINE_SIZE)
     sync::Spinlock                      m_swapMutex;
     std::vector<DxvkBufferSliceHandle>  m_nextSlices;
+
+    bool                                m_isMapped = true;
 
     void pushSlice(const DxvkBufferHandle& handle, uint32_t index) {
       DxvkBufferSliceHandle slice;
