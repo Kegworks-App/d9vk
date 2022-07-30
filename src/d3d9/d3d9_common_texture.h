@@ -226,7 +226,10 @@ namespace dxvk {
     }
 
     void UnmapData(UINT Subresource) {
-      m_data[Subresource].Unmap();
+      if (unlikely(m_mappedSlices[Subresource].mapPtr != nullptr || m_mapMode != D3D9_COMMON_TEXTURE_MAP_MODE_UNMAPPABLE))
+        m_buffers[Subresource]->unmap(m_mappedSlices[Subresource]);
+      else
+        m_data[Subresource].Unmap();
     }
 
     void UnmapData() {

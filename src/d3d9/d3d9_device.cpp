@@ -7249,9 +7249,9 @@ namespace dxvk {
     void *ptr = pTexture->GetData(Subresource);
 
 #ifdef D3D9_ALLOW_UNMAPPING
-    if (likely(pTexture->GetMapMode() == D3D9_COMMON_TEXTURE_MAP_MODE_UNMAPPABLE)) {
+    //if (likely(pTexture->GetMapMode() == D3D9_COMMON_TEXTURE_MAP_MODE_UNMAPPABLE)) {
       m_mappedTextures.insert(pTexture);
-    }
+    //}
 #endif
 
     return ptr;
@@ -7259,8 +7259,8 @@ namespace dxvk {
 
   void D3D9DeviceEx::TouchMappedTexture(D3D9CommonTexture* pTexture) {
 #ifdef D3D9_ALLOW_UNMAPPING
-    if (pTexture->GetMapMode() != D3D9_COMMON_TEXTURE_MAP_MODE_UNMAPPABLE)
-      return;
+    //if (pTexture->GetMapMode() != D3D9_COMMON_TEXTURE_MAP_MODE_UNMAPPABLE)
+      //return;
 
     D3D9DeviceLock lock = LockDevice();
     m_mappedTextures.touch(pTexture);
@@ -7269,8 +7269,8 @@ namespace dxvk {
 
   void D3D9DeviceEx::RemoveMappedTexture(D3D9CommonTexture* pTexture) {
 #ifdef D3D9_ALLOW_UNMAPPING
-    if (pTexture->GetMapMode() != D3D9_COMMON_TEXTURE_MAP_MODE_UNMAPPABLE)
-      return;
+    //if (pTexture->GetMapMode() != D3D9_COMMON_TEXTURE_MAP_MODE_UNMAPPABLE)
+      //return;
 
     D3D9DeviceLock lock = LockDevice();
     m_mappedTextures.remove(pTexture);
@@ -7281,14 +7281,14 @@ namespace dxvk {
     // Will only be called inside the device lock
 
 #ifdef D3D9_ALLOW_UNMAPPING
-    uint32_t mappedMemory = m_memoryAllocator.MappedMemory();
+    /*uint32_t mappedMemory = m_memoryAllocator.MappedMemory();
     if (likely(mappedMemory < uint32_t(m_d3d9Options.textureMemory)))
       return;
 
-    uint32_t threshold = (m_d3d9Options.textureMemory / 4) * 3;
+    uint32_t threshold = (m_d3d9Options.textureMemory / 4) * 3;*/
 
     auto iter = m_mappedTextures.leastRecentlyUsedIter();
-    while (m_memoryAllocator.MappedMemory() >= threshold && iter != m_mappedTextures.leastRecentlyUsedEndIter()) {
+    while (/*m_memoryAllocator.MappedMemory() >= threshold &&*/ iter != m_mappedTextures.leastRecentlyUsedEndIter()) {
       if (unlikely((*iter)->IsAnySubresourceLocked() != 0)) {
         iter++;
         continue;

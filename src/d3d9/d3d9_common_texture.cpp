@@ -171,8 +171,10 @@ namespace dxvk {
   }
 
   void* D3D9CommonTexture::GetData(UINT Subresource) {
-    if (unlikely(m_mappedSlices[Subresource].mapPtr != nullptr || m_mapMode != D3D9_COMMON_TEXTURE_MAP_MODE_UNMAPPABLE))
+    if (unlikely(m_mappedSlices[Subresource].mapPtr != nullptr || m_mapMode != D3D9_COMMON_TEXTURE_MAP_MODE_UNMAPPABLE)) {
+      m_buffers[Subresource]->map(m_mappedSlices[Subresource]);
       return m_mappedSlices[Subresource].mapPtr;
+    }
 
     D3D9Memory& memory = m_data[Subresource];
     memory.Map();
@@ -488,11 +490,6 @@ namespace dxvk {
   D3D9_COMMON_TEXTURE_MAP_MODE D3D9CommonTexture::DetermineMapMode() const {
     if (m_desc.Format == D3D9Format::NULL_FORMAT)
       return D3D9_COMMON_TEXTURE_MAP_MODE_NONE;
-
-#ifdef D3D9_ALLOW_UNMAPPING
-    if (m_device->GetOptions()->textureMemory != 0 && m_desc.Pool != D3DPOOL_DEFAULT)
-      return D3D9_COMMON_TEXTURE_MAP_MODE_UNMAPPABLE;
-#endif
 
     if (m_desc.Pool == D3DPOOL_SYSTEMMEM || m_desc.Pool == D3DPOOL_SCRATCH)
       return D3D9_COMMON_TEXTURE_MAP_MODE_SYSTEMMEM;
