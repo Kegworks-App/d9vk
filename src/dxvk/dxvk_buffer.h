@@ -289,6 +289,12 @@ namespace dxvk {
       std::unique_lock<sync::Spinlock> swapLock(m_swapMutex);
       m_nextSlices.push_back(slice);
     }
+
+    void map(DxvkBufferSliceHandle& slice);
+    void unmap(const DxvkBufferSliceHandle& slice);
+
+    void map();
+    void unmap();
     
   private:
 
