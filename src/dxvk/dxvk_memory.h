@@ -194,6 +194,7 @@ namespace dxvk {
     GpuWritable       = 2,  ///< High-priority resource
     Transient         = 3,  ///< Resource is short-lived
     IgnoreConstraints = 4,  ///< Ignore most allocation flags
+    Unmappable        = 5,  ///< Can be unmapped
   };
 
   using DxvkMemoryFlags = Flags<DxvkMemoryFlag>;

@@ -204,7 +204,12 @@ namespace dxvk {
       DxvkMemoryFlag::Small,
       DxvkMemoryFlag::GpuReadable,
       DxvkMemoryFlag::GpuWritable,
-      DxvkMemoryFlag::Transient);
+      DxvkMemoryFlag::Transient,
+      DxvkMemoryFlag::Unmappable);
+
+    if (!env::is32BitHostPlatform()) {
+      mask.clr(DxvkMemoryFlag::Unmappable);
+    }
 
     if (hints.test(DxvkMemoryFlag::IgnoreConstraints))
       mask = DxvkMemoryFlags();
