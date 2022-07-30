@@ -4610,7 +4610,7 @@ namespace dxvk {
       physSlice = pResource->DiscardMapSlice();
 
       EmitCs([
-        cBuffer      = std::move(mappingBuffer),
+        cBuffer      = mappingBuffer,
         cBufferSlice = physSlice
       ] (DxvkContext* ctx) {
         ctx->invalidateBuffer(cBuffer, cBufferSlice);
@@ -4631,13 +4631,13 @@ namespace dxvk {
       const bool directMapping = pResource->GetMapMode() == D3D9_COMMON_BUFFER_MAP_MODE_DIRECT;
       const bool skipWait = (!needsReadback && (readOnly || !directMapping)) || noOverwrite;
       if (!skipWait) {
-        const Rc<DxvkBuffer> mappingBuffer = pResource->GetBuffer<D3D9_COMMON_BUFFER_TYPE_MAPPING>();
         if (!WaitForResource(mappingBuffer, pResource->GetMappingBufferSequenceNumber(), Flags))
           return D3DERR_WASSTILLDRAWING;
 
         pResource->SetNeedsReadback(false);
       }
     }
+    mappingBuffer->map(physSlice);
 
     uint8_t* data = reinterpret_cast<uint8_t*>(physSlice.mapPtr);
     // The offset/size is not clamped to or affected by the desc size.
@@ -4664,6 +4664,7 @@ namespace dxvk {
         D3D9CommonBuffer*       pResource) {
     auto dstBuffer = pResource->GetBufferSlice<D3D9_COMMON_BUFFER_TYPE_REAL>();
     auto srcSlice = pResource->GetMappedSlice();
+    pResource->GetBuffer<D3D9_COMMON_BUFFER_TYPE_MAPPING>()->map(srcSlice);
 
     D3D9Range& range = pResource->DirtyRange();
 
@@ -4672,6 +4673,7 @@ namespace dxvk {
     memcpy(slice.mapPtr, srcData, range.max - range.min);
 
     slice.slice.buffer()->unmap();
+    pResource->GetBuffer<D3D9_COMMON_BUFFER_TYPE_MAPPING>()->unmap(srcSlice);
 
     EmitCs([
       cDstSlice  = dstBuffer,
@@ -4701,6 +4703,8 @@ namespace dxvk {
 
     if (pResource->DecrementLockCount() != 0)
       return D3D_OK;
+
+    pResource->GetBuffer<D3D9_COMMON_BUFFER_TYPE_MAPPING>()->unmap(pResource->GetMappedSlice());
 
     if (pResource->GetMapMode() != D3D9_COMMON_BUFFER_MAP_MODE_BUFFER)
       return D3D_OK;
