@@ -5883,4 +5883,8 @@ namespace dxvk {
     return m_zeroBuffer;
   }
   
+
+  void DxvkContext::insertMarker(const Rc<DxvkMarker>& marker) {
+    m_cmd->trackResource<DxvkAccess::Write>(marker);
+  }
 }
