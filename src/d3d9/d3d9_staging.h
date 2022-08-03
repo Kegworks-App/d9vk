@@ -35,6 +35,10 @@ namespace dxvk {
 
     DxvkBufferSlice Alloc(uint32_t Size);
 
+    uint32_t StagingMemory() const {
+      return m_stagingMem;
+    }
+
   private:
 
     D3D9DeviceEx* m_device;
