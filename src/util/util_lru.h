@@ -62,7 +62,7 @@ namespace dxvk {
 
   private:
     std::list<T> m_list;
-    std::unordered_map<T, const_iterator> m_cache;
+    std::unordered_map<T, const_iterator, DxvkHash, DxvkEq> m_cache;
 
   };
 

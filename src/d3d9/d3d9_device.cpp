@@ -7249,7 +7249,7 @@ namespace dxvk {
 
 #ifdef D3D9_ALLOW_UNMAPPING
     if (likely(pTexture->GetMapMode() == D3D9_COMMON_TEXTURE_MAP_MODE_UNMAPPABLE)) {
-      m_mappedTextures.insert(pTexture);
+      m_mappedTextures.insert(D3D9MappedTexture(pTexture, Subresource));
     }
 #endif
 
@@ -7262,7 +7262,9 @@ namespace dxvk {
       return;
 
     D3D9DeviceLock lock = LockDevice();
-    m_mappedTextures.touch(pTexture);
+    for (uint32_t i = 0; i < pTexture->CountSubresources(); i++) {
+      m_mappedTextures.touch(D3D9MappedTexture(pTexture, i));
+    }
 #endif
   }
 
@@ -7272,7 +7274,9 @@ namespace dxvk {
       return;
 
     D3D9DeviceLock lock = LockDevice();
-    m_mappedTextures.remove(pTexture);
+    for (uint32_t i = 0; i < pTexture->CountSubresources(); i++) {
+      m_mappedTextures.remove(D3D9MappedTexture(pTexture, i));
+    }
 #endif
   }
 
@@ -7288,11 +7292,11 @@ namespace dxvk {
 
     auto iter = m_mappedTextures.leastRecentlyUsedIter();
     while (m_memoryAllocator.MappedMemory() >= threshold && iter != m_mappedTextures.leastRecentlyUsedEndIter()) {
-      if (unlikely((*iter)->IsAnySubresourceLocked() != 0)) {
+      if (unlikely(iter->texture->GetLocked(iter->subresource))) {
         iter++;
         continue;
       }
-      (*iter)->UnmapData();
+      iter->texture->UnmapData(iter->subresource);
 
       iter = m_mappedTextures.remove(iter);
     }

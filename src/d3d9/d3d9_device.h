@@ -94,6 +94,26 @@ namespace dxvk {
     void*           mapPtr = nullptr;
   };
 
+  struct D3D9MappedTexture {
+    D3D9CommonTexture* texture;
+    uint32_t subresource;
+
+    D3D9MappedTexture(D3D9CommonTexture* pTexture, uint32_t Subresource)
+      : texture(pTexture),
+        subresource(Subresource) {}
+
+    bool eq(const D3D9MappedTexture& other) const {
+      return texture == other.texture && subresource == other.subresource;
+    }
+
+    size_t hash() const {
+      DxvkHashState hash;
+      hash.add(size_t(texture));
+      hash.add(size_t(subresource));
+      return hash;
+    }
+  };
+
   class D3D9DeviceEx final : public ComObjectClamp<IDirect3DDevice9Ex> {
     constexpr static uint32_t DefaultFrameLatency = 3;
     constexpr static uint32_t MaxFrameLatency     = 20;
@@ -1292,7 +1312,7 @@ namespace dxvk {
     Direct3DState9                  m_state;
 
 #ifdef D3D9_ALLOW_UNMAPPING
-    lru_list<D3D9CommonTexture*>    m_mappedTextures;
+    lru_list<D3D9MappedTexture> m_mappedTextures;
 #endif
   };
 
