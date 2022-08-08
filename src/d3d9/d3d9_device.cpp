@@ -888,6 +888,7 @@ namespace dxvk {
     VkExtent3D dstTexExtent = dstTexInfo->GetExtentMip(dst->GetMipLevel());
     VkExtent3D srcTexExtent = srcTexInfo->GetExtentMip(src->GetMipLevel());
 
+    Logger::warn(str::format("GetRTData", dstTexInfo, ", subresource: ", dst->GetSubresource(), " init? ", dstTexExtent.width > srcTexExtent.width || dstTexExtent.height > srcTexExtent.height));
     Rc<DxvkBuffer> dstBuffer = dstTexInfo->GetBuffer(dst->GetSubresource(), dstTexExtent.width > srcTexExtent.width || dstTexExtent.height > srcTexExtent.height);
 
     Rc<DxvkImage>  srcImage                 = srcTexInfo->GetImage();
@@ -4176,7 +4177,7 @@ namespace dxvk {
     // then we need to copy -> buffer
     // We are also always dirty if we are a render target,
     // a depth stencil, or auto generate mipmaps.
-    bool needsReadback = pResource->NeedsReachback(Subresource) || renderable;
+    bool needsReadback = pResource->NeedsReadback(Subresource) || renderable;
     pResource->SetNeedsReadback(Subresource, false);
 
     void* mapPtr;
