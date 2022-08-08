@@ -888,7 +888,6 @@ namespace dxvk {
     VkExtent3D dstTexExtent = dstTexInfo->GetExtentMip(dst->GetMipLevel());
     VkExtent3D srcTexExtent = srcTexInfo->GetExtentMip(src->GetMipLevel());
 
-    Logger::warn(str::format("GetRTData", dstTexInfo, ", subresource: ", dst->GetSubresource(), " init? ", dstTexExtent.width > srcTexExtent.width || dstTexExtent.height > srcTexExtent.height));
     Rc<DxvkBuffer> dstBuffer = dstTexInfo->GetBuffer(dst->GetSubresource(), dstTexExtent.width > srcTexExtent.width || dstTexExtent.height > srcTexExtent.height);
 
     Rc<DxvkImage>  srcImage                 = srcTexInfo->GetImage();
@@ -4468,31 +4467,51 @@ namespace dxvk {
           + srcOffsetBlockCount.y * pitch
           + srcOffsetBlockCount.x * formatInfo->elementSize;
 
-      const void* mapPtr = MapTexture(pSrcTexture, SrcSubresource);
-      VkDeviceSize dirtySize = extentBlockCount.width * extentBlockCount.height * extentBlockCount.depth * formatInfo->elementSize;
-      D3D9BufferSlice slice = AllocStagingBuffer(dirtySize);
-      const void* srcData = reinterpret_cast<const uint8_t*>(mapPtr) + copySrcOffset;
-      util::packImageData(
-        slice.mapPtr, srcData, extentBlockCount, formatInfo->elementSize,
-        pitch, pitch * srcTexLevelExtentBlockCount.height);
+      VkDeviceSize sliceAlignment = 1;
+      VkDeviceSize rowAlignment = 1;
+      DxvkBufferSlice copySrcSlice;
+      if (!pSrcTexture->NeedsReadback(SrcSubresource)) {
+        const void* mapPtr = MapTexture(pSrcTexture, SrcSubresource);
+        VkDeviceSize dirtySize = extentBlockCount.width * extentBlockCount.height * extentBlockCount.depth * formatInfo->elementSize;
+        D3D9BufferSlice slice = AllocStagingBuffer(dirtySize);
+        copySrcSlice = slice.slice;
+        const void* srcData = reinterpret_cast<const uint8_t*>(mapPtr) + copySrcOffset;
+        util::packImageData(
+          slice.mapPtr, srcData, extentBlockCount, formatInfo->elementSize,
+          pitch, pitch * srcTexLevelExtentBlockCount.height);
+      } else {
+        Rc<DxvkBuffer> buffer = pSrcTexture->GetBuffer(SrcSubresource, true);
+        copySrcSlice = DxvkBufferSlice(buffer, copySrcOffset, buffer->info().size - copySrcOffset);
+        // row/slice alignment can act as the pitch parameter
+        rowAlignment = pitch;
+        sliceAlignment = srcTexLevelExtentBlockCount.height * pitch;
+      }
 
       EmitCs([
-        cSrcSlice       = slice.slice,
+        cSrcSlice       = copySrcSlice,
         cDstImage       = image,
         cDstLayers      = dstLayers,
         cDstLevelExtent = alignedExtent,
-        cOffset         = alignedDestOffset
+        cOffset         = alignedDestOffset,
+        cRowAlignment   = rowAlignment,
+        cSliceAlignment = sliceAlignment
       ] (DxvkContext* ctx) {
         ctx->copyBufferToImage(
           cDstImage,  cDstLayers,
           cOffset, cDstLevelExtent,
           cSrcSlice.buffer(), cSrcSlice.offset(),
-          1, 1);
+          cRowAlignment, cSliceAlignment);
       });
 
       TrackTextureMappingBufferSequenceNumber(pSrcTexture, SrcSubresource);
     }
     else {
+      if (pSrcTexture->NeedsReadback(SrcSubresource)) {
+        Rc<DxvkBuffer> buffer = pSrcTexture->GetBuffer(SrcSubresource, true);
+        WaitForResource(buffer, pSrcTexture->GetMappingBufferSequenceNumber(SrcSubresource), 0);
+        pSrcTexture->SetNeedsReadback(SrcSubresource, false);
+      }
+
       const DxvkFormatInfo* formatInfo = lookupFormatInfo(pDestTexture->GetFormatMapping().FormatColor);
       const void* mapPtr = MapTexture(pSrcTexture, SrcSubresource);
 
