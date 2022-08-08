@@ -52,6 +52,7 @@ namespace dxvk::hud {
         uint32_t m_maxUsed      = 0;
         uint32_t m_maxMapped    = 0;
         uint32_t m_maxStaging   = 0;
+        uint32_t m_maxShaderMem   = 0;
 
         dxvk::high_resolution_clock::time_point m_lastUpdate
           = dxvk::high_resolution_clock::now();
@@ -59,6 +60,7 @@ namespace dxvk::hud {
         std::string m_allocatedString;
         std::string m_mappedString;
         std::string m_stagingString;
+        std::string m_shaderString;
 
     };
 

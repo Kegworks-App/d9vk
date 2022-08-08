@@ -46,6 +46,8 @@ namespace dxvk::hud {
     m_maxUsed = std::max(m_maxUsed, allocator->UsedMemory());
     m_maxMapped = std::max(m_maxMapped, allocator->MappedMemory());
     m_maxStaging = std::max(m_maxStaging, m_device->StagingMemory());
+    uint32_t shaderMem = uint32_t(m_device->shaderMem.load());
+    m_maxShaderMem = std::max(m_maxShaderMem, shaderMem);
 
     auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(time - m_lastUpdate);
 
@@ -55,6 +57,7 @@ namespace dxvk::hud {
     m_allocatedString = str::format(m_maxAllocated >> 20, " MB (Used: ", m_maxUsed >> 20, " MB)");
     m_mappedString = str::format(m_maxMapped >> 20, " MB");
     m_stagingString = str::format(m_maxStaging >> 20, " MB");
+    m_shaderString = str::format(m_maxShaderMem >> 20, " MB");
     m_maxAllocated = 0;
     m_maxUsed = 0;
     m_maxMapped = 0;
@@ -103,6 +106,18 @@ namespace dxvk::hud {
                         { 1.0f, 1.0f, 1.0f, 1.0f },
                         m_stagingString);
     }
+
+    position.y += 24.0f;
+
+    renderer.drawText(16.0f,
+                      { position.x, position.y },
+                      { 0.0f, 1.0f, 0.75f, 1.0f },
+                      "Shader bytecode:");
+
+    renderer.drawText(16.0f,
+                      { position.x + 200.0f, position.y },
+                      { 1.0f, 1.0f, 1.0f, 1.0f },
+                      m_shaderString);
 
     position.y += 8.0f;
 
