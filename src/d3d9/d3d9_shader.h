@@ -9,6 +9,8 @@
 
 namespace dxvk {
 
+  class D3D9DeviceEx;
+
 
   /**
    * \brief Common shader object
@@ -31,6 +33,10 @@ namespace dxvk {
       const void*                 pShaderBytecode,
       const DxsoAnalysisInfo&     AnalysisInfo,
             DxsoModule*           pModule);
+
+    D3D9CommonShader(const D3D9CommonShader& other);
+
+    ~D3D9CommonShader();
 
 
     Rc<DxvkShader> GetShader(D3D9ShaderPermutation Permutation) const {
@@ -59,6 +65,8 @@ namespace dxvk {
     uint32_t GetMaxDefinedConstant() const { return m_maxDefinedConst; }
 
   private:
+
+    D3D9DeviceEx*         m_device;
 
     DxsoIsgn              m_isgn;
     uint32_t              m_usedSamplers;

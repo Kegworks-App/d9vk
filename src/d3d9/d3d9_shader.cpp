@@ -16,6 +16,9 @@ namespace dxvk {
       const void*                 pShaderBytecode,
       const DxsoAnalysisInfo&     AnalysisInfo,
             DxsoModule*           pModule) {
+
+    m_device = pDevice;
+
     const uint32_t bytecodeLength = AnalysisInfo.bytecodeByteLength;
     m_bytecode.resize(bytecodeLength);
     std::memcpy(m_bytecode.data(), pShaderBytecode, bytecodeLength);
@@ -92,6 +95,30 @@ namespace dxvk {
 
     if (m_shaders[1] != nullptr && m_shaders[1] != m_shaders[0])
       pDevice->GetDXVKDevice()->registerShader(m_shaders[1]);
+
+    m_device->shaderMem += m_bytecode.size();
+    Logger::warn(str::format("Shader mem = ", m_device->shaderMem.load() >> 20, " increased by ", m_bytecode.size()));
+  }
+
+
+  D3D9CommonShader::D3D9CommonShader(const D3D9CommonShader& other)
+    : m_device(other.m_device),
+      m_isgn(other.m_isgn),
+      m_usedSamplers(other.m_usedSamplers),
+      m_usedRTs(other.m_usedRTs),
+      m_info(other.m_info),
+      m_meta(other.m_meta),
+      m_constants(other.m_constants),
+      m_maxDefinedConst(other.m_maxDefinedConst),
+      m_shaders(other.m_shaders),
+      m_bytecode(other.m_bytecode) {
+    m_device->shaderMem += m_bytecode.size();
+    //Logger::warn(str::format("Shader mem = ", m_device->shaderMem.load() >> 20, " COPY increased by ", m_bytecode.size()));
+  }
+
+  D3D9CommonShader::~D3D9CommonShader() {
+    m_device->shaderMem -= m_bytecode.size();
+    //Logger::warn(str::format("Shader mem = ", m_device->shaderMem.load() >> 20, " decreased by ", m_bytecode.size(), " this: ", this));
   }
 
 

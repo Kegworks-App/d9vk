@@ -948,6 +948,8 @@ namespace dxvk {
       return m_stagingBuffer.StagingMemory();
     }
 
+    std::atomic<uint64_t> shaderMem = 0;
+
   private:
 
     DxvkCsChunkRef AllocCsChunk() {
