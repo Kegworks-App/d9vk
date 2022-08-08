@@ -993,7 +993,7 @@ namespace dxvk {
     bool ShouldRecord();
 
     HRESULT               CreateShaderModule(
-            D3D9CommonShader*     pShaderModule,
+            D3D9CommonShader**    ppShaderModule,
             VkShaderStageFlagBits ShaderStage,
       const DWORD*                pShaderBytecode,
       const DxsoModuleInfo*       pModuleInfo);

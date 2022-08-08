@@ -15,10 +15,15 @@ namespace dxvk {
       const DxsoModuleInfo*       pDxsoModuleInfo,
       const void*                 pShaderBytecode,
       const DxsoAnalysisInfo&     AnalysisInfo,
-            DxsoModule*           pModule) {
-    const uint32_t bytecodeLength = AnalysisInfo.bytecodeByteLength;
-    m_bytecode.resize(bytecodeLength);
-    std::memcpy(m_bytecode.data(), pShaderBytecode, bytecodeLength);
+            DxsoModule*           pModule,
+            D3D9MemoryAllocator*  pAllocator)
+      : m_allocator(pAllocator) {
+    m_bytecodeLength = AnalysisInfo.bytecodeByteLength;
+    m_memory = m_allocator->Alloc(m_bytecodeLength);
+    m_memory.Map();
+    std::memcpy(m_memory.Ptr(), pShaderBytecode, m_bytecodeLength);
+    m_memory.Unmap();
+
 
     const std::string name = Key.toString();
     Logger::debug(str::format("Compiling shader ", name));
@@ -32,7 +37,7 @@ namespace dxvk {
         reinterpret_cast<const char*>(pShaderBytecode));
 
       reader.store(std::ofstream(str::tows(str::format(dumpPath, "/", name, ".dxso").c_str()).c_str(),
-        std::ios_base::binary | std::ios_base::trunc), bytecodeLength);
+        std::ios_base::binary | std::ios_base::trunc), m_bytecodeLength);
 
       char comment[2048];
       Com<ID3DBlob> blob;
@@ -94,10 +99,9 @@ namespace dxvk {
       pDevice->GetDXVKDevice()->registerShader(m_shaders[1]);
   }
 
-
   void D3D9ShaderModuleSet::GetShaderModule(
             D3D9DeviceEx*         pDevice,
-            D3D9CommonShader*     pShaderModule,
+            D3D9CommonShader**    ppShaderModule,
             VkShaderStageFlagBits ShaderStage,
       const DxsoModuleInfo*       pDxbcModuleInfo,
       const void*                 pShaderBytecode) {
@@ -123,27 +127,30 @@ namespace dxvk {
       
       auto entry = m_modules.find(lookupKey);
       if (entry != m_modules.end()) {
-        *pShaderModule = entry->second;
+        *ppShaderModule = &entry->second;
         return;
       }
     }
     
     // This shader has not been compiled yet, so we have to create a
     // new module. This takes a while, so we won't lock the structure.
-    *pShaderModule = D3D9CommonShader(
+    D3D9CommonShader shaderModule = D3D9CommonShader(
       pDevice, ShaderStage, lookupKey,
       pDxbcModuleInfo, pShaderBytecode,
-      info, &module);
+      info, &module, &m_allocator);
     
     // Insert the new module into the lookup table. If another thread
     // has compiled the same shader in the meantime, we should return
     // that object instead and discard the newly created module.
     { std::unique_lock<dxvk::mutex> lock(m_mutex);
       
-      auto status = m_modules.insert({ lookupKey, *pShaderModule });
+      auto status = m_modules.insert({ lookupKey, std::move(shaderModule) });
       if (!status.second) {
-        *pShaderModule = status.first->second;
+        *ppShaderModule = &status.first->second;
         return;
+      } else {
+        auto entry = m_modules.find(lookupKey);
+        *ppShaderModule = &entry->second;
       }
     }
   }
