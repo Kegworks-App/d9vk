@@ -5906,10 +5906,14 @@ namespace dxvk {
     ] (DxvkContext* ctx) {
       VkShaderStageFlags stage = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 
-      auto pair = m_samplers.find(cKey);
-      if (pair != m_samplers.end()) {
+      size_t keyHash = cKey.hash();
+      size_t index = keyHash % m_samplers.size();
+
+      const std::pair<D3D9SamplerKey, Rc<DxvkSampler>>& pair = m_samplers[index];
+      bool slotOccupied = pair.second != nullptr;
+      if (likely(slotOccupied && pair.first.eq(cKey))) {
         ctx->bindResourceSampler(stage, cSlot,
-          Rc<DxvkSampler>(pair->second));
+          Rc<DxvkSampler>(pair.second));
         return;
       }
 
@@ -5949,7 +5953,7 @@ namespace dxvk {
       try {
         auto sampler = m_dxvkDevice->createSampler(info);
 
-        m_samplers.insert(std::make_pair(cKey, sampler));
+        m_samplers[index] = std::make_pair(cKey, sampler);
         ctx->bindResourceSampler(stage, cSlot, std::move(sampler));
 
         m_samplerCount++;

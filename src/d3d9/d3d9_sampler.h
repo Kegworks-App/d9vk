@@ -10,6 +10,31 @@
 
 namespace dxvk {
 
+  class D3D9MipBiasFixed {
+    // AMD HW uses 8 bits but that still leads to too many samplers.
+    static constexpr int frac_bits = 6;
+  public:
+    D3D9MipBiasFixed() {}
+
+    D3D9MipBiasFixed(float value) {
+      // Games also pass NAN here, this accounts for that.
+      if (value != value)
+        value = 0.0f;
+
+      // Clamp between -15.0f and 15.0f, matching mip limits of d3d9.
+      value = std::clamp(value, -15.0f, 15.0f);
+
+      // Convert to signed fixed point.
+      data = value * (1 << frac_bits);
+    }
+
+    operator float() const {
+      return float(data) / (1 << frac_bits);
+    }
+
+    int data = 0;
+  };
+
   struct D3D9SamplerKey {
     D3DTEXTUREADDRESS AddressU;
     D3DTEXTUREADDRESS AddressV;
@@ -18,18 +43,13 @@ namespace dxvk {
     D3DTEXTUREFILTERTYPE MinFilter;
     D3DTEXTUREFILTERTYPE MipFilter;
     DWORD MaxAnisotropy;
-    float MipmapLodBias;
+    D3D9MipBiasFixed MipmapLodBias;
     DWORD MaxMipLevel;
     D3DCOLOR BorderColor;
     bool Depth;
-  };
 
-  struct D3D9SamplerKeyHash {
-    size_t operator () (const D3D9SamplerKey& key) const;
-  };
-
-  struct D3D9SamplerKeyEq {
-    bool operator () (const D3D9SamplerKey& a, const D3D9SamplerKey& b) const;
+    size_t hash() const;
+    bool eq(const D3D9SamplerKey& other) const;
   };
 
   inline void NormalizeSamplerKey(D3D9SamplerKey& key) {
@@ -50,19 +70,6 @@ namespace dxvk {
     if (key.MipFilter == D3DTEXF_NONE) {
       // May as well try and keep slots down.
       key.MipmapLodBias = 0;
-    }
-    else {
-      // Games also pass NAN here, this accounts for that.
-      if (unlikely(key.MipmapLodBias != key.MipmapLodBias))
-        key.MipmapLodBias = 0.0f;
-
-      // Clamp between -15.0f and 15.0f, matching mip limits of d3d9.
-      key.MipmapLodBias = std::clamp(key.MipmapLodBias, -15.0f, 15.0f);
-
-      // Round to the nearest .5
-      // Fixes sampler leaks in UE3 games w/ mip streaming
-      // eg. Borderlands 2
-      key.MipmapLodBias = std::round(key.MipmapLodBias * 2.0f) / 2.0f;
     }
 
     if (key.AddressU != D3DTADDRESS_BORDER

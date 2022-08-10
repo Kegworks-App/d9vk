@@ -1213,11 +1213,7 @@ namespace dxvk {
     const D3D9Options               m_d3d9Options;
     DxsoOptions                     m_dxsoOptions;
 
-    std::unordered_map<
-      D3D9SamplerKey,
-      Rc<DxvkSampler>,
-      D3D9SamplerKeyHash,
-      D3D9SamplerKeyEq>             m_samplers;
+    std::array<std::pair<D3D9SamplerKey, Rc<DxvkSampler>>, 1024> m_samplers = {};
 
     std::unordered_map<
       DWORD,
