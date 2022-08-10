@@ -4,7 +4,7 @@
 
 namespace dxvk {
 
-  template<typename T>
+  template<typename T, class Hash = hash<Key>, class Pred = equal_to<Key>>
   class lru_list {
 
   public:
@@ -48,11 +48,11 @@ namespace dxvk {
       m_cache[value] = iter;
     }
 
-    const_iterator leastRecentlyUsedIter() const {
+    const_iterator cbegin() const {
       return m_list.cbegin();
     }
 
-    const_iterator leastRecentlyUsedEndIter() const {
+    const_iterator cend() const {
       return m_list.cend();
     }
 
@@ -62,7 +62,7 @@ namespace dxvk {
 
   private:
     std::list<T> m_list;
-    std::unordered_map<T, const_iterator> m_cache;
+    std::unordered_map<T, const_iterator, Hash, Pred> m_cache;
 
   };
 
