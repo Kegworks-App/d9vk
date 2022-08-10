@@ -153,6 +153,8 @@ namespace dxvk {
     m_flags.set(D3D9DeviceFlag::DirtyPointScale);
 
     m_flags.set(D3D9DeviceFlag::DirtySpecializationEntries);
+
+    m_samplers.rehash(MaxSamplerCount);
   }
 
 
@@ -5906,14 +5908,10 @@ namespace dxvk {
     ] (DxvkContext* ctx) {
       VkShaderStageFlags stage = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 
-      size_t keyHash = cKey.hash();
-      size_t index = keyHash % m_samplers.size();
-
-      const std::pair<D3D9SamplerKey, Rc<DxvkSampler>>& pair = m_samplers[index];
-      bool slotOccupied = pair.second != nullptr;
-      if (likely(slotOccupied && pair.first.eq(cKey))) {
+      auto pair = m_samplers.find(cKey);
+      if (likely(pair != m_samplers.cend())) {
         ctx->bindResourceSampler(stage, cSlot,
-          Rc<DxvkSampler>(pair.second));
+          Rc<DxvkSampler>(pair->second));
         return;
       }
 
@@ -5951,9 +5949,12 @@ namespace dxvk {
       }
 
       try {
-        auto sampler = m_dxvkDevice->createSampler(info);
+        if (m_samplers.size() == MaxSamplerCount) {
+          m_samplers.erase(m_samplers.cbegin());
+        }
 
-        m_samplers[index] = std::make_pair(cKey, sampler);
+        auto sampler = m_dxvkDevice->createSampler(info);
+        m_samplers.insert(cKey, sampler);
         ctx->bindResourceSampler(stage, cSlot, std::move(sampler));
 
         m_samplerCount++;
@@ -7299,7 +7300,7 @@ namespace dxvk {
       return;
 
     D3D9DeviceLock lock = LockDevice();
-    m_mappedTextures.remove(pTexture);
+    m_mappedTextures.erase(pTexture);
 #endif
   }
 
@@ -7313,15 +7314,15 @@ namespace dxvk {
 
     uint32_t threshold = (m_d3d9Options.textureMemory / 4) * 3;
 
-    auto iter = m_mappedTextures.leastRecentlyUsedIter();
-    while (m_memoryAllocator.MappedMemory() >= threshold && iter != m_mappedTextures.leastRecentlyUsedEndIter()) {
+    auto iter = m_mappedTextures.cbegin();
+    while (m_memoryAllocator.MappedMemory() >= threshold && iter != m_mappedTextures.cend()) {
       if (unlikely((*iter)->IsAnySubresourceLocked() != 0)) {
         iter++;
         continue;
       }
       (*iter)->UnmapData();
 
-      iter = m_mappedTextures.remove(iter);
+      iter = m_mappedTextures.erase(iter);
     }
 #endif
   }

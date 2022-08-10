@@ -11,8 +11,7 @@
 namespace dxvk {
 
   class D3D9MipBiasFixed {
-    // AMD HW uses 8 bits but that still leads to too many samplers.
-    static constexpr int frac_bits = 6;
+    static constexpr int frac_bits = 8;
   public:
     D3D9MipBiasFixed() {}
 
