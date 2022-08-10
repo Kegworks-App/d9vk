@@ -116,6 +116,8 @@ namespace dxvk {
 
     constexpr static VkDeviceSize StagingBufferSize = 4ull << 20;
 
+    constexpr static uint32_t MaxSamplerCount = 1024;
+
     friend class D3D9SwapChainEx;
     friend class D3D9ConstantBuffer;
     friend class D3D9UserDefinedAnnotation;
@@ -1217,11 +1219,7 @@ namespace dxvk {
     const D3D9Options               m_d3d9Options;
     DxsoOptions                     m_dxsoOptions;
 
-    std::unordered_map<
-      D3D9SamplerKey,
-      Rc<DxvkSampler>,
-      D3D9SamplerKeyHash,
-      D3D9SamplerKeyEq>             m_samplers;
+    lru_map<D3D9SamplerKey, Rc<DxvkSampler>, DxvkHash, DxvkEq> m_samplers;
 
     std::unordered_map<
       DWORD,

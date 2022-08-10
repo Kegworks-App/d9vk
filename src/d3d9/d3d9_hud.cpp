@@ -35,7 +35,7 @@ namespace dxvk::hud {
       "New Samplers:");
 
     renderer.drawText(16.0f,
-      { position.x + 160.0f, position.y },
+      { position.x + 180.0f, position.y },
       { 1.0f, 1.0f, 1.0f, 1.0f },
       m_samplerCountString);
 

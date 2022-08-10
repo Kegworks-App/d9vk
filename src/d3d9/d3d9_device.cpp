@@ -154,6 +154,8 @@ namespace dxvk {
     m_flags.set(D3D9DeviceFlag::DirtyPointScale);
 
     m_flags.set(D3D9DeviceFlag::DirtySpecializationEntries);
+
+    m_samplers.rehash(MaxSamplerCount);
   }
 
 
@@ -6032,7 +6034,8 @@ namespace dxvk {
       VkShaderStageFlags stage = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 
       auto pair = m_samplers.find(cKey);
-      if (pair != m_samplers.end()) {
+      if (likely(pair != m_samplers.cend())) {
+        m_samplers.touch(pair);
         ctx->bindResourceSampler(stage, cSlot,
           Rc<DxvkSampler>(pair->second));
         return;
@@ -6073,8 +6076,11 @@ namespace dxvk {
       }
 
       try {
-        auto sampler = m_dxvkDevice->createSampler(info);
+        if (m_samplers.size() == MaxSamplerCount) {
+          m_samplers.erase(m_samplers.cbegin());
+        }
 
+        auto sampler = m_dxvkDevice->createSampler(info);
         m_samplers.insert(std::make_pair(cKey, sampler));
         ctx->bindResourceSampler(stage, cSlot, std::move(sampler));
 
