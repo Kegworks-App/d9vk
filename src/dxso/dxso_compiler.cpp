@@ -1396,11 +1396,25 @@ namespace dxvk {
 
     uint32_t boolId = getVectorTypeId({ DxsoScalarType::Bool, other.type.ccount });
     uint32_t zeroId = m_module.constfReplicant(0.0f, other.type.ccount);
+    uint32_t equalId = m_module.opFOrdEqual(boolId, other.id, zeroId);
+
+    if (operand.type.ccount != other.type.ccount) {
+      zeroId = m_module.constfReplicant(0.0f, operand.type.ccount);
+      boolId = getVectorTypeId({ DxsoScalarType::Bool, operand.type.ccount });
+
+      if (other.type.ccount == 1) {
+        std::array<uint32_t, 4> indices = { equalId, equalId, equalId, equalId };
+        equalId = m_module.opCompositeConstruct(boolId, operand.type.ccount, indices.data());
+      } else if (operand.type.ccount == 1) {
+        uint32_t index = 0;
+        equalId = m_module.opCompositeExtract(boolId, equalId, 1, &index);
+      }
+    }
 
     DxsoRegisterValue result;
     result.type = operand.type;
     result.id = m_module.opSelect(getVectorTypeId(result.type),
-      m_module.opFOrdEqual(boolId, other.id, zeroId), zeroId, operand.id);
+      equalId, zeroId, operand.id);
     return result;
   }
 
@@ -2072,16 +2086,21 @@ namespace dxvk {
 
         DxsoRegisterValue dot = emitDot(vec3, vec3);
         dot.id = m_module.opInverseSqrt (scalarTypeId, dot.id);
+        dot.type = scalarType;
         if (m_moduleInfo.options.d3d9FloatEmulation == D3D9FloatEmulation::Enabled) {
           dot.id = m_module.opNMin        (scalarTypeId, dot.id,
             m_module.constf32(FLT_MAX));
         }
 
         // r * rsq(r . r);
+        auto val = emitRegisterLoad(src[0], mask);
+        auto a = emitMulOperand(val, dot);
+        auto b = emitMulOperand(dot, val);
+
         result.id = m_module.opVectorTimesScalar(
           typeId,
-          emitRegisterLoad(src[0], mask).id,
-          dot.id);
+          a.id,
+          b.id);
         break;
       }
       case DxsoOpcode::SinCos: {
