@@ -1029,7 +1029,7 @@ namespace dxvk {
       uav.sampledTypeId = sampledTypeId;
       uav.imageTypeId   = imageTypeId;
       uav.structStride  = 0;
-      uav.structAlign   = 0;
+      uav.isRawSsbo     = false;
       m_uavs.at(registerId) = uav;
     } else {
       DxbcShaderResource res;
@@ -1043,7 +1043,7 @@ namespace dxvk {
       res.colorTypeId   = imageTypeId;
       res.depthTypeId   = 0;
       res.structStride  = 0;
-      res.structAlign   = 0;
+      res.isRawSsbo     = false;
       
       if ((sampledType == DxbcScalarType::Float32)
        && (resourceType == DxbcResourceDim::Texture2D
@@ -1187,7 +1187,7 @@ namespace dxvk {
       uav.sampledTypeId = sampledTypeId;
       uav.imageTypeId   = resTypeId;
       uav.structStride  = resStride;
-      uav.structAlign   = resAlign;
+      uav.isRawSsbo     = useRawSsbo;
       m_uavs.at(registerId) = uav;
     } else {
       DxbcShaderResource res;
@@ -1201,7 +1201,7 @@ namespace dxvk {
       res.colorTypeId   = resTypeId;
       res.depthTypeId   = 0;
       res.structStride  = resStride;
-      res.structAlign   = resAlign;
+      res.isRawSsbo     = useRawSsbo;
       m_textures.at(registerId) = res;
     }
     
@@ -2313,10 +2313,7 @@ namespace dxvk {
     
     bool isImm = ins.dstCount == 2;
     bool isUav = ins.dst[ins.dstCount - 1].type == DxbcOperandType::UnorderedAccessView;
-    
-    bool isSsbo = m_moduleInfo.options.minSsboAlignment <= bufferInfo.align
-               && bufferInfo.type != DxbcResourceType::Typed
-               && isUav;
+    bool isSsbo = bufferInfo.isSsbo;
 
     // Perform atomic operations on UAVs only if the UAV
     // is bound and if there is nothing else stopping us.
@@ -2798,9 +2795,7 @@ namespace dxvk {
     //    (dst0) The destination register
     //    (src0) The buffer register to query
     const DxbcBufferInfo bufferInfo = getBufferInfo(ins.src[0]);
-
-    bool isSsbo = m_moduleInfo.options.minSsboAlignment <= bufferInfo.align
-               && bufferInfo.type != DxbcResourceType::Typed;
+    bool isSsbo = bufferInfo.isSsbo;
     
     // We'll store this as a scalar unsigned integer
     DxbcRegisterValue result = isSsbo
@@ -5069,9 +5064,7 @@ namespace dxvk {
     // For UAVs and shared memory, different methods
     // of obtaining the final pointer are used.
     bool isTgsm = operand.type == DxbcOperandType::ThreadGroupSharedMemory;
-    bool isSsbo = m_moduleInfo.options.minSsboAlignment <= resourceInfo.align
-               && resourceInfo.type != DxbcResourceType::Typed
-               && !isTgsm;
+    bool isSsbo = resourceInfo.isSsbo;
     
     // Compute the actual address into the resource
     const DxbcRegisterValue addressValue = [&] {
@@ -5134,8 +5127,7 @@ namespace dxvk {
     // Shared memory is the only type of buffer that
     // is not accessed through a texel buffer view
     bool isTgsm = operand.type == DxbcOperandType::ThreadGroupSharedMemory;
-    bool isSsbo = m_moduleInfo.options.minSsboAlignment <= bufferInfo.align
-               && !isTgsm;
+    bool isSsbo = bufferInfo.isSsbo;
     
     // Common types and IDs used while loading the data
     uint32_t bufferId = isTgsm || isSsbo ? 0 : m_module.opLoad(bufferInfo.typeId, bufferInfo.varId);
@@ -5221,8 +5213,7 @@ namespace dxvk {
     
     // Thread Group Shared Memory is not accessed through a texel buffer view
     bool isTgsm = operand.type == DxbcOperandType::ThreadGroupSharedMemory;
-    bool isSsbo = m_moduleInfo.options.minSsboAlignment <= bufferInfo.align
-               && !isTgsm;
+    bool isSsbo = bufferInfo.isSsbo;
     
     // Perform UAV writes only if the UAV is bound and if there
     // is nothing else preventing us from writing to it.
@@ -7660,7 +7651,7 @@ namespace dxvk {
         result.varId  = texture.varId;
         result.specId = texture.specId;
         result.stride = texture.structStride;
-        result.align  = texture.structAlign;
+        result.isSsbo = texture.isRawSsbo;
         return result;
       } break;
         
@@ -7675,7 +7666,7 @@ namespace dxvk {
         result.varId  = uav.varId;
         result.specId = uav.specId;
         result.stride = uav.structStride;
-        result.align  = uav.structAlign;
+        result.isSsbo = uav.isRawSsbo;
         return result;
       } break;
         
@@ -7690,7 +7681,7 @@ namespace dxvk {
         result.varId  = m_gRegs.at(registerId).varId;
         result.specId = 0;
         result.stride = m_gRegs.at(registerId).elementStride;
-        result.align  = 0;
+        result.isSsbo = false;
         return result;
       } break;
         
