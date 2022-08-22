@@ -350,7 +350,7 @@ namespace dxvk {
     uint32_t varId;
     uint32_t specId;
     uint32_t stride;
-    uint32_t align;
+    bool isSsbo;
   };
   
 
