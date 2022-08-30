@@ -209,13 +209,17 @@ namespace dxvk {
     // all into one library
     if (m_info.stage != VK_SHADER_STAGE_VERTEX_BIT
      && m_info.stage != VK_SHADER_STAGE_FRAGMENT_BIT
-     && m_info.stage != VK_SHADER_STAGE_COMPUTE_BIT)
+     && m_info.stage != VK_SHADER_STAGE_COMPUTE_BIT) {
+      Logger::warn("Cant use PL because stage");
       return false;
+     }
 
     // Standalone vertex shaders must export vertex position
     if (m_info.stage == VK_SHADER_STAGE_VERTEX_BIT
-     && !m_flags.test(DxvkShaderFlag::ExportsPosition))
+     && !m_flags.test(DxvkShaderFlag::ExportsPosition)) {
+      Logger::warn("Cant use PL because of export position");
       return false;
+     }
 
     // Spec constant selectors are only supported in graphics
     if (m_specConstantMask & (1u << MaxNumSpecConstants))
@@ -223,6 +227,10 @@ namespace dxvk {
 
     // Always late-compile shaders with spec constants
     // that don't use the spec constant selector
+    if (m_specConstantMask) {
+      Logger::warn("Late compile because no spec constant mask");
+    }
+
     return !m_specConstantMask;
   }
 
