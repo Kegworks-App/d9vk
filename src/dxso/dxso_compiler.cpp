@@ -8,6 +8,7 @@
 #include "../d3d9/d3d9_spec_constants.h"
 #include "../d3d9/d3d9_fixed_function.h"
 #include "dxso_util.h"
+#include "spirv/unified1/spirv.hpp"
 
 #include <cfloat>
 
@@ -3559,13 +3560,13 @@ void DxsoCompiler::emitControlFlowGenericLoop(
         m_pushConstSize   = offsetof(D3D9RenderStateInfo, pointSize);
       }
 
-      count = 5;
+      count = 6;
     }
     else {
       m_pushConstOffset = offsetof(D3D9RenderStateInfo, pointSize);
       // Point scale never triggers on programmable
       m_pushConstSize   = sizeof(float) * 3;
-      count = 8;
+      count = 9;
     }
 
     m_rsBlock = SetupRenderStateBlock(m_module, count);
@@ -3646,8 +3647,40 @@ void DxsoCompiler::emitControlFlowGenericLoop(
         m_ps.oDepth.id,
         result.id);
     }
-}
+  }
 
+  void DxsoCompiler::emitEmulatedDepthBias() {
+    const uint32_t floatType = m_module.defFloatType(32);
+
+    uint32_t originalDepthId;
+    if (m_ps.oDepth.id == 0) {
+      DxsoRegisterPointer fragCoordPtr = this->emitRegisterPtr(
+        "ps_depth_bias_frag_coord", DxsoScalarType::Float32, 4, 0,
+        spv::StorageClassInput, spv::BuiltInFragCoord);
+      DxsoRegisterValue fragCoordId = this->emitValueLoad(fragCoordPtr);
+      uint32_t index = 2;
+      originalDepthId = m_module.opCompositeExtract(floatType, fragCoordId.id, 1, &index);
+    } else {
+      originalDepthId = emitValueLoad(m_ps.oDepth).id;
+    }
+
+    uint32_t constantDepthBiasMember = m_module.constu32(uint32_t(D3D9RenderStateItem::ConstantDepthBias));
+    uint32_t floatPushPtr = m_module.defPointerType(floatType, spv::StorageClassPushConstant);
+    uint32_t constantDepthBiasId = m_module.opLoad(floatType, m_module.opAccessChain(floatPushPtr,  m_rsBlock, 1, &constantDepthBiasMember));
+
+    uint32_t resultId = m_module.opFAdd(floatType, originalDepthId, constantDepthBiasId);
+
+    if (m_ps.oDepth.id == 0) {
+      uint32_t depthOutPointerType = m_module.defPointerType(floatType, spv::StorageClassOutput);
+      uint32_t depthOutPtrId = m_module.newVar(depthOutPointerType, spv::StorageClassOutput);
+      m_module.setDebugName(depthOutPtrId, "ps_depth_bias_out");
+      m_module.decorateBuiltIn(depthOutPtrId, spv::BuiltInFragDepth);
+      m_module.setExecutionMode(m_entryPointId, spv::ExecutionModeDepthReplacing);
+      m_module.opStore(depthOutPtrId, resultId);
+    } else {
+      m_module.opStore(m_ps.oDepth.id, resultId);
+    }
+  }
 
   void DxsoCompiler::emitVsFinalize() {
     this->emitMainFunctionBegin();
@@ -3728,6 +3761,7 @@ void DxsoCompiler::emitControlFlowGenericLoop(
 
     this->emitPsProcessing();
     this->emitOutputDepthClamp();
+    this->emitEmulatedDepthBias();
     this->emitFunctionEnd();
   }
 
