@@ -630,7 +630,7 @@ namespace dxvk {
     const bool vertex = !pixel;
 
     if (pixel && input && semantic.usage == DxsoUsage::Color)
-      centroid = true;
+      centroid = m_programInfo.majorVersion() == 3;
 
     uint32_t slot = 0;
 
