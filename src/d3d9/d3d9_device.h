@@ -698,7 +698,8 @@ namespace dxvk {
     bool WaitForResource(
       const Rc<DxvkResource>&                 Resource,
             uint64_t                          SequenceNumber,
-            DWORD                             MapFlags);
+            DWORD                             MapFlags,
+      const std::string&                      Reason);
 
     /**
      * \brief Locks a subresource of an image

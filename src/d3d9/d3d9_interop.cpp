@@ -4,6 +4,7 @@
 #include "d3d9_device.h"
 #include "d3d9_texture.h"
 #include "d3d9_buffer.h"
+#include <string>
 
 namespace dxvk {
 
@@ -236,7 +237,8 @@ namespace dxvk {
   bool STDMETHODCALLTYPE D3D9VkInteropDevice::WaitForResource(
           IDirect3DResource9*  pResource,
           DWORD                MapFlags) {
-    return m_device->WaitForResource(GetDxvkResource(pResource), DxvkCsThread::SynchronizeAll, MapFlags);
+            std::string reason = "Interop";
+    return m_device->WaitForResource(GetDxvkResource(pResource), DxvkCsThread::SynchronizeAll, MapFlags, reason);
   }
 
 }

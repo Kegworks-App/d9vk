@@ -4370,7 +4370,8 @@ namespace dxvk {
   bool D3D9DeviceEx::WaitForResource(
   const Rc<DxvkResource>&                 Resource,
         uint64_t                          SequenceNumber,
-        DWORD                             MapFlags) {
+        DWORD                             MapFlags,
+  const std::string&                      Reason) {
     // Wait for the any pending D3D9 command to be executed
     // on the CS thread so that we can determine whether the
     // resource is currently in use or not.
@@ -4392,6 +4393,7 @@ namespace dxvk {
         return false;
       }
       else {
+        Logger::warn(str::format("Waiting for resource: ", Reason));
         // Make sure pending commands using the resource get
         // executed on the the GPU if we have to wait for it
         Flush();
@@ -4444,6 +4446,8 @@ namespace dxvk {
       const D3DBOX*                 pBox,
             DWORD                   Flags) {
     D3D9DeviceLock lock = LockDevice();
+
+    DWORD originalFlags = Flags;
 
     UINT Subresource = pResource->CalcSubresource(Face, MipLevel);
 
@@ -4617,8 +4621,9 @@ namespace dxvk {
         TrackTextureMappingBufferSequenceNumber(pResource, Subresource);
       }
 
-      if (!WaitForResource(mappedBuffer, pResource->GetMappingBufferSequenceNumber(Subresource), Flags))
-        return D3DERR_WASSTILLDRAWING;
+        std::string reason = str::format("Lock Image, pool: ", pResource->Desc()->Pool, " Usage: ", pResource->Desc()->Usage, " Flags: ", originalFlags, " Flags: ", Flags, " Format: ", pResource->Desc()->Format);
+        if (!WaitForResource(mappedBuffer, pResource->GetMappingBufferSequenceNumber(Subresource), Flags, reason))
+          return D3DERR_WASSTILLDRAWING;
     }
 
     const bool atiHack = desc.Format == D3D9Format::ATI1 || desc.Format == D3D9Format::ATI2;
@@ -4792,7 +4797,8 @@ namespace dxvk {
       // That means that NeedsReadback is only true if the texture has been used with GetRTData or GetFrontbufferData before.
       // Those functions create a buffer, so the buffer always exists here.
       const Rc<DxvkBuffer>& buffer = pSrcTexture->GetBuffer();
-      WaitForResource(buffer, pSrcTexture->GetMappingBufferSequenceNumber(SrcSubresource), 0);
+        std::string reason = "Update Texture from buffer";
+      WaitForResource(buffer, pSrcTexture->GetMappingBufferSequenceNumber(SrcSubresource), 0, reason);
       pSrcTexture->SetNeedsReadback(SrcSubresource, false);
     }
 
@@ -4929,6 +4935,8 @@ namespace dxvk {
           DWORD                   Flags) {
     D3D9DeviceLock lock = LockDevice();
 
+    DWORD originalFlags = Flags;
+
     if (unlikely(ppbData == nullptr))
       return D3DERR_INVALIDCALL;
 
@@ -5004,7 +5012,8 @@ namespace dxvk {
       const bool skipWait = (!needsReadback && (readOnly || !directMapping)) || noOverwrite;
       if (!skipWait) {
         const Rc<DxvkBuffer> mappingBuffer = pResource->GetBuffer<D3D9_COMMON_BUFFER_TYPE_MAPPING>();
-        if (!WaitForResource(mappingBuffer, pResource->GetMappingBufferSequenceNumber(), Flags))
+        std::string reason = str::format("Lock Buffer, pool: ", pResource->Desc()->Pool, " Usage: ", pResource->Desc()->Usage, " originalFlags: ", originalFlags, " Flags: ", Flags);
+        if (!WaitForResource(mappingBuffer, pResource->GetMappingBufferSequenceNumber(), Flags, reason))
           return D3DERR_WASSTILLDRAWING;
 
         pResource->SetNeedsReadback(false);
