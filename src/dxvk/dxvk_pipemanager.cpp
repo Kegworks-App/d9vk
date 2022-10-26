@@ -312,6 +312,7 @@ namespace dxvk {
     if (pair != m_vertexInputLibraries.end())
       return &pair->second;
 
+    Logger::warn("Creating new vertex input library");
     auto iter = m_vertexInputLibraries.emplace(
       std::piecewise_construct,
       std::tuple(state),
@@ -328,6 +329,7 @@ namespace dxvk {
     if (pair != m_fragmentOutputLibraries.end())
       return &pair->second;
 
+    Logger::warn("Creating new fragment out library");
     auto iter = m_fragmentOutputLibraries.emplace(
       std::piecewise_construct,
       std::tuple(state),

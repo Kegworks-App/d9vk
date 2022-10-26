@@ -1032,7 +1032,7 @@ namespace dxvk {
     if (doCreateBasePipeline) {
       // Try to create an optimized pipeline from the cache
       // first, since this is expected to be the fastest path.
-      if (m_device->canUsePipelineCacheControl()) {
+      if (m_device->canUsePipelineCacheControl() && false) {
         fastHandle = this->getOptimizedPipeline(state,
           VK_PIPELINE_CREATE_FAIL_ON_PIPELINE_COMPILE_REQUIRED_BIT);
       }
@@ -1068,15 +1068,19 @@ namespace dxvk {
   
   bool DxvkGraphicsPipeline::canCreateBasePipeline(
     const DxvkGraphicsPipelineStateInfo& state) const {
-    if (!m_vsLibrary || !m_fsLibrary)
+    if (!m_vsLibrary || !m_fsLibrary) {
+      Logger::warn("Late compile bc missing library");
       return false;
+    }
 
     // Certain rasterization states cannot be set dynamically,
     // so we're assuming defaults for them, most notably the
     // polygon mode and conservative rasterization settings
     if (state.rs.polygonMode() != VK_POLYGON_MODE_FILL
-     || state.rs.conservativeMode() != VK_CONSERVATIVE_RASTERIZATION_MODE_DISABLED_EXT)
+     || state.rs.conservativeMode() != VK_CONSERVATIVE_RASTERIZATION_MODE_DISABLED_EXT) {
+      Logger::warn("Late compile bc polygon mode or conservative");
       return false;
+     }
 
     if (m_shaders.fs != nullptr) {
       // If the fragment shader has inputs not produced by the
@@ -1084,32 +1088,42 @@ namespace dxvk {
       uint32_t vsIoMask = m_shaders.vs->info().outputMask;
       uint32_t fsIoMask = m_shaders.fs->info().inputMask;
 
-      if ((vsIoMask & fsIoMask) != fsIoMask)
+      if ((vsIoMask & fsIoMask) != fsIoMask) {
+        Logger::warn("Late compile bc io mismatch");
         return false;
+      }
 
       // Dual-source blending requires patching the fragment shader
-      if (state.useDualSourceBlending())
+      if (state.useDualSourceBlending()) {
+        Logger::warn("Late compile bc dual source blending");
         return false;
+      }
 
       // Flat shading requires patching the fragment shader
-      if (state.rs.flatShading() && m_shaders.fs->info().flatShadingInputs)
+      if (state.rs.flatShading() && m_shaders.fs->info().flatShadingInputs) {
+        Logger::warn("Late compile bc flat");
         return false;
+      }
 
       // Multisample state must match in this case, and the
       // library assumes that MSAA is disabled in this case.
       if (m_shaders.fs->flags().test(DxvkShaderFlag::HasSampleRateShading)) {
         if (state.ms.sampleCount() != VK_SAMPLE_COUNT_1_BIT
          || state.ms.sampleMask() == 0
-         || state.ms.enableAlphaToCoverage())
+         || state.ms.enableAlphaToCoverage()) {
+        Logger::warn("Late compile bc msaa stuff");
           return false;
+         }
       }
     }
 
     // Remapping fragment shader outputs would require spec constants
     for (uint32_t i = 0; i < MaxNumRenderTargets; i++) {
       if ((m_fsOut & (1u << i)) && state.writesRenderTarget(i)
-       && !util::isIdentityMapping(state.omSwizzle[i].mapping()))
+       && !util::isIdentityMapping(state.omSwizzle[i].mapping())) {
+        Logger::warn("Late compile bc fs output swizzle");
         return false;
+       }
     }
 
     return true;
