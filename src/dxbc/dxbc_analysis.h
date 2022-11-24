@@ -54,6 +54,12 @@ namespace dxvk {
     
     bool usesDerivatives  = false;
     bool usesKill         = false;
+
+    uint32_t workgroupSizeX = 0;
+    uint32_t workgroupSizeY = 0;
+    uint32_t workgroupSizeZ = 0;
+
+    uint32_t sharedMemory = 0;
   };
   
   /**

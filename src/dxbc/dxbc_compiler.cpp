@@ -387,18 +387,33 @@ namespace dxvk {
     //    (imm2) Component count of each individual vector. This is
     //    always 4 in fxc-generated binaries and therefore useless.
     const uint32_t regId = ins.imm[0].u32;
+    const uint32_t arraySize = ins.imm[1].u32;
 
     DxbcRegisterInfo info;
     info.type.ctype   = DxbcScalarType::Float32;
     info.type.ccount  = m_analysis->xRegMasks.at(regId).minComponents();
-    info.type.alength = ins.imm[1].u32;
+    info.type.alength = arraySize;
     info.sclass       = spv::StorageClassPrivate;
+
+
+    if (putIndexableTempsIntoLDS(info.type.ccount * info.type.alength)) {
+      info.sclass = spv::StorageClassWorkgroup;
+      info.type.alength *= m_analysis->workgroupSizeX * m_analysis->workgroupSizeY * m_analysis->workgroupSizeZ;
+
+      if (!m_cs.builtinLocalInvocationIndex) {
+        m_cs.builtinLocalInvocationIndex = emitNewBuiltinVariable({
+          { DxbcScalarType::Uint32, 1, 0 },
+          spv::StorageClassInput },
+          spv::BuiltInLocalInvocationIndex,
+          "vThreadIndexInGroup");
+      }
+    }
 
     if (regId >= m_xRegs.size())
       m_xRegs.resize(regId + 1);
     
     m_xRegs.at(regId).ccount = info.type.ccount;
-    m_xRegs.at(regId).alength = info.type.alength;
+    m_xRegs.at(regId).alength = arraySize;
     m_xRegs.at(regId).varId  = emitNewVariable(info);
     
     m_module.setDebugName(m_xRegs.at(regId).varId,
@@ -518,11 +533,13 @@ namespace dxvk {
       } break;
   
       case DxbcOperandType::InputThreadIndexInGroup: {
-        m_cs.builtinLocalInvocationIndex = emitNewBuiltinVariable({
-          { DxbcScalarType::Uint32, 1, 0 },
-          spv::StorageClassInput },
-          spv::BuiltInLocalInvocationIndex,
-          "vThreadIndexInGroup");
+        if (!m_cs.builtinLocalInvocationIndex) {
+          m_cs.builtinLocalInvocationIndex = emitNewBuiltinVariable({
+            { DxbcScalarType::Uint32, 1, 0 },
+            spv::StorageClassInput },
+            spv::BuiltInLocalInvocationIndex,
+            "vThreadIndexInGroup");
+        }
       } break;
       
       case DxbcOperandType::InputCoverageMask: {
@@ -6094,6 +6111,87 @@ namespace dxvk {
     }
   }
 
+  void DxbcCompiler::emitInitIndexableRegisters() {
+    SpirvMemoryOperands memoryOperands;
+    memoryOperands.flags = spv::MemoryAccessNonPrivatePointerMask;
+
+    for (const auto& xReg : m_xRegs) {
+      if (!xReg.varId)
+        continue;
+
+      if (!putIndexableTempsIntoLDS(xReg.alength * xReg.ccount))
+        continue;
+
+      if (!m_cs.builtinLocalInvocationIndex) {
+        m_cs.builtinLocalInvocationIndex = emitNewBuiltinVariable({
+          { DxbcScalarType::Uint32, 1, 0 },
+          spv::StorageClassInput },
+          spv::BuiltInLocalInvocationIndex,
+          "vThreadIndexInGroup");
+      }
+
+      uint32_t numElementsPerThread = xReg.alength;
+
+      uint32_t regTypeId = getVectorTypeId({ DxbcScalarType::Float32, xReg.ccount});
+      uint32_t intTypeId = getScalarTypeId(DxbcScalarType::Uint32);
+      uint32_t ptrTypeId = m_module.defPointerType(
+        regTypeId, spv::StorageClassWorkgroup);
+
+      uint32_t threadId = m_module.opLoad(
+        intTypeId, m_cs.builtinLocalInvocationIndex);
+
+
+      uint32_t zeroId   = m_module.constf32(0.0f);
+      if (xReg.ccount > 1) {
+        zeroId = emitRegisterExtend({
+          {DxbcScalarType::Float32, 1},
+          zeroId
+        }, xReg.ccount).id;
+      }
+
+      const uint32_t labelHeader   = m_module.allocateId();
+      const uint32_t labelContinue = m_module.allocateId();
+      const uint32_t labelBreak    = m_module.allocateId();
+      const uint32_t labelEnter    = m_module.allocateId();
+
+      uint32_t counterPtrTypeId = m_module.defPointerType(
+        intTypeId, spv::StorageClassPrivate);
+      const uint32_t ctrPtrId = m_module.newVarInit(counterPtrTypeId, spv::StorageClassPrivate, m_module.constu32(0));
+
+      m_module.opBranch(labelHeader);
+      m_module.opLabel (labelHeader);
+
+      uint32_t ctrId = m_module.opLoad(intTypeId, ctrPtrId);
+      uint32_t condition = m_module.opULessThan(
+                           m_module.defBoolType(), ctrId,
+                           m_module.constu32(numElementsPerThread));
+
+      m_module.opLoopMerge(labelBreak, labelContinue, spv::LoopControlMaskNone);
+      m_module.opBranchConditional(condition, labelEnter, labelBreak);
+
+      m_module.opLabel (labelEnter);
+
+      uint32_t ofsId = m_module.opIAdd(intTypeId,
+        m_module.opIMul(intTypeId, m_module.constu32(numElementsPerThread), threadId),
+        ctrId);
+
+      uint32_t ptrId = m_module.opAccessChain(
+        ptrTypeId, xReg.varId, 1, &ofsId);
+
+      m_module.opStore(ptrId, zeroId, memoryOperands);
+
+      m_module.opBranch(labelContinue);
+      m_module.opLabel(labelContinue);
+
+      ctrId = m_module.opLoad(intTypeId, ctrPtrId);
+      ctrId = m_module.opIAdd(intTypeId, ctrId, m_module.consti32(1));
+      m_module.opStore(ctrPtrId, ctrId);
+
+      m_module.opBranch(labelHeader);
+      m_module.opLabel (labelBreak);
+    }
+  }
+
 
   DxbcRegisterValue DxbcCompiler::emitVsSystemValueLoad(
           DxbcSystemValue         sv,
@@ -6992,6 +7090,8 @@ namespace dxvk {
     if (m_moduleInfo.options.zeroInitWorkgroupMemory)
       this->emitInitWorkgroupMemory();
 
+    this->emitInitIndexableRegisters();
+
     m_module.opFunctionCall(
       m_module.defVoidType(),
       m_cs.functionId, 0, nullptr);
@@ -7769,6 +7869,19 @@ namespace dxvk {
     info.type.ccount  = m_xRegs[regId].ccount;
     info.type.alength = 0;
     info.sclass       = spv::StorageClassPrivate;
+
+    uint32_t indexId = vectorId.id;
+    if (putIndexableTempsIntoLDS(m_xRegs[regId].alength * m_xRegs[regId].ccount)) {
+      info.sclass = spv::StorageClassWorkgroup;
+
+      uint32_t typeId = getScalarTypeId(vectorId.type.ctype);
+      uint32_t u32TypeId = getScalarTypeId(DxbcScalarType::Uint32);
+      uint32_t arrayLengthId = m_module.constu32(m_xRegs[regId].alength);
+      uint32_t threadId = m_module.opLoad(
+        u32TypeId, m_cs.builtinLocalInvocationIndex);
+      uint32_t workgroupArrayOffsetId = m_module.opIMul(u32TypeId, threadId, arrayLengthId);
+      indexId = m_module.opIAdd(typeId, indexId, workgroupArrayOffsetId);
+    }
     
     DxbcRegisterPointer result;
     result.type.ctype  = info.type.ctype;
@@ -7776,7 +7889,7 @@ namespace dxvk {
     result.id = m_module.opAccessChain(
       getPointerTypeId(info),
       m_xRegs.at(regId).varId,
-      1, &vectorId.id);
+      1, &indexId);
 
     return result;
   }
@@ -7903,6 +8016,13 @@ namespace dxvk {
       case DxbcCompilerHsPhase::Join: return &m_hs.joinPhases.at(m_hs.currPhaseId);
       default:                        return nullptr;
     }
+  }
+
+  bool DxbcCompiler::putIndexableTempsIntoLDS(uint32_t registerFloatCount) {
+    uint32_t registerSize = sizeof(float) * registerFloatCount;
+
+    return m_programInfo.executionModel() == spv::ExecutionModelGLCompute
+      && (m_analysis->sharedMemory + registerSize) < 16384;
   }
   
 }

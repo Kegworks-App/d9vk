@@ -81,6 +81,22 @@ namespace dxvk {
         const uint32_t registerId = ins.dst[0].idx[0].offset;
         m_analysis->uavInfos[registerId].accessFlags |= VK_ACCESS_SHADER_WRITE_BIT;
       } break;
+
+      case DxbcInstClass::Declaration: {
+        if (ins.op == DxbcOpcode::DclThreadGroup) {
+          m_analysis->workgroupSizeX = ins.imm[0].u32;
+          m_analysis->workgroupSizeY = ins.imm[1].u32;
+          m_analysis->workgroupSizeZ = ins.imm[2].u32;
+        } else if (ins.op == DxbcOpcode::DclThreadGroupSharedMemoryRaw
+        || ins.op == DxbcOpcode::DclThreadGroupSharedMemoryStructured) {
+          const bool isStructured = ins.op == DxbcOpcode::DclThreadGroupSharedMemoryStructured;
+          const uint32_t elementStride = isStructured ? ins.imm[0].u32 : 0;
+          const uint32_t elementCount  = isStructured ? ins.imm[1].u32 : ins.imm[0].u32;
+          m_analysis->sharedMemory += sizeof(uint32_t) * (isStructured
+            ? elementCount * elementStride / 4
+            : elementCount / 4);
+        }
+      } break;
       
       default:
         break;

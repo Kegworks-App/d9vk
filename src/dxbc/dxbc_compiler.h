@@ -1029,6 +1029,8 @@ namespace dxvk {
     
     void emitInitWorkgroupMemory();
 
+    void emitInitIndexableRegisters();
+
     //////////////////////////////////////////
     // System value load methods (per shader)
     DxbcRegisterValue emitVsSystemValueLoad(
@@ -1253,7 +1255,11 @@ namespace dxvk {
             uint32_t          functionNr);
     
     DxbcCompilerHsForkJoinPhase* getCurrentHsForkJoinPhase();
-    
+
+    ///////////////////////////
+    // Helpers
+    bool putIndexableTempsIntoLDS(uint32_t registerFloatCount);
+
   };
   
 }
