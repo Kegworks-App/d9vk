@@ -103,9 +103,26 @@ namespace dxvk {
     }
 
     for (uint32_t i = 0; i < ins.dstCount; i++) {
-      if (ins.dst[0].type == DxbcOperandType::IndexableTemp) {
-        uint32_t index = ins.dst[0].idx[0].offset;
-        m_analysis->xRegMasks[index] |= ins.dst[0].mask;
+      const auto& reg = ins.dst[i];
+
+      if (reg.type == DxbcOperandType::IndexableTemp) {
+        uint32_t index = reg.idx[0].offset;
+        m_analysis->xRegMasks[index] |= reg.mask;
+
+        bool dynamic = reg.idx[1].relReg != nullptr;
+        m_analysis->xRegDynamic[index] |= dynamic;
+      }
+    }
+
+    for (uint32_t i = 0; i < ins.srcCount; i++) {
+      const auto& reg = ins.src[i];
+
+      if (reg.type == DxbcOperandType::IndexableTemp) {
+        uint32_t index = reg.idx[0].offset;
+        m_analysis->xRegMasks[index] |= reg.mask;
+
+        bool dynamic = reg.idx[1].relReg != nullptr;
+        m_analysis->xRegDynamic[index] |= dynamic;
       }
     }
   }

@@ -1258,7 +1258,7 @@ namespace dxvk {
 
     ///////////////////////////
     // Helpers
-    bool putIndexableTempsIntoLDS(uint32_t registerFloatCount);
+    bool putIndexableTempsIntoLDS(uint32_t regIndex);
 
   };
   

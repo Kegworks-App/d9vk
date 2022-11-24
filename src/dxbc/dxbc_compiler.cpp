@@ -387,16 +387,20 @@ namespace dxvk {
     //    (imm2) Component count of each individual vector. This is
     //    always 4 in fxc-generated binaries and therefore useless.
     const uint32_t regId = ins.imm[0].u32;
-    const uint32_t arraySize = ins.imm[1].u32;
 
     DxbcRegisterInfo info;
     info.type.ctype   = DxbcScalarType::Float32;
     info.type.ccount  = m_analysis->xRegMasks.at(regId).minComponents();
-    info.type.alength = arraySize;
+    info.type.alength = ins.imm[1].u32;
     info.sclass       = spv::StorageClassPrivate;
 
+    if (regId >= m_xRegs.size())
+      m_xRegs.resize(regId + 1);
+    
+    m_xRegs.at(regId).ccount = info.type.ccount;
+    m_xRegs.at(regId).alength = info.type.alength;
 
-    if (putIndexableTempsIntoLDS(info.type.ccount * info.type.alength)) {
+    if (putIndexableTempsIntoLDS(regId)) {
       info.sclass = spv::StorageClassWorkgroup;
       info.type.alength *= m_analysis->workgroupSizeX * m_analysis->workgroupSizeY * m_analysis->workgroupSizeZ;
 
@@ -409,11 +413,6 @@ namespace dxvk {
       }
     }
 
-    if (regId >= m_xRegs.size())
-      m_xRegs.resize(regId + 1);
-    
-    m_xRegs.at(regId).ccount = info.type.ccount;
-    m_xRegs.at(regId).alength = arraySize;
     m_xRegs.at(regId).varId  = emitNewVariable(info);
     
     m_module.setDebugName(m_xRegs.at(regId).varId,
@@ -6115,11 +6114,13 @@ namespace dxvk {
     SpirvMemoryOperands memoryOperands;
     memoryOperands.flags = spv::MemoryAccessNonPrivatePointerMask;
 
-    for (const auto& xReg : m_xRegs) {
+    for (uint32_t i = 0; i < m_xRegs.size(); i++) {
+      const auto& xReg = m_xRegs[i];
+
       if (!xReg.varId)
         continue;
 
-      if (!putIndexableTempsIntoLDS(xReg.alength * xReg.ccount))
+      if (!putIndexableTempsIntoLDS(i))
         continue;
 
       if (!m_cs.builtinLocalInvocationIndex) {
@@ -7871,7 +7872,7 @@ namespace dxvk {
     info.sclass       = spv::StorageClassPrivate;
 
     uint32_t indexId = vectorId.id;
-    if (putIndexableTempsIntoLDS(m_xRegs[regId].alength * m_xRegs[regId].ccount)) {
+    if (putIndexableTempsIntoLDS(regId)) {
       info.sclass = spv::StorageClassWorkgroup;
 
       uint32_t typeId = getScalarTypeId(vectorId.type.ctype);
@@ -8018,10 +8019,12 @@ namespace dxvk {
     }
   }
 
-  bool DxbcCompiler::putIndexableTempsIntoLDS(uint32_t registerFloatCount) {
-    uint32_t registerSize = sizeof(float) * registerFloatCount;
+  bool DxbcCompiler::putIndexableTempsIntoLDS(uint32_t regIndex) {
+    const auto& reg = m_xRegs[regIndex];
+    uint32_t registerSize = sizeof(float) * reg.alength * reg.ccount;
 
     return m_programInfo.executionModel() == spv::ExecutionModelGLCompute
+      && m_analysis->xRegDynamic[regIndex]
       && (m_analysis->sharedMemory + registerSize) < 16384;
   }
   

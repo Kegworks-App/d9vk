@@ -48,6 +48,7 @@ namespace dxvk {
     std::array<DxbcUavInfo, 64>   uavInfos;
     std::array<DxbcSrvInfo, 128>  srvInfos;
     std::array<DxbcRegMask, 4096> xRegMasks;
+    std::array<bool, 4096>        xRegDynamic = {};
     
     DxbcClipCullInfo clipCullIn;
     DxbcClipCullInfo clipCullOut;
