@@ -4,7 +4,7 @@
 
 namespace dxvk {
 
-  template<typename T>
+  template<typename T, class Hash = std::hash<T>, class Pred = std::equal_to<T>>
   class lru_list {
 
   public:
@@ -21,7 +21,7 @@ namespace dxvk {
       m_cache[value] = iter;
     }
 
-    void remove(const T& value) {
+    void erase(const T& value) {
       auto cacheIter = m_cache.find(value);
       if (cacheIter == m_cache.end())
         return;
@@ -30,7 +30,7 @@ namespace dxvk {
       m_cache.erase(cacheIter);
     }
 
-    const_iterator remove(const_iterator iter) {
+    const_iterator erase(const_iterator iter) {
       auto cacheIter = m_cache.find(*iter);
       m_cache.erase(cacheIter);
       return m_list.erase(iter);
@@ -48,11 +48,20 @@ namespace dxvk {
       m_cache[value] = iter;
     }
 
-    const_iterator leastRecentlyUsedIter() const {
+    void touch(const_iterator iter) {
+      T value = *iter;
+      m_list.erase(iter);
+      m_list.push_back(value);
+      auto endIter = m_list.cend();
+      --endIter;
+      m_cache[value] = endIter;
+    }
+
+    const_iterator cbegin() const {
       return m_list.cbegin();
     }
 
-    const_iterator leastRecentlyUsedEndIter() const {
+    const_iterator cend() const {
       return m_list.cend();
     }
 
@@ -62,7 +71,7 @@ namespace dxvk {
 
   private:
     std::list<T> m_list;
-    std::unordered_map<T, const_iterator> m_cache;
+    std::unordered_map<T, const_iterator, Hash, Pred> m_cache;
 
   };
 

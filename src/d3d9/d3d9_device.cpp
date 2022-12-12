@@ -7432,7 +7432,7 @@ namespace dxvk {
       return;
 
     D3D9DeviceLock lock = LockDevice();
-    m_mappedTextures.remove(pTexture);
+    m_mappedTextures.erase(pTexture);
 #endif
   }
 
@@ -7446,15 +7446,15 @@ namespace dxvk {
 
     uint32_t threshold = (m_d3d9Options.textureMemory / 4) * 3;
 
-    auto iter = m_mappedTextures.leastRecentlyUsedIter();
-    while (m_memoryAllocator.MappedMemory() >= threshold && iter != m_mappedTextures.leastRecentlyUsedEndIter()) {
+    auto iter = m_mappedTextures.cbegin();
+    while (m_memoryAllocator.MappedMemory() >= threshold && iter != m_mappedTextures.cend()) {
       if (unlikely((*iter)->IsAnySubresourceLocked() != 0)) {
         iter++;
         continue;
       }
       (*iter)->UnmapData();
 
-      iter = m_mappedTextures.remove(iter);
+      iter = m_mappedTextures.erase(iter);
     }
 #endif
   }
