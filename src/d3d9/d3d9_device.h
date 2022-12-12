@@ -1313,6 +1313,8 @@ namespace dxvk {
     std::atomic<int64_t>            m_availableMemory = { 0 };
     std::atomic<int32_t>            m_samplerCount    = { 0 };
 
+    uint32_t                        m_maxSamplerCount;
+
     Direct3DState9                  m_state;
 
 #ifdef D3D9_ALLOW_UNMAPPING

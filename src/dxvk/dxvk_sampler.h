@@ -74,6 +74,7 @@ namespace dxvk {
   private:
     
     Rc<vk::DeviceFn>      m_vkd;
+    DxvkDevice*           m_device;
     VkSampler             m_sampler = VK_NULL_HANDLE;
 
     static VkBorderColor getBorderColor(

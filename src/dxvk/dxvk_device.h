@@ -499,6 +499,18 @@ namespace dxvk {
      * used by the GPU can be safely destroyed.
      */
     void waitForIdle();
+
+    void incSamplerCount() {
+      m_samplerCount.fetch_add(1, std::memory_order_relaxed);
+    }
+
+    void decSamplerCount() {
+      m_samplerCount.fetch_sub(1, std::memory_order_relaxed);
+    }
+
+    uint32_t samplerCount() {
+      return m_samplerCount.load(std::memory_order_relaxed);
+    }
     
   private:
     
@@ -518,6 +530,8 @@ namespace dxvk {
     DxvkStatCounters            m_statCounters;
     
     DxvkDeviceQueueSet          m_queues;
+
+    std::atomic<uint32_t>       m_samplerCount = 0;
     
     DxvkRecycler<DxvkCommandList, 16> m_recycledCommandLists;
     

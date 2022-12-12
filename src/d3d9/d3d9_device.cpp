@@ -61,6 +61,9 @@ namespace dxvk {
     bool canSWVP = CanSWVP();
     DetermineConstantLayouts(canSWVP);
 
+    const auto& limits = m_dxvkDevice->adapter()->deviceProperties().limits;
+    m_maxSamplerCount = (limits.maxSamplerAllocationCount * 3) / 4; // 3/4 to leave some samplers for the backend
+
     if (canSWVP)
       Logger::info("D3D9DeviceEx: Using extended constant set for software vertex processing.");
 
@@ -6076,8 +6079,12 @@ namespace dxvk {
       }
 
       try {
-        if (m_samplers.size() == MaxSamplerCount) {
+        if (m_samplers.size() >= m_maxSamplerCount) {
           m_samplers.erase(m_samplers.cbegin());
+        }
+
+        if (unlikely(m_dxvkDevice->samplerCount() >= m_maxSamplerCount)) {
+          m_dxvkDevice->waitForResource(m_samplers.cbegin()->second, DxvkAccess::Write);
         }
 
         auto sampler = m_dxvkDevice->createSampler(info);

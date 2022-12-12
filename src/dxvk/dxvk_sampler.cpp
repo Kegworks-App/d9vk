@@ -6,7 +6,7 @@ namespace dxvk {
   DxvkSampler::DxvkSampler(
           DxvkDevice*             device,
     const DxvkSamplerCreateInfo&  info)
-  : m_vkd(device->vkd()) {
+  : m_vkd(device->vkd()), m_device(device) {
     VkSamplerCustomBorderColorCreateInfoEXT borderColorInfo = { VK_STRUCTURE_TYPE_SAMPLER_CUSTOM_BORDER_COLOR_CREATE_INFO_EXT };
     borderColorInfo.customBorderColor   = info.borderColor;
 
@@ -45,6 +45,8 @@ namespace dxvk {
     if (reductionInfo.reductionMode != VK_SAMPLER_REDUCTION_MODE_WEIGHTED_AVERAGE)
       reductionInfo.pNext = std::exchange(samplerInfo.pNext, &reductionInfo);
 
+    m_device->incSamplerCount();
+
     if (m_vkd->vkCreateSampler(m_vkd->device(),
         &samplerInfo, nullptr, &m_sampler) != VK_SUCCESS)
       throw DxvkError("DxvkSampler::DxvkSampler: Failed to create sampler");
@@ -54,6 +56,8 @@ namespace dxvk {
   DxvkSampler::~DxvkSampler() {
     m_vkd->vkDestroySampler(
       m_vkd->device(), m_sampler, nullptr);
+
+    m_device->decSamplerCount();
   }
 
 
