@@ -3,14 +3,24 @@
 namespace dxvk::hud {
 
   HudSamplerCount::HudSamplerCount(D3D9DeviceEx* device)
-    : m_device       (device)
-    , m_samplerCount ("0"){
+    : m_device             (device)
+    , m_samplerCountString ("0"){
 
   }
 
 
   void HudSamplerCount::update(dxvk::high_resolution_clock::time_point time) {
-    m_samplerCount = str::format(m_device->GetSamplerCount());
+    uint32_t newSamplers = m_device->GetSamplerCount() - m_lastSamplerCount;
+
+    auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(time - m_lastUpdate);
+
+    if (elapsed.count() < UpdateInterval)
+      return;
+
+    m_samplerCountString = str::format(newSamplers);
+    m_lastSamplerCount = m_device->GetSamplerCount();
+
+    m_lastUpdate = time;
   }
 
 
@@ -22,12 +32,12 @@ namespace dxvk::hud {
     renderer.drawText(16.0f,
       { position.x, position.y },
       { 0.0f, 1.0f, 0.75f, 1.0f },
-      "Samplers:");
+      "New Samplers:");
 
     renderer.drawText(16.0f,
-      { position.x + 120.0f, position.y },
+      { position.x + 160.0f, position.y },
       { 1.0f, 1.0f, 1.0f, 1.0f },
-      m_samplerCount);
+      m_samplerCountString);
 
     position.y += 8.0f;
     return position;

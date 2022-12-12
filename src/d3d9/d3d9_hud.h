@@ -9,6 +9,7 @@ namespace dxvk::hud {
    * \brief HUD item to display sampler count
    */
   class HudSamplerCount : public HudItem {
+      constexpr static int64_t UpdateInterval = 500'000;
 
   public:
 
@@ -24,7 +25,11 @@ namespace dxvk::hud {
 
     D3D9DeviceEx* m_device;
 
-    std::string m_samplerCount;
+    dxvk::high_resolution_clock::time_point m_lastUpdate
+      = dxvk::high_resolution_clock::now();
+
+    uint32_t    m_lastSamplerCount = 0;
+    std::string m_samplerCountString;
 
   };
 
