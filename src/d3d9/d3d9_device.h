@@ -899,7 +899,7 @@ namespace dxvk {
       return &m_d3d9Options;
     }
 
-    Direct3DState9* GetRawState() {
+    D3D9DeviceState* GetRawState() {
       return &m_state;
     }
 
@@ -1121,8 +1121,8 @@ namespace dxvk {
       };
 
       return ProgramType == DxsoProgramTypes::VertexShader
-        ? GetHelper(m_state.vsConsts)
-        : GetHelper(m_state.psConsts);
+        ? GetHelper(m_state.consts.vs)
+        : GetHelper(m_state.consts.ps);
     }
 
     void UpdateFixedFunctionVS();
@@ -1315,7 +1315,7 @@ namespace dxvk {
     std::atomic<int64_t>            m_availableMemory = { 0 };
     std::atomic<int32_t>            m_samplerCount    = { 0 };
 
-    Direct3DState9                  m_state;
+    D3D9DeviceState                 m_state;
 
 #ifdef D3D9_ALLOW_UNMAPPING
     lru_list<D3D9CommonTexture*>    m_mappedTextures;

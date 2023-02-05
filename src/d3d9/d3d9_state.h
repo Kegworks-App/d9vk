@@ -181,10 +181,15 @@ namespace dxvk {
     0.0f                      // Phi
   };
 
-  struct D3D9CapturableState {
-    D3D9CapturableState();
+  struct D3D9Constants {
+    D3D9ShaderConstantsVSSoftware                    vs;
+    D3D9ShaderConstantsPS                            ps;
+  };
 
-    ~D3D9CapturableState();
+  struct D3D9DeviceState {
+    D3D9DeviceState();
+
+    ~D3D9DeviceState();
 
     Com<D3D9VertexDecl,  false>                       vertexDecl;
     Com<D3D9IndexBuffer, false>                       indices;
@@ -215,8 +220,7 @@ namespace dxvk {
       std::array<DWORD, TextureStageStateCount>,
       caps::TextureStageCount>                       textureStages = {};
 
-    D3D9ShaderConstantsVSSoftware                    vsConsts;
-    D3D9ShaderConstantsPS                            psConsts;
+    D3D9Constants                                    consts = {};
 
     std::array<UINT, caps::MaxStreams>               streamFreq = {};
 
@@ -226,6 +230,9 @@ namespace dxvk {
 
     std::vector<std::optional<D3DLIGHT9>>            lights;
     std::array<DWORD, caps::MaxEnabledLights>        enabledLightIndices;
+
+    std::array<Com<D3D9Surface, false>, caps::MaxSimultaneousRenderTargets> renderTargets;
+    Com<D3D9Surface, false> depthStencil;
 
     bool IsLightEnabled(DWORD Index) {
       const auto& indices = enabledLightIndices;
@@ -238,7 +245,7 @@ namespace dxvk {
     D3D9ConstantType ConstantType,
     typename         T>
   HRESULT UpdateStateConstants(
-          D3D9CapturableState* pState,
+          D3D9Constants*       pConsts,
           UINT                 StartRegister,
     const T*                   pConstantData,
           UINT                 Count,
@@ -279,16 +286,9 @@ namespace dxvk {
     };
 
     return ProgramType == DxsoProgramTypes::VertexShader
-      ? UpdateHelper(pState->vsConsts)
-      : UpdateHelper(pState->psConsts);
+      ? UpdateHelper(pConsts->vs)
+      : UpdateHelper(pConsts->ps);
   }
-
-  struct Direct3DState9 : public D3D9CapturableState {
-
-    std::array<Com<D3D9Surface, false>, caps::MaxSimultaneousRenderTargets> renderTargets;
-    Com<D3D9Surface, false> depthStencil;
-
-  };
 
 
   struct D3D9InputAssemblyState {

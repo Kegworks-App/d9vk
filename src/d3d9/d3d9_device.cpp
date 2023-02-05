@@ -5145,11 +5145,11 @@ namespace dxvk {
   void D3D9DeviceEx::UploadConstants() {
     if constexpr (ShaderStage == DxsoProgramTypes::VertexShader) {
       if (CanSWVP())
-        return UploadSoftwareConstantSet(m_state.vsConsts, m_vsLayout);
+        return UploadSoftwareConstantSet(m_state.consts.vs, m_vsLayout);
       else
-        return UploadConstantSet<ShaderStage, D3D9ShaderConstantsVSHardware>(m_state.vsConsts, m_vsLayout, m_state.vertexShader);
+        return UploadConstantSet<ShaderStage, D3D9ShaderConstantsVSHardware>(m_state.consts.vs, m_vsLayout, m_state.vertexShader);
     } else {
-      return UploadConstantSet<ShaderStage, D3D9ShaderConstantsPS>          (m_state.psConsts, m_psLayout, m_state.pixelShader);
+      return UploadConstantSet<ShaderStage, D3D9ShaderConstantsPS>          (m_state.consts.ps, m_psLayout, m_state.pixelShader);
     }
   }
 
@@ -6257,7 +6257,7 @@ namespace dxvk {
 
       if (likely(!CanSWVP())) {
         UpdateVertexBoolSpec(
-          m_state.vsConsts.bConsts[0] &
+          m_state.consts.vs.bConsts[0] &
           m_consts[DxsoProgramType::VertexShader].meta.boolConstantMask);
       } else
         UpdateVertexBoolSpec(0);
@@ -6285,7 +6285,7 @@ namespace dxvk {
         UpdatePixelShaderSamplerSpec(m_textureTypes, programInfo.minorVersion() >= 4 ? 0u : projected, fetch4); // For implicit samplers...
 
       UpdatePixelBoolSpec(
-        m_state.psConsts.bConsts[0] &
+        m_state.consts.ps.bConsts[0] &
         m_consts[DxsoProgramType::PixelShader].meta.boolConstantMask);
     }
     else {
@@ -6526,16 +6526,16 @@ namespace dxvk {
 
 
   void D3D9DeviceEx::SetVertexBoolBitfield(uint32_t idx, uint32_t mask, uint32_t bits) {
-    m_state.vsConsts.bConsts[idx] &= ~mask;
-    m_state.vsConsts.bConsts[idx] |= bits & mask;
+    m_state.consts.vs.bConsts[idx] &= ~mask;
+    m_state.consts.vs.bConsts[idx] |= bits & mask;
 
     m_consts[DxsoProgramTypes::VertexShader].dirty = true;
   }
 
 
   void D3D9DeviceEx::SetPixelBoolBitfield(uint32_t idx, uint32_t mask, uint32_t bits) {
-    m_state.psConsts.bConsts[idx] &= ~mask;
-    m_state.psConsts.bConsts[idx] |= bits & mask;
+    m_state.consts.ps.bConsts[idx] &= ~mask;
+    m_state.consts.ps.bConsts[idx] |= bits & mask;
 
     m_consts[DxsoProgramTypes::PixelShader].dirty = true;
   }
@@ -6618,7 +6618,7 @@ namespace dxvk {
     }
 
     UpdateStateConstants<ProgramType, ConstantType, T>(
-      &m_state,
+      &m_state.consts,
       StartRegister,
       pConstantData,
       Count,
