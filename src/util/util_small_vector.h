@@ -14,6 +14,10 @@ namespace dxvk {
     small_vector             (const small_vector&) = delete;
     small_vector& operator = (const small_vector&) = delete;
 
+    small_vector(small_vector&& other) {
+      
+    }
+
     ~small_vector() {
       for (size_t i = 0; i < m_size; i++)
         ptr(i)->~T();

@@ -8,6 +8,114 @@
 
 namespace dxvk {
 
+  class D3D9DeviceCmd {
+
+  public:
+    virtual ~D3D9DeviceCmd() { }
+    D3D9DeviceCmd* Next() const {
+      return m_next;
+    }
+    void SetNext(D3D9DeviceCmd* Next) {
+      m_next = Next;
+    }
+    virtual void Exec(D3D9DeviceEx* Device) = 0;
+
+  private:
+    D3D9DeviceCmd* m_next = nullptr;
+
+  };
+
+
+  template<typename T>
+  class alignas(16) D3D9DeviceTypedCmd : public D3D9DeviceCmd {
+
+  public:
+    D3D9DeviceTypedCmd(T&& Cmd)
+    : m_command(std::move(Cmd)) { }
+
+    D3D9DeviceTypedCmd             (D3D9DeviceTypedCmd&&) = delete;
+    D3D9DeviceTypedCmd& operator = (D3D9DeviceTypedCmd&&) = delete;
+
+    void Exec(D3D9DeviceEx* Device) {
+      m_command(Device);
+    }
+
+  private:
+    T m_command;
+  };
+
+    /**
+   * \brief Command chunk
+   *
+   * Stores a list of commands.
+   */
+  class D3D9DeviceCmdChunk : public RcObject {
+    constexpr static size_t MaxBlockSize = 256;
+  public:
+
+    D3D9DeviceCmdChunk();
+    ~D3D9DeviceCmdChunk();
+
+    /**
+     * \brief Checks whether the chunk is empty
+     * \returns \c true if the chunk is empty
+     */
+    bool Empty() const {
+      return m_commandOffset == 0;
+    }
+
+    /**
+     * \brief Tries to add a command to the chunk
+     * 
+     * If the given command can be added to the chunk, it
+     * will be consumed. Otherwise, a new chunk must be
+     * created which is large enough to hold the command.
+     * \param [in] command The command to add
+     * \returns \c true on success, \c false if
+     *          a new chunk needs to be allocated
+     */
+    template<typename T>
+    bool Push(T& command) {
+      using FuncType = D3D9DeviceTypedCmd<T>;
+
+      if (unlikely(m_commandOffset > MaxBlockSize - sizeof(FuncType)))
+        return false;
+
+      D3D9DeviceCmd* tail = m_tail;
+
+      m_tail = new (m_data + m_commandOffset)
+        FuncType(std::move(command));
+
+      if (likely(tail != nullptr))
+        tail->SetNext(m_tail);
+      else
+        m_head = m_tail;
+
+      m_commandOffset += sizeof(FuncType);
+      return true;
+    }
+
+    /**
+     * \brief Executes all commands
+     * 
+     * This will also reset the chunk
+     * so that it can be reused.
+     * \param [in] ctx The context
+     */
+    void ExecuteAll(D3D9DeviceEx* Device);
+
+  private:
+
+    size_t m_commandOffset = 0;
+
+    D3D9DeviceCmd* m_head = nullptr;
+    D3D9DeviceCmd* m_tail = nullptr;
+
+    alignas(64)
+    char m_data[MaxBlockSize];
+
+  };
+
   enum class D3D9CapturedStateFlag : uint32_t {
     VertexDecl,
     Indices,
@@ -118,11 +226,12 @@ namespace dxvk {
     }
   };
 
-  enum class D3D9StateBlockType :uint32_t {
+  // Uses different indices than D3DSTATEBLOCKTYPE to act as flags
+  enum class D3D9StateBlockType : uint32_t {
     None,
-    VertexState,
-    PixelState,
-    All
+    VertexState = 1,
+    PixelState = 2,
+    All = 3
   };
 
   inline D3D9StateBlockType ConvertStateBlockType(D3DSTATEBLOCKTYPE type) {
@@ -140,6 +249,11 @@ namespace dxvk {
   public:
 
     D3D9StateBlock(D3D9DeviceEx* pDevice, D3D9StateBlockType Type);
+
+    template<typename Cmd>
+    void Record(Cmd&& command) {
+
+    }
 
     HRESULT STDMETHODCALLTYPE QueryInterface(
         REFIID  riid,
@@ -186,7 +300,7 @@ namespace dxvk {
             D3D9TextureStageStateTypes Type,
             DWORD                      Value);
 
-    HRESULT MultiplyStateTransform(uint32_t idx, const D3DMATRIX* pMatrix);
+    HRESULT MultiplyTransform(D3DTRANSFORMSTATETYPE TransformState, const D3DMATRIX* pMatrix);
 
     HRESULT SetViewport(const D3DVIEWPORT9* pViewport);
 
@@ -506,12 +620,24 @@ namespace dxvk {
 
     void CaptureType(D3D9StateBlockType State);
 
+    template <typename T>
+    void Record(T& Command)
+    {
+      if (likely(m_chunks.back().Push(Command)))
+        return;
+
+      m_chunks.emplace_back();
+      m_chunks.back().Push(Command);
+    }
+
     D3D9CapturedState    m_state;
     D3D9StateCaptures    m_captures;
 
     D3D9DeviceState*     m_deviceState;
 
     bool                 m_applying = false;
+
+    std::vector<D3D9DeviceCmdChunk> m_chunks;
 
   };
 
