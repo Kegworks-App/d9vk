@@ -277,6 +277,9 @@ namespace dxvk {
     return result;
   }
 
+  void DxvkDevice::synchronizeSubmissionQueue() {
+    m_submissionQueue.synchronize();
+  }
 
   void DxvkDevice::waitForResource(const Rc<DxvkResource>& resource, DxvkAccess access) {
     if (resource->isInUse(access)) {

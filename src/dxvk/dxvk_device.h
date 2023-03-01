@@ -483,6 +483,14 @@ namespace dxvk {
     VkResult waitForSubmission(DxvkSubmitStatus* status);
 
     /**
+     * \brief Synchronizes with queue submissions
+     * 
+     * Waits for all pending command lists to be
+     * submitted to the GPU before returning.
+     */
+    void synchronizeSubmissionQueue();
+
+    /**
      * \brief Waits for resource to become idle
      *
      * \param [in] resource Resource to wait for
