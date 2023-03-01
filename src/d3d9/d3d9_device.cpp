@@ -2464,6 +2464,21 @@ namespace dxvk {
 
     PrepareDraw(PrimitiveType);
 
+    if (unlikely(!UseProgrammableVS() || !UseProgrammablePS())) {
+      // During loading screens, Civilization 4 briefly has frames that exceed 300k or even 800k fixed function draw calls.
+      // Those cause memory usage to explode to the point that the game crashes because it runs out of address space.
+      // This is a stupid workaround for that.
+      m_ffDrawCalls++;
+
+      if (unlikely(m_ffDrawCalls > 15000)) {
+        Flush();
+        SynchronizeCsThread(DxvkCsThread::SynchronizeAll);
+        m_dxvkDevice->synchronizeSubmissionQueue();
+        m_dxvkDevice->waitForIdle();
+        m_ffDrawCalls = 0;
+      }
+    }
+
     EmitCs([this,
       cPrimType    = PrimitiveType,
       cPrimCount   = PrimitiveCount,
@@ -5269,6 +5284,8 @@ namespace dxvk {
 
   void D3D9DeviceEx::EndFrame() {
     D3D9DeviceLock lock = LockDevice();
+
+    m_ffDrawCalls = 0;
 
     EmitCs([] (DxvkContext* ctx) {
       ctx->endFrame();
