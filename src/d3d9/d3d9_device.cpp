@@ -927,6 +927,7 @@ namespace dxvk {
 
     UpdateTextureFromBuffer(dstTextureInfo, srcTextureInfo, dst->GetSubresource(), src->GetSubresource(), srcOffset, extent, dstOffset);
 
+    Logger::warn(str::format("UpdateSurface ", reinterpret_cast<size_t>(dstTextureInfo)));
     dstTextureInfo->SetNeedsReadback(dst->GetSubresource(), true);
 
     if (dstTextureInfo->IsAutomaticMip())
@@ -999,6 +1000,8 @@ namespace dxvk {
         VkOffset3D offset = util::computeMipLevelOffset(mip0Offset, srcMip);
 
         UpdateTextureFromBuffer(dstTexInfo, srcTexInfo, dstSubresource, srcSubresource, offset, extent, offset);
+
+        Logger::warn(str::format("Generate mips late ", reinterpret_cast<size_t>(dstTexInfo)));
         dstTexInfo->SetNeedsReadback(dstSubresource, true);
       }
     }
@@ -1069,6 +1072,7 @@ namespace dxvk {
         cLevelExtent);
     });
 
+    Logger::warn(str::format("Get RT Data ", reinterpret_cast<size_t>(dstTexInfo)));
     dstTexInfo->SetNeedsReadback(dst->GetSubresource(), true);
     TrackTextureMappingBufferSequenceNumber(dstTexInfo, dst->GetSubresource());
 
@@ -1286,6 +1290,7 @@ namespace dxvk {
       });
     }
 
+    Logger::warn(str::format("StretchRect ", reinterpret_cast<size_t>(dstTextureInfo)));
     dstTextureInfo->SetNeedsReadback(dst->GetSubresource(), true);
 
     if (dstTextureInfo->IsAutomaticMip())
@@ -1364,6 +1369,7 @@ namespace dxvk {
       });
     }
 
+    Logger::warn(str::format("ColorFill ", reinterpret_cast<size_t>(dstTextureInfo)));
     dstTextureInfo->SetNeedsReadback(dst->GetSubresource(), true);
 
     if (dstTextureInfo->IsAutomaticMip())
@@ -2902,6 +2908,7 @@ namespace dxvk {
     }
 
     dst->SetNeedsReadback(true);
+    Logger::warn(str::format("ProcessVertices ", reinterpret_cast<size_t>(dst)));
     TrackBufferMappingBufferSequenceNumber(dst);
 
     return D3D_OK;
@@ -4621,7 +4628,7 @@ namespace dxvk {
         TrackTextureMappingBufferSequenceNumber(pResource, Subresource);
       }
 
-        std::string reason = str::format("Lock Image, pool: ", pResource->Desc()->Pool, " Usage: ", pResource->Desc()->Usage, " Flags: ", originalFlags, " Flags: ", Flags, " Format: ", pResource->Desc()->Format);
+        std::string reason = str::format("Lock Image: ", reinterpret_cast<size_t>(pResource), ", pool: ", pResource->Desc()->Pool, " Usage : ", pResource->Desc()->Usage, " Flags : ", originalFlags, " Flags : ", Flags, " Format : ", pResource->Desc()->Format);
         if (!WaitForResource(mappedBuffer, pResource->GetMappingBufferSequenceNumber(Subresource), Flags, reason))
           return D3DERR_WASSTILLDRAWING;
     }
