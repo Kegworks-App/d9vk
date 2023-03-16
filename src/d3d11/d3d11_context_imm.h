@@ -165,7 +165,8 @@ namespace dxvk {
 
     void ExecuteFlush(
             GpuFlushType                FlushType,
-            HANDLE                      hEvent);
+            HANDLE                      hEvent,
+            BOOL                        Synchronize);
 
   };
   
