@@ -1,3 +1,4 @@
+#include "d3d11_context_imm.h"
 #include "d3d11_device.h"
 #include "d3d11_on_12.h"
 
@@ -108,14 +109,46 @@ namespace dxvk {
   void STDMETHODCALLTYPE D3D11on12Device::ReleaseWrappedResources(
           ID3D11Resource* const*  ppResources,
           UINT                    ResourceCount) {
-    Logger::err("D3D11on12Device::ReleaseWrappedResources: Stub");
+    Com<ID3D12DXVKInteropDevice> interopDevice;
+    m_d3d12Device->QueryInterface(__uuidof(ID3D12DXVKInteropDevice), reinterpret_cast<void**>(&interopDevice));
+
+    Com<ID3D11DeviceContext> context;
+    m_device->GetImmediateContext(&context);
+
+    for (uint32_t i = 0; i < ResourceCount; i++) {
+      D3D11_ON_12_RESOURCE_INFO info;
+
+      if (FAILED(GetResource11on12Info(ppResources[i], &info)) || !info.IsWrappedResource) {
+        Logger::warn("D3D11on12Device::ReleaseWrappedResources: Resource not a wrapped resource, skipping");
+        continue;
+      }
+
+      VkImageLayout layout = interopDevice->GetVulkanImageLayout(info.Resource.ptr(), info.OutputState);
+      static_cast<D3D11ImmediateContext*>(context.ptr())->Release11on12Resource(ppResources[i], layout);
+    }
   }
 
 
   void STDMETHODCALLTYPE D3D11on12Device::AcquireWrappedResources(
           ID3D11Resource* const*  ppResources,
           UINT                    ResourceCount) {
-    Logger::err("D3D11on12Device::AcquireWrappedResources: Stub");
+    Com<ID3D12DXVKInteropDevice> interopDevice;
+    m_d3d12Device->QueryInterface(__uuidof(ID3D12DXVKInteropDevice), reinterpret_cast<void**>(&interopDevice));
+
+    Com<ID3D11DeviceContext> context;
+    m_device->GetImmediateContext(&context);
+
+    for (uint32_t i = 0; i < ResourceCount; i++) {
+      D3D11_ON_12_RESOURCE_INFO info;
+
+      if (FAILED(GetResource11on12Info(ppResources[i], &info)) || !info.IsWrappedResource) {
+        Logger::warn("D3D11on12Device::AcquireWrappedResources: Resource not a wrapped resource, skipping");
+        continue;
+      }
+
+      VkImageLayout layout = interopDevice->GetVulkanImageLayout(info.Resource.ptr(), info.InputState);
+      static_cast<D3D11ImmediateContext*>(context.ptr())->Acquire11on12Resource(ppResources[i], layout);
+    }
   }
 
 }
