@@ -52,7 +52,7 @@ namespace dxvk {
   }
 
 
-  HRESULT STDMETHODCALLTYPE D3D9Volume::QueryInterface(REFIID riid, void** ppvObject) {
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9Volume::QueryInterface(REFIID riid, void** ppvObject) {
     if (ppvObject == nullptr)
       return E_POINTER;
 
@@ -74,7 +74,7 @@ namespace dxvk {
   }
 
 
-  HRESULT STDMETHODCALLTYPE D3D9Volume::GetDesc(D3DVOLUME_DESC *pDesc) {
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9Volume::GetDesc(D3DVOLUME_DESC *pDesc) {
     if (pDesc == nullptr)
       return D3DERR_INVALIDCALL;
 
@@ -93,7 +93,7 @@ namespace dxvk {
   }
 
 
-  HRESULT STDMETHODCALLTYPE D3D9Volume::LockBox(D3DLOCKED_BOX* pLockedBox, CONST D3DBOX* pBox, DWORD Flags) {
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9Volume::LockBox(D3DLOCKED_BOX* pLockedBox, CONST D3DBOX* pBox, DWORD Flags) {
     if (unlikely(pLockedBox == nullptr))
       return D3DERR_INVALIDCALL;
 
@@ -106,7 +106,7 @@ namespace dxvk {
   }
 
 
-  HRESULT STDMETHODCALLTYPE D3D9Volume::UnlockBox() {
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9Volume::UnlockBox() {
     return m_parent->UnlockImage(
       m_texture,
       m_face, m_mipLevel);

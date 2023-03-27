@@ -34,19 +34,19 @@ namespace dxvk {
 
     void ReleasePrivate();
 
-    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject);
 
     D3DRESOURCETYPE STDMETHODCALLTYPE GetType() final;
 
-    HRESULT STDMETHODCALLTYPE GetDesc(D3DSURFACE_DESC *pDesc) final;
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetDesc(D3DSURFACE_DESC *pDesc) final;
 
-    HRESULT STDMETHODCALLTYPE LockRect(D3DLOCKED_RECT* pLockedRect, CONST RECT* pRect, DWORD Flags) final;
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE LockRect(D3DLOCKED_RECT* pLockedRect, CONST RECT* pRect, DWORD Flags) final;
 
-    HRESULT STDMETHODCALLTYPE UnlockRect() final;
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE UnlockRect() final;
 
-    HRESULT STDMETHODCALLTYPE GetDC(HDC *phDC) final;
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetDC(HDC *phDC) final;
 
-    HRESULT STDMETHODCALLTYPE ReleaseDC(HDC hDC) final;
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE ReleaseDC(HDC hDC) final;
 
     inline VkExtent2D GetSurfaceExtent() const {
       const auto* desc = m_texture->Desc();

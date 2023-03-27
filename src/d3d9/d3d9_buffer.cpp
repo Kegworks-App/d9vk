@@ -14,7 +14,7 @@ namespace dxvk {
   }
 
 
-  HRESULT STDMETHODCALLTYPE D3D9VertexBuffer::QueryInterface(
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9VertexBuffer::QueryInterface(
           REFIID  riid,
           void** ppvObject) {
     if (ppvObject == nullptr)
@@ -43,7 +43,7 @@ namespace dxvk {
   }
 
 
-  HRESULT STDMETHODCALLTYPE D3D9VertexBuffer::GetDesc(
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9VertexBuffer::GetDesc(
           D3DVERTEXBUFFER_DESC* pDesc) {
     if (pDesc == nullptr)
       return D3DERR_INVALIDCALL;
@@ -74,7 +74,7 @@ namespace dxvk {
   }
 
 
-  HRESULT STDMETHODCALLTYPE D3D9IndexBuffer::QueryInterface(
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9IndexBuffer::QueryInterface(
           REFIID  riid,
           void** ppvObject) {
     if (ppvObject == nullptr)
@@ -103,7 +103,7 @@ namespace dxvk {
   }
 
 
-  HRESULT STDMETHODCALLTYPE D3D9IndexBuffer::GetDesc(
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9IndexBuffer::GetDesc(
           D3DINDEXBUFFER_DESC* pDesc) {
     if (pDesc == nullptr)
       return D3DERR_INVALIDCALL;

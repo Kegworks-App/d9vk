@@ -13,7 +13,7 @@ namespace dxvk {
     : D3D9Texture2DBase( pDevice, pDesc, D3DRTYPE_TEXTURE, pSharedHandle ) { }
 
 
-  HRESULT STDMETHODCALLTYPE D3D9Texture2D::QueryInterface(REFIID riid, void** ppvObject) {
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9Texture2D::QueryInterface(REFIID riid, void** ppvObject) {
     if (ppvObject == nullptr)
       return E_POINTER;
 
@@ -46,7 +46,7 @@ namespace dxvk {
   }
 
 
-  HRESULT STDMETHODCALLTYPE D3D9Texture2D::GetLevelDesc(UINT Level, D3DSURFACE_DESC *pDesc) {
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9Texture2D::GetLevelDesc(UINT Level, D3DSURFACE_DESC *pDesc) {
     if (unlikely(Level >= m_texture.ExposedMipLevels()))
       return D3DERR_INVALIDCALL;
 
@@ -54,7 +54,7 @@ namespace dxvk {
   }
 
 
-  HRESULT STDMETHODCALLTYPE D3D9Texture2D::GetSurfaceLevel(UINT Level, IDirect3DSurface9** ppSurfaceLevel) {
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9Texture2D::GetSurfaceLevel(UINT Level, IDirect3DSurface9** ppSurfaceLevel) {
     InitReturnPtr(ppSurfaceLevel);
 
     if (unlikely(Level >= m_texture.ExposedMipLevels()))
@@ -68,7 +68,7 @@ namespace dxvk {
   }
 
 
-  HRESULT STDMETHODCALLTYPE D3D9Texture2D::LockRect(UINT Level, D3DLOCKED_RECT* pLockedRect, CONST RECT* pRect, DWORD Flags) {
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9Texture2D::LockRect(UINT Level, D3DLOCKED_RECT* pLockedRect, CONST RECT* pRect, DWORD Flags) {
     if (unlikely(Level >= m_texture.ExposedMipLevels()))
       return D3DERR_INVALIDCALL;
 
@@ -76,7 +76,7 @@ namespace dxvk {
   }
 
 
-  HRESULT STDMETHODCALLTYPE D3D9Texture2D::UnlockRect(UINT Level) {
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9Texture2D::UnlockRect(UINT Level) {
     if (unlikely(Level >= m_texture.ExposedMipLevels()))
       return D3DERR_INVALIDCALL;
 
@@ -84,7 +84,7 @@ namespace dxvk {
   }
 
 
-  HRESULT STDMETHODCALLTYPE D3D9Texture2D::AddDirtyRect(CONST RECT* pDirtyRect) {
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9Texture2D::AddDirtyRect(CONST RECT* pDirtyRect) {
     if (pDirtyRect) {
       D3DBOX box = { UINT(pDirtyRect->left), UINT(pDirtyRect->top), UINT(pDirtyRect->right), UINT(pDirtyRect->bottom), 0, 1 };
       m_texture.AddDirtyBox(&box, 0);
@@ -112,7 +112,7 @@ namespace dxvk {
     : D3D9Texture3DBase( pDevice, pDesc, D3DRTYPE_VOLUMETEXTURE, nullptr ) { }
 
 
-  HRESULT STDMETHODCALLTYPE D3D9Texture3D::QueryInterface(REFIID riid, void** ppvObject) {
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9Texture3D::QueryInterface(REFIID riid, void** ppvObject) {
     if (ppvObject == nullptr)
       return E_POINTER;
 
@@ -145,7 +145,7 @@ namespace dxvk {
   }
 
 
-  HRESULT STDMETHODCALLTYPE D3D9Texture3D::GetLevelDesc(UINT Level, D3DVOLUME_DESC *pDesc) {
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9Texture3D::GetLevelDesc(UINT Level, D3DVOLUME_DESC *pDesc) {
     if (unlikely(Level >= m_texture.ExposedMipLevels()))
       return D3DERR_INVALIDCALL;
 
@@ -153,7 +153,7 @@ namespace dxvk {
   }
 
 
-  HRESULT STDMETHODCALLTYPE D3D9Texture3D::GetVolumeLevel(UINT Level, IDirect3DVolume9** ppVolumeLevel) {
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9Texture3D::GetVolumeLevel(UINT Level, IDirect3DVolume9** ppVolumeLevel) {
     InitReturnPtr(ppVolumeLevel);
 
     if (unlikely(Level >= m_texture.ExposedMipLevels()))
@@ -167,7 +167,7 @@ namespace dxvk {
   }
 
 
-  HRESULT STDMETHODCALLTYPE D3D9Texture3D::LockBox(UINT Level, D3DLOCKED_BOX* pLockedBox, CONST D3DBOX* pBox, DWORD Flags) {
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9Texture3D::LockBox(UINT Level, D3DLOCKED_BOX* pLockedBox, CONST D3DBOX* pBox, DWORD Flags) {
     if (unlikely(Level >= m_texture.ExposedMipLevels()))
       return D3DERR_INVALIDCALL;
 
@@ -175,14 +175,14 @@ namespace dxvk {
   }
 
 
-  HRESULT STDMETHODCALLTYPE D3D9Texture3D::UnlockBox(UINT Level) {
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9Texture3D::UnlockBox(UINT Level) {
     if (unlikely(Level >= m_texture.ExposedMipLevels()))
       return D3DERR_INVALIDCALL;
 
     return GetSubresource(Level)->UnlockBox();
   }
 
-  HRESULT STDMETHODCALLTYPE D3D9Texture3D::AddDirtyBox(CONST D3DBOX* pDirtyBox) {
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9Texture3D::AddDirtyBox(CONST D3DBOX* pDirtyBox) {
     m_texture.AddDirtyBox(pDirtyBox, 0);
 
     // Some games keep using the pointer returned in LockBox() after calling Unlock()
@@ -205,7 +205,7 @@ namespace dxvk {
     : D3D9TextureCubeBase( pDevice, pDesc, D3DRTYPE_CUBETEXTURE, nullptr ) { }
 
 
-  HRESULT STDMETHODCALLTYPE D3D9TextureCube::QueryInterface(REFIID riid, void** ppvObject) {
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9TextureCube::QueryInterface(REFIID riid, void** ppvObject) {
     if (ppvObject == nullptr)
       return E_POINTER;
 
@@ -238,7 +238,7 @@ namespace dxvk {
   }
 
 
-  HRESULT STDMETHODCALLTYPE D3D9TextureCube::GetLevelDesc(UINT Level, D3DSURFACE_DESC *pDesc) {
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9TextureCube::GetLevelDesc(UINT Level, D3DSURFACE_DESC *pDesc) {
     if (unlikely(Level >= m_texture.ExposedMipLevels()))
       return D3DERR_INVALIDCALL;
 
@@ -246,7 +246,7 @@ namespace dxvk {
   }
 
 
-  HRESULT STDMETHODCALLTYPE D3D9TextureCube::GetCubeMapSurface(D3DCUBEMAP_FACES Face, UINT Level, IDirect3DSurface9** ppSurfaceLevel) {
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9TextureCube::GetCubeMapSurface(D3DCUBEMAP_FACES Face, UINT Level, IDirect3DSurface9** ppSurfaceLevel) {
     InitReturnPtr(ppSurfaceLevel);
 
     if (unlikely(Level >= m_texture.ExposedMipLevels() || Face >= D3DCUBEMAP_FACES(6)))
@@ -260,7 +260,7 @@ namespace dxvk {
   }
 
 
-  HRESULT STDMETHODCALLTYPE D3D9TextureCube::LockRect(D3DCUBEMAP_FACES Face, UINT Level, D3DLOCKED_RECT* pLockedRect, CONST RECT* pRect, DWORD Flags) {
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9TextureCube::LockRect(D3DCUBEMAP_FACES Face, UINT Level, D3DLOCKED_RECT* pLockedRect, CONST RECT* pRect, DWORD Flags) {
     if (unlikely(Face > D3DCUBEMAP_FACE_NEGATIVE_Z || Level >= m_texture.ExposedMipLevels()))
       return D3DERR_INVALIDCALL;
 
@@ -268,7 +268,7 @@ namespace dxvk {
   }
 
 
-  HRESULT STDMETHODCALLTYPE D3D9TextureCube::UnlockRect(D3DCUBEMAP_FACES Face, UINT Level) {
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9TextureCube::UnlockRect(D3DCUBEMAP_FACES Face, UINT Level) {
     if (unlikely(Face > D3DCUBEMAP_FACE_NEGATIVE_Z || Level >= m_texture.ExposedMipLevels()))
       return D3DERR_INVALIDCALL;
 
@@ -276,7 +276,7 @@ namespace dxvk {
   }
 
 
-  HRESULT STDMETHODCALLTYPE D3D9TextureCube::AddDirtyRect(D3DCUBEMAP_FACES Face, CONST RECT* pDirtyRect) {
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9TextureCube::AddDirtyRect(D3DCUBEMAP_FACES Face, CONST RECT* pDirtyRect) {
     if (pDirtyRect) {
       D3DBOX box = { UINT(pDirtyRect->left), UINT(pDirtyRect->top), UINT(pDirtyRect->right), UINT(pDirtyRect->bottom), 0, 1 };
       m_texture.AddDirtyBox(&box, Face);

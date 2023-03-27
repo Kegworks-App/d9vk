@@ -34,7 +34,7 @@ namespace dxvk {
       return refCount;
     }
 
-    HRESULT STDMETHODCALLTYPE GetDevice(IDirect3DDevice9** ppDevice) {
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetDevice(IDirect3DDevice9** ppDevice) {
       InitReturnPtr(ppDevice);
 
       if (ppDevice == nullptr)

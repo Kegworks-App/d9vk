@@ -22,7 +22,7 @@ namespace dxvk {
     
     ULONG STDMETHODCALLTYPE Release();
     
-    HRESULT STDMETHODCALLTYPE QueryInterface(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE QueryInterface(
             REFIID                riid,
             void**                ppvObject);
 
@@ -53,11 +53,11 @@ namespace dxvk {
     
     ULONG STDMETHODCALLTYPE Release();
     
-    HRESULT STDMETHODCALLTYPE QueryInterface(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE QueryInterface(
             REFIID                riid,
             void**                ppvObject);
 
-    HRESULT STDMETHODCALLTYPE GetVulkanImageInfo(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetVulkanImageInfo(
             VkImage*              pHandle,
             VkImageLayout*        pLayout,
             VkImageCreateInfo*    pInfo);
@@ -84,7 +84,7 @@ namespace dxvk {
     
     ULONG STDMETHODCALLTYPE Release();
     
-    HRESULT STDMETHODCALLTYPE QueryInterface(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE QueryInterface(
             REFIID                riid,
             void**                ppvObject);
 

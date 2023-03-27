@@ -31,15 +31,15 @@ namespace dxvk {
             D3D9DeviceEx*      pDevice,
             D3DQUERYTYPE       QueryType);
 
-    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject);
 
     D3DQUERYTYPE STDMETHODCALLTYPE GetType() final;
 
     DWORD STDMETHODCALLTYPE GetDataSize() final;
 
-    HRESULT STDMETHODCALLTYPE Issue(DWORD dwIssueFlags) final;
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE Issue(DWORD dwIssueFlags) final;
 
-    HRESULT STDMETHODCALLTYPE GetData(void* pData, DWORD dwSize, DWORD dwGetDataFlags) final;
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetData(void* pData, DWORD dwSize, DWORD dwGetDataFlags) final;
 
     HRESULT GetQueryData(void* pData, DWORD dwSize);
 

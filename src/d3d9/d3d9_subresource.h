@@ -48,7 +48,7 @@ namespace dxvk {
       return D3D9Resource<Type...>::Release();
     }
 
-    HRESULT STDMETHODCALLTYPE GetContainer(REFIID riid, void** ppContainer) final {
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetContainer(REFIID riid, void** ppContainer) final {
       if (m_container != nullptr)
         return m_container->QueryInterface(riid, ppContainer);
 

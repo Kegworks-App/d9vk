@@ -22,29 +22,29 @@ namespace dxvk {
 
     ~D3D9InterfaceEx();
 
-    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject);
 
-    HRESULT STDMETHODCALLTYPE RegisterSoftwareDevice(void* pInitializeFunction);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE RegisterSoftwareDevice(void* pInitializeFunction);
 
     UINT STDMETHODCALLTYPE GetAdapterCount();
 
-    HRESULT STDMETHODCALLTYPE GetAdapterIdentifier(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetAdapterIdentifier(
             UINT                    Adapter,
             DWORD                   Flags,
             D3DADAPTER_IDENTIFIER9* pIdentifier);
 
     UINT STDMETHODCALLTYPE GetAdapterModeCount(UINT Adapter, D3DFORMAT Format);
 
-    HRESULT STDMETHODCALLTYPE GetAdapterDisplayMode(UINT Adapter, D3DDISPLAYMODE* pMode);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetAdapterDisplayMode(UINT Adapter, D3DDISPLAYMODE* pMode);
 
-    HRESULT STDMETHODCALLTYPE CheckDeviceType(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE CheckDeviceType(
             UINT       Adapter,
             D3DDEVTYPE DevType,
             D3DFORMAT  AdapterFormat,
             D3DFORMAT  BackBufferFormat,
             BOOL       bWindowed);
 
-    HRESULT STDMETHODCALLTYPE CheckDeviceFormat(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE CheckDeviceFormat(
             UINT            Adapter,
             D3DDEVTYPE      DeviceType,
             D3DFORMAT       AdapterFormat,
@@ -52,7 +52,7 @@ namespace dxvk {
             D3DRESOURCETYPE RType,
             D3DFORMAT       CheckFormat);
 
-    HRESULT STDMETHODCALLTYPE CheckDeviceMultiSampleType(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE CheckDeviceMultiSampleType(
             UINT                Adapter,
             D3DDEVTYPE          DeviceType,
             D3DFORMAT           SurfaceFormat,
@@ -60,27 +60,27 @@ namespace dxvk {
             D3DMULTISAMPLE_TYPE MultiSampleType,
             DWORD*              pQualityLevels);
 
-    HRESULT STDMETHODCALLTYPE CheckDepthStencilMatch(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE CheckDepthStencilMatch(
             UINT       Adapter,
             D3DDEVTYPE DeviceType,
             D3DFORMAT  AdapterFormat,
             D3DFORMAT  RenderTargetFormat,
             D3DFORMAT  DepthStencilFormat);
 
-    HRESULT STDMETHODCALLTYPE CheckDeviceFormatConversion(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE CheckDeviceFormatConversion(
             UINT       Adapter,
             D3DDEVTYPE DeviceType,
             D3DFORMAT  SourceFormat,
             D3DFORMAT  TargetFormat);
 
-    HRESULT STDMETHODCALLTYPE GetDeviceCaps(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetDeviceCaps(
             UINT       Adapter,
             D3DDEVTYPE DeviceType,
             D3DCAPS9*  pCaps);
 
     HMONITOR STDMETHODCALLTYPE GetAdapterMonitor(UINT Adapter);
 
-    HRESULT STDMETHODCALLTYPE CreateDevice(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE CreateDevice(
             UINT                   Adapter,
             D3DDEVTYPE             DeviceType,
             HWND                   hFocusWindow,
@@ -88,7 +88,7 @@ namespace dxvk {
             D3DPRESENT_PARAMETERS* pPresentationParameters,
             IDirect3DDevice9**     ppReturnedDeviceInterface);
 
-    HRESULT STDMETHODCALLTYPE EnumAdapterModes(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE EnumAdapterModes(
             UINT            Adapter,
             D3DFORMAT       Format,
             UINT            Mode,
@@ -98,18 +98,18 @@ namespace dxvk {
 
     UINT STDMETHODCALLTYPE GetAdapterModeCountEx(UINT Adapter, CONST D3DDISPLAYMODEFILTER* pFilter);
 
-    HRESULT STDMETHODCALLTYPE EnumAdapterModesEx(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE EnumAdapterModesEx(
             UINT                  Adapter,
       const D3DDISPLAYMODEFILTER* pFilter,
             UINT                  Mode,
             D3DDISPLAYMODEEX*     pMode);
 
-    HRESULT STDMETHODCALLTYPE GetAdapterDisplayModeEx(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetAdapterDisplayModeEx(
             UINT                Adapter,
             D3DDISPLAYMODEEX*   pMode,
             D3DDISPLAYROTATION* pRotation);
 
-    HRESULT STDMETHODCALLTYPE CreateDeviceEx(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE CreateDeviceEx(
             UINT                   Adapter,
             D3DDEVTYPE             DeviceType,
             HWND                   hFocusWindow,
@@ -118,7 +118,7 @@ namespace dxvk {
             D3DDISPLAYMODEEX*      pFullscreenDisplayMode,
             IDirect3DDevice9Ex**   ppReturnedDeviceInterface);
 
-    HRESULT STDMETHODCALLTYPE GetAdapterLUID(UINT Adapter, LUID* pLUID);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetAdapterLUID(UINT Adapter, LUID* pLUID);
 
     const D3D9Options& GetOptions() { return m_d3d9Options; }
 

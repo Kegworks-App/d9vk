@@ -19,7 +19,7 @@ namespace dxvk {
 
     }
 
-    HRESULT STDMETHODCALLTYPE Lock(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE Lock(
             UINT   OffsetToLock,
             UINT   SizeToLock,
             void** ppbData,
@@ -31,7 +31,7 @@ namespace dxvk {
         Flags);
     }
 
-    HRESULT STDMETHODCALLTYPE Unlock() final {
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE Unlock() final {
       return m_buffer.Unlock();
     }
 
@@ -59,13 +59,13 @@ namespace dxvk {
             D3D9DeviceEx*      pDevice,
       const D3D9_BUFFER_DESC*  pDesc);
 
-    HRESULT STDMETHODCALLTYPE QueryInterface(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE QueryInterface(
             REFIID  riid,
             void** ppvObject);
 
     D3DRESOURCETYPE STDMETHODCALLTYPE GetType();
 
-    HRESULT STDMETHODCALLTYPE GetDesc(D3DVERTEXBUFFER_DESC* pDesc);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetDesc(D3DVERTEXBUFFER_DESC* pDesc);
 
   };
 
@@ -78,13 +78,13 @@ namespace dxvk {
             D3D9DeviceEx*      pDevice,
       const D3D9_BUFFER_DESC*  pDesc);
 
-    HRESULT STDMETHODCALLTYPE QueryInterface(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE QueryInterface(
             REFIID  riid,
             void** ppvObject);
 
     D3DRESOURCETYPE STDMETHODCALLTYPE GetType();
 
-    HRESULT STDMETHODCALLTYPE GetDesc(D3DINDEXBUFFER_DESC* pDesc);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetDesc(D3DINDEXBUFFER_DESC* pDesc);
 
   };
 

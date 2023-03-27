@@ -15,7 +15,7 @@ namespace dxvk {
       : D3D9DeviceChild<Type...>(pDevice)
       , m_priority              ( 0 ) { }
 
-    HRESULT STDMETHODCALLTYPE SetPrivateData(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE SetPrivateData(
             REFGUID     refguid,
       const void*       pData,
             DWORD       SizeOfData,
@@ -38,7 +38,7 @@ namespace dxvk {
       return D3D_OK;
     }
 
-    HRESULT STDMETHODCALLTYPE GetPrivateData(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetPrivateData(
             REFGUID     refguid,
             void*       pData,
             DWORD*      pSizeOfData) final {
@@ -51,7 +51,7 @@ namespace dxvk {
       return D3D_OK;
     }
 
-    HRESULT STDMETHODCALLTYPE FreePrivateData(REFGUID refguid) final {
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE FreePrivateData(REFGUID refguid) final {
       HRESULT hr = m_privateData.setData(refguid, 0, nullptr);
 
       if (FAILED(hr))

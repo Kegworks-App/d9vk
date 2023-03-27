@@ -189,6 +189,8 @@ typedef struct RGNDATA {
 #define STDMETHODCALLTYPE
 #define __stdcall
 
+#define DECLSPEC_NOTHROW noexcept
+
 #define CONST const
 #define CONST_VTBL const
 

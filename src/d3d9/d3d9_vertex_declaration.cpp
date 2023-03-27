@@ -26,7 +26,7 @@ namespace dxvk {
   }
 
 
-  HRESULT STDMETHODCALLTYPE D3D9VertexDecl::QueryInterface(
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9VertexDecl::QueryInterface(
           REFIID  riid,
           void** ppvObject) {
     if (ppvObject == nullptr)
@@ -49,7 +49,7 @@ namespace dxvk {
   }
 
 
-  HRESULT STDMETHODCALLTYPE D3D9VertexDecl::GetDeclaration(
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9VertexDecl::GetDeclaration(
           D3DVERTEXELEMENT9* pElement,
           UINT*              pNumElements) {
     if (pNumElements == nullptr)

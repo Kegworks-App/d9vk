@@ -32,11 +32,11 @@ namespace dxvk {
       const D3DVERTEXELEMENT9* pVertexElements,
             uint32_t           DeclCount);
 
-    HRESULT STDMETHODCALLTYPE QueryInterface(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE QueryInterface(
             REFIID  riid,
             void** ppvObject);
 
-    HRESULT STDMETHODCALLTYPE GetDeclaration(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetDeclaration(
             D3DVERTEXELEMENT9* pElement,
             UINT*              pNumElements);
 

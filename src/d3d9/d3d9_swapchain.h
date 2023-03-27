@@ -31,33 +31,33 @@ namespace dxvk {
 
     ~D3D9SwapChainEx();
 
-    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject);
 
-    HRESULT STDMETHODCALLTYPE Present(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE Present(
       const RECT*    pSourceRect,
       const RECT*    pDestRect,
             HWND     hDestWindowOverride,
       const RGNDATA* pDirtyRegion,
             DWORD    dwFlags);
 
-    HRESULT STDMETHODCALLTYPE GetFrontBufferData(IDirect3DSurface9* pDestSurface);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetFrontBufferData(IDirect3DSurface9* pDestSurface);
 
-    HRESULT STDMETHODCALLTYPE GetBackBuffer(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetBackBuffer(
             UINT                iBackBuffer,
             D3DBACKBUFFER_TYPE  Type,
             IDirect3DSurface9** ppBackBuffer);
 
-    HRESULT STDMETHODCALLTYPE GetRasterStatus(D3DRASTER_STATUS* pRasterStatus);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetRasterStatus(D3DRASTER_STATUS* pRasterStatus);
 
-    HRESULT STDMETHODCALLTYPE GetDisplayMode(D3DDISPLAYMODE* pMode);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetDisplayMode(D3DDISPLAYMODE* pMode);
 
-    HRESULT STDMETHODCALLTYPE GetPresentParameters(D3DPRESENT_PARAMETERS* pPresentationParameters);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetPresentParameters(D3DPRESENT_PARAMETERS* pPresentationParameters);
 
-    HRESULT STDMETHODCALLTYPE GetLastPresentCount(UINT* pLastPresentCount);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetLastPresentCount(UINT* pLastPresentCount);
 
-    HRESULT STDMETHODCALLTYPE GetPresentStats(D3DPRESENTSTATS* pPresentationStatistics);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetPresentStats(D3DPRESENTSTATS* pPresentationStatistics);
 
-    HRESULT STDMETHODCALLTYPE GetDisplayModeEx(D3DDISPLAYMODEEX* pMode, D3DDISPLAYROTATION* pRotation);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetDisplayModeEx(D3DDISPLAYMODEEX* pMode, D3DDISPLAYROTATION* pRotation);
 
     HRESULT Reset(
             D3DPRESENT_PARAMETERS* pPresentParams,

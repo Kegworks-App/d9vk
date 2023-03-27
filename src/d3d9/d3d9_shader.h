@@ -97,7 +97,7 @@ namespace dxvk {
       m_bytecode.Unmap();
     }
 
-    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) {
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) {
       if (ppvObject == nullptr)
         return E_POINTER;
 
@@ -117,7 +117,7 @@ namespace dxvk {
       return E_NOINTERFACE;
     }
 
-    HRESULT STDMETHODCALLTYPE GetFunction(void* pOut, UINT* pSizeOfData) {
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetFunction(void* pOut, UINT* pSizeOfData) {
       if (pSizeOfData == nullptr)
         return D3DERR_INVALIDCALL;
 

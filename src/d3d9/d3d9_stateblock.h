@@ -89,12 +89,12 @@ namespace dxvk {
 
     D3D9StateBlock(D3D9DeviceEx* pDevice, D3D9StateBlockType Type);
 
-    HRESULT STDMETHODCALLTYPE QueryInterface(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE QueryInterface(
         REFIID  riid,
         void** ppvObject) final;
 
-    HRESULT STDMETHODCALLTYPE Capture() final;
-    HRESULT STDMETHODCALLTYPE Apply() final;
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE Capture() final;
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE Apply() final;
 
     HRESULT SetVertexDeclaration(D3D9VertexDecl* pDecl);
 

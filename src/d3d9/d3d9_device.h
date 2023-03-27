@@ -132,64 +132,64 @@ namespace dxvk {
 
     ~D3D9DeviceEx();
 
-    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject);
 
-    HRESULT STDMETHODCALLTYPE TestCooperativeLevel();
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE TestCooperativeLevel();
 
-    UINT    STDMETHODCALLTYPE GetAvailableTextureMem();
+    DECLSPEC_NOTHROW UINT    STDMETHODCALLTYPE GetAvailableTextureMem();
 
-    HRESULT STDMETHODCALLTYPE EvictManagedResources();
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE EvictManagedResources();
 
-    HRESULT STDMETHODCALLTYPE GetDirect3D(IDirect3D9** ppD3D9);
+    DECLSPEC_NOTHROW  HRESULT STDMETHODCALLTYPE GetDirect3D(IDirect3D9** ppD3D9);
 
-    HRESULT STDMETHODCALLTYPE GetDeviceCaps(D3DCAPS9* pCaps);
+    DECLSPEC_NOTHROW  HRESULT STDMETHODCALLTYPE GetDeviceCaps(D3DCAPS9* pCaps);
 
-    HRESULT STDMETHODCALLTYPE GetDisplayMode(UINT iSwapChain, D3DDISPLAYMODE* pMode);
+    DECLSPEC_NOTHROW  HRESULT STDMETHODCALLTYPE GetDisplayMode(UINT iSwapChain, D3DDISPLAYMODE* pMode);
 
-    HRESULT STDMETHODCALLTYPE GetCreationParameters(D3DDEVICE_CREATION_PARAMETERS *pParameters);
+    DECLSPEC_NOTHROW  HRESULT STDMETHODCALLTYPE GetCreationParameters(D3DDEVICE_CREATION_PARAMETERS *pParameters);
 
-    HRESULT STDMETHODCALLTYPE SetCursorProperties(
+    DECLSPEC_NOTHROW  HRESULT STDMETHODCALLTYPE SetCursorProperties(
             UINT               XHotSpot,
             UINT               YHotSpot,
             IDirect3DSurface9* pCursorBitmap);
 
-    void    STDMETHODCALLTYPE SetCursorPosition(int X, int Y, DWORD Flags);
+    DECLSPEC_NOTHROW void    STDMETHODCALLTYPE SetCursorPosition(int X, int Y, DWORD Flags);
 
-    BOOL    STDMETHODCALLTYPE ShowCursor(BOOL bShow);
+    DECLSPEC_NOTHROW BOOL    STDMETHODCALLTYPE ShowCursor(BOOL bShow);
 
-    HRESULT STDMETHODCALLTYPE CreateAdditionalSwapChain(
+    DECLSPEC_NOTHROW  HRESULT STDMETHODCALLTYPE CreateAdditionalSwapChain(
             D3DPRESENT_PARAMETERS* pPresentationParameters,
             IDirect3DSwapChain9**  ppSwapChain);
 
-    HRESULT STDMETHODCALLTYPE GetSwapChain(UINT iSwapChain, IDirect3DSwapChain9** pSwapChain);
+    DECLSPEC_NOTHROW  HRESULT STDMETHODCALLTYPE GetSwapChain(UINT iSwapChain, IDirect3DSwapChain9** pSwapChain);
 
-    UINT    STDMETHODCALLTYPE GetNumberOfSwapChains();
+    DECLSPEC_NOTHROW UINT    STDMETHODCALLTYPE GetNumberOfSwapChains();
 
-    HRESULT STDMETHODCALLTYPE Reset(D3DPRESENT_PARAMETERS* pPresentationParameters);
+    DECLSPEC_NOTHROW  HRESULT STDMETHODCALLTYPE Reset(D3DPRESENT_PARAMETERS* pPresentationParameters);
 
-    HRESULT STDMETHODCALLTYPE Present(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE Present(
       const RECT* pSourceRect,
       const RECT* pDestRect, HWND hDestWindowOverride,
       const RGNDATA* pDirtyRegion);
 
-    HRESULT STDMETHODCALLTYPE GetBackBuffer(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetBackBuffer(
       UINT iSwapChain,
       UINT iBackBuffer,
       D3DBACKBUFFER_TYPE Type,
       IDirect3DSurface9** ppBackBuffer);
 
-    HRESULT STDMETHODCALLTYPE GetRasterStatus(UINT iSwapChain, D3DRASTER_STATUS* pRasterStatus);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetRasterStatus(UINT iSwapChain, D3DRASTER_STATUS* pRasterStatus);
 
-    HRESULT STDMETHODCALLTYPE SetDialogBoxMode(BOOL bEnableDialogs);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE SetDialogBoxMode(BOOL bEnableDialogs);
 
-    void    STDMETHODCALLTYPE SetGammaRamp(
+    DECLSPEC_NOTHROW void    STDMETHODCALLTYPE SetGammaRamp(
       UINT iSwapChain,
       DWORD Flags,
       const D3DGAMMARAMP* pRamp);
 
-    void    STDMETHODCALLTYPE GetGammaRamp(UINT iSwapChain, D3DGAMMARAMP* pRamp);
+    DECLSPEC_NOTHROW void    STDMETHODCALLTYPE GetGammaRamp(UINT iSwapChain, D3DGAMMARAMP* pRamp);
 
-    HRESULT STDMETHODCALLTYPE CreateTexture(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE CreateTexture(
             UINT                Width,
             UINT                Height,
             UINT                Levels,
@@ -199,7 +199,7 @@ namespace dxvk {
             IDirect3DTexture9** ppTexture,
             HANDLE*             pSharedHandle);
 
-    HRESULT STDMETHODCALLTYPE CreateVolumeTexture(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE CreateVolumeTexture(
             UINT                      Width,
             UINT                      Height,
             UINT                      Depth,
@@ -210,7 +210,7 @@ namespace dxvk {
             IDirect3DVolumeTexture9** ppVolumeTexture,
             HANDLE*                   pSharedHandle);
 
-    HRESULT STDMETHODCALLTYPE CreateCubeTexture(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE CreateCubeTexture(
           UINT                      EdgeLength,
             UINT                    Levels,
             DWORD                   Usage,
@@ -219,7 +219,7 @@ namespace dxvk {
             IDirect3DCubeTexture9** ppCubeTexture,
             HANDLE*                 pSharedHandle);
 
-    HRESULT STDMETHODCALLTYPE CreateVertexBuffer(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE CreateVertexBuffer(
             UINT                     Length,
             DWORD                    Usage,
             DWORD                    FVF,
@@ -227,7 +227,7 @@ namespace dxvk {
             IDirect3DVertexBuffer9** ppVertexBuffer,
             HANDLE*                  pSharedHandle);
 
-    HRESULT STDMETHODCALLTYPE CreateIndexBuffer(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE CreateIndexBuffer(
             UINT                    Length,
             DWORD                   Usage,
             D3DFORMAT               Format,
@@ -235,7 +235,7 @@ namespace dxvk {
             IDirect3DIndexBuffer9** ppIndexBuffer,
             HANDLE*                 pSharedHandle);
 
-    HRESULT STDMETHODCALLTYPE CreateRenderTarget(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE CreateRenderTarget(
             UINT                Width,
             UINT                Height,
             D3DFORMAT           Format,
@@ -245,7 +245,7 @@ namespace dxvk {
             IDirect3DSurface9** ppSurface,
             HANDLE*             pSharedHandle);
 
-    HRESULT STDMETHODCALLTYPE CreateDepthStencilSurface(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE CreateDepthStencilSurface(
             UINT                Width,
             UINT                Height,
             D3DFORMAT           Format,
@@ -255,35 +255,35 @@ namespace dxvk {
             IDirect3DSurface9** ppSurface,
             HANDLE*             pSharedHandle);
 
-    HRESULT STDMETHODCALLTYPE UpdateSurface(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE UpdateSurface(
             IDirect3DSurface9* pSourceSurface,
       const RECT*              pSourceRect,
             IDirect3DSurface9* pDestinationSurface,
       const POINT*             pDestPoint);
 
-    HRESULT STDMETHODCALLTYPE UpdateTexture(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE UpdateTexture(
             IDirect3DBaseTexture9* pSourceTexture,
             IDirect3DBaseTexture9* pDestinationTexture);
 
-    HRESULT STDMETHODCALLTYPE GetRenderTargetData(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetRenderTargetData(
             IDirect3DSurface9* pRenderTarget,
             IDirect3DSurface9* pDestSurface);
 
-    HRESULT STDMETHODCALLTYPE GetFrontBufferData(UINT iSwapChain, IDirect3DSurface9* pDestSurface);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetFrontBufferData(UINT iSwapChain, IDirect3DSurface9* pDestSurface);
 
-    HRESULT STDMETHODCALLTYPE StretchRect(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE StretchRect(
             IDirect3DSurface9*   pSourceSurface,
       const RECT*                pSourceRect,
             IDirect3DSurface9*   pDestSurface,
       const RECT*                pDestRect,
             D3DTEXTUREFILTERTYPE Filter);
 
-    HRESULT STDMETHODCALLTYPE ColorFill(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE ColorFill(
             IDirect3DSurface9* pSurface,
       const RECT*              pRect,
             D3DCOLOR           Color);
 
-    HRESULT STDMETHODCALLTYPE CreateOffscreenPlainSurface(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE CreateOffscreenPlainSurface(
       UINT Width,
       UINT Height,
       D3DFORMAT Format,
@@ -291,23 +291,23 @@ namespace dxvk {
       IDirect3DSurface9** ppSurface,
       HANDLE* pSharedHandle);
 
-    HRESULT STDMETHODCALLTYPE SetRenderTarget(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE SetRenderTarget(
             DWORD              RenderTargetIndex,
             IDirect3DSurface9* pRenderTarget);
 
-    HRESULT STDMETHODCALLTYPE GetRenderTarget(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetRenderTarget(
             DWORD               RenderTargetIndex,
             IDirect3DSurface9** ppRenderTarget);
 
-    HRESULT STDMETHODCALLTYPE SetDepthStencilSurface(IDirect3DSurface9* pNewZStencil);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE SetDepthStencilSurface(IDirect3DSurface9* pNewZStencil);
 
-    HRESULT STDMETHODCALLTYPE GetDepthStencilSurface(IDirect3DSurface9** ppZStencilSurface);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetDepthStencilSurface(IDirect3DSurface9** ppZStencilSurface);
 
-    HRESULT STDMETHODCALLTYPE BeginScene();
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE BeginScene();
 
-    HRESULT STDMETHODCALLTYPE EndScene();
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE EndScene();
 
-    HRESULT STDMETHODCALLTYPE Clear(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE Clear(
             DWORD    Count,
       const D3DRECT* pRects,
             DWORD    Flags,
@@ -315,100 +315,100 @@ namespace dxvk {
             float    Z,
             DWORD    Stencil);
 
-    HRESULT STDMETHODCALLTYPE SetTransform(D3DTRANSFORMSTATETYPE State, const D3DMATRIX* pMatrix);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE SetTransform(D3DTRANSFORMSTATETYPE State, const D3DMATRIX* pMatrix);
 
-    HRESULT STDMETHODCALLTYPE GetTransform(D3DTRANSFORMSTATETYPE State, D3DMATRIX* pMatrix);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetTransform(D3DTRANSFORMSTATETYPE State, D3DMATRIX* pMatrix);
 
-    HRESULT STDMETHODCALLTYPE MultiplyTransform(D3DTRANSFORMSTATETYPE TransformState, const D3DMATRIX* pMatrix);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE MultiplyTransform(D3DTRANSFORMSTATETYPE TransformState, const D3DMATRIX* pMatrix);
 
-    HRESULT STDMETHODCALLTYPE SetViewport(const D3DVIEWPORT9* pViewport);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE SetViewport(const D3DVIEWPORT9* pViewport);
 
-    HRESULT STDMETHODCALLTYPE GetViewport(D3DVIEWPORT9* pViewport);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetViewport(D3DVIEWPORT9* pViewport);
 
-    HRESULT STDMETHODCALLTYPE SetMaterial(const D3DMATERIAL9* pMaterial);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE SetMaterial(const D3DMATERIAL9* pMaterial);
 
-    HRESULT STDMETHODCALLTYPE GetMaterial(D3DMATERIAL9* pMaterial);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetMaterial(D3DMATERIAL9* pMaterial);
 
-    HRESULT STDMETHODCALLTYPE SetLight(DWORD Index, const D3DLIGHT9* pLight);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE SetLight(DWORD Index, const D3DLIGHT9* pLight);
 
-    HRESULT STDMETHODCALLTYPE GetLight(DWORD Index, D3DLIGHT9* pLight);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetLight(DWORD Index, D3DLIGHT9* pLight);
 
-    HRESULT STDMETHODCALLTYPE LightEnable(DWORD Index, BOOL Enable);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE LightEnable(DWORD Index, BOOL Enable);
 
-    HRESULT STDMETHODCALLTYPE GetLightEnable(DWORD Index, BOOL* pEnable);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetLightEnable(DWORD Index, BOOL* pEnable);
 
-    HRESULT STDMETHODCALLTYPE SetClipPlane(DWORD Index, const float* pPlane);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE SetClipPlane(DWORD Index, const float* pPlane);
 
-    HRESULT STDMETHODCALLTYPE GetClipPlane(DWORD Index, float* pPlane);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetClipPlane(DWORD Index, float* pPlane);
 
-    HRESULT STDMETHODCALLTYPE SetRenderState(D3DRENDERSTATETYPE State, DWORD Value);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE SetRenderState(D3DRENDERSTATETYPE State, DWORD Value);
 
-    HRESULT STDMETHODCALLTYPE GetRenderState(D3DRENDERSTATETYPE State, DWORD* pValue);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetRenderState(D3DRENDERSTATETYPE State, DWORD* pValue);
 
-    HRESULT STDMETHODCALLTYPE CreateStateBlock(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE CreateStateBlock(
             D3DSTATEBLOCKTYPE      Type,
             IDirect3DStateBlock9** ppSB);
 
-    HRESULT STDMETHODCALLTYPE BeginStateBlock();
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE BeginStateBlock();
 
-    HRESULT STDMETHODCALLTYPE EndStateBlock(IDirect3DStateBlock9** ppSB);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE EndStateBlock(IDirect3DStateBlock9** ppSB);
 
-    HRESULT STDMETHODCALLTYPE SetClipStatus(const D3DCLIPSTATUS9* pClipStatus);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE SetClipStatus(const D3DCLIPSTATUS9* pClipStatus);
 
-    HRESULT STDMETHODCALLTYPE GetClipStatus(D3DCLIPSTATUS9* pClipStatus);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetClipStatus(D3DCLIPSTATUS9* pClipStatus);
 
-    HRESULT STDMETHODCALLTYPE GetTexture(DWORD Stage, IDirect3DBaseTexture9** ppTexture);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetTexture(DWORD Stage, IDirect3DBaseTexture9** ppTexture);
 
-    HRESULT STDMETHODCALLTYPE SetTexture(DWORD Stage, IDirect3DBaseTexture9* pTexture);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE SetTexture(DWORD Stage, IDirect3DBaseTexture9* pTexture);
 
-    HRESULT STDMETHODCALLTYPE GetTextureStageState(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetTextureStageState(
             DWORD                    Stage,
             D3DTEXTURESTAGESTATETYPE Type,
             DWORD*                   pValue);
 
-    HRESULT STDMETHODCALLTYPE SetTextureStageState(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE SetTextureStageState(
             DWORD                    Stage,
             D3DTEXTURESTAGESTATETYPE Type,
             DWORD                    Value);
 
-    HRESULT STDMETHODCALLTYPE GetSamplerState(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetSamplerState(
             DWORD               Sampler,
             D3DSAMPLERSTATETYPE Type,
             DWORD*              pValue);
 
-    HRESULT STDMETHODCALLTYPE SetSamplerState(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE SetSamplerState(
             DWORD               Sampler,
             D3DSAMPLERSTATETYPE Type,
             DWORD               Value);
 
-    HRESULT STDMETHODCALLTYPE ValidateDevice(DWORD* pNumPasses);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE ValidateDevice(DWORD* pNumPasses);
 
-    HRESULT STDMETHODCALLTYPE SetPaletteEntries(UINT PaletteNumber, const PALETTEENTRY* pEntries);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE SetPaletteEntries(UINT PaletteNumber, const PALETTEENTRY* pEntries);
 
-    HRESULT STDMETHODCALLTYPE GetPaletteEntries(UINT PaletteNumber, PALETTEENTRY* pEntries);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetPaletteEntries(UINT PaletteNumber, PALETTEENTRY* pEntries);
 
-    HRESULT STDMETHODCALLTYPE SetCurrentTexturePalette(UINT PaletteNumber);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE SetCurrentTexturePalette(UINT PaletteNumber);
 
-    HRESULT STDMETHODCALLTYPE GetCurrentTexturePalette(UINT *PaletteNumber);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetCurrentTexturePalette(UINT *PaletteNumber);
 
-    HRESULT STDMETHODCALLTYPE SetScissorRect(const RECT* pRect);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE SetScissorRect(const RECT* pRect);
 
-    HRESULT STDMETHODCALLTYPE GetScissorRect(RECT* pRect);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetScissorRect(RECT* pRect);
 
-    HRESULT STDMETHODCALLTYPE SetSoftwareVertexProcessing(BOOL bSoftware);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE SetSoftwareVertexProcessing(BOOL bSoftware);
 
-    BOOL    STDMETHODCALLTYPE GetSoftwareVertexProcessing();
+    DECLSPEC_NOTHROW BOOL    STDMETHODCALLTYPE GetSoftwareVertexProcessing();
 
-    HRESULT STDMETHODCALLTYPE SetNPatchMode(float nSegments);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE SetNPatchMode(float nSegments);
 
-    float   STDMETHODCALLTYPE GetNPatchMode();
+    DECLSPEC_NOTHROW float   STDMETHODCALLTYPE GetNPatchMode();
 
-    HRESULT STDMETHODCALLTYPE DrawPrimitive(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE DrawPrimitive(
             D3DPRIMITIVETYPE PrimitiveType,
             UINT             StartVertex,
             UINT             PrimitiveCount);
 
-    HRESULT STDMETHODCALLTYPE DrawIndexedPrimitive(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE DrawIndexedPrimitive(
             D3DPRIMITIVETYPE PrimitiveType,
             INT              BaseVertexIndex,
             UINT             MinVertexIndex,
@@ -416,13 +416,13 @@ namespace dxvk {
             UINT             StartIndex,
             UINT             PrimitiveCount);
 
-    HRESULT STDMETHODCALLTYPE DrawPrimitiveUP(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE DrawPrimitiveUP(
             D3DPRIMITIVETYPE PrimitiveType,
             UINT             PrimitiveCount,
       const void*            pVertexStreamZeroData,
             UINT             VertexStreamZeroStride);
 
-    HRESULT STDMETHODCALLTYPE DrawIndexedPrimitiveUP(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE DrawIndexedPrimitiveUP(
             D3DPRIMITIVETYPE PrimitiveType,
             UINT             MinVertexIndex,
             UINT             NumVertices,
@@ -432,7 +432,7 @@ namespace dxvk {
       const void*            pVertexStreamZeroData,
             UINT             VertexStreamZeroStride);
 
-    HRESULT STDMETHODCALLTYPE ProcessVertices(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE ProcessVertices(
             UINT                         SrcStartIndex,
             UINT                         DestIndex,
             UINT                         VertexCount,
@@ -440,137 +440,137 @@ namespace dxvk {
             IDirect3DVertexDeclaration9* pVertexDecl,
             DWORD                        Flags);
 
-    HRESULT STDMETHODCALLTYPE CreateVertexDeclaration(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE CreateVertexDeclaration(
       const D3DVERTEXELEMENT9*            pVertexElements,
             IDirect3DVertexDeclaration9** ppDecl);
 
-    HRESULT STDMETHODCALLTYPE SetVertexDeclaration(IDirect3DVertexDeclaration9* pDecl);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE SetVertexDeclaration(IDirect3DVertexDeclaration9* pDecl);
 
-    HRESULT STDMETHODCALLTYPE GetVertexDeclaration(IDirect3DVertexDeclaration9** ppDecl);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetVertexDeclaration(IDirect3DVertexDeclaration9** ppDecl);
 
-    HRESULT STDMETHODCALLTYPE SetFVF(DWORD FVF);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE SetFVF(DWORD FVF);
 
-    HRESULT STDMETHODCALLTYPE GetFVF(DWORD* pFVF);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetFVF(DWORD* pFVF);
 
-    HRESULT STDMETHODCALLTYPE CreateVertexShader(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE CreateVertexShader(
       const DWORD*                   pFunction,
             IDirect3DVertexShader9** ppShader);
 
-    HRESULT STDMETHODCALLTYPE SetVertexShader(IDirect3DVertexShader9* pShader);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE SetVertexShader(IDirect3DVertexShader9* pShader);
 
-    HRESULT STDMETHODCALLTYPE GetVertexShader(IDirect3DVertexShader9** ppShader);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetVertexShader(IDirect3DVertexShader9** ppShader);
 
-    HRESULT STDMETHODCALLTYPE SetVertexShaderConstantF(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE SetVertexShaderConstantF(
             UINT   StartRegister,
       const float* pConstantData,
             UINT   Vector4fCount);
 
-    HRESULT STDMETHODCALLTYPE GetVertexShaderConstantF(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetVertexShaderConstantF(
             UINT   StartRegister,
             float* pConstantData,
             UINT   Vector4fCount);
 
-    HRESULT STDMETHODCALLTYPE SetVertexShaderConstantI(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE SetVertexShaderConstantI(
             UINT StartRegister,
       const int* pConstantData,
             UINT Vector4iCount);
 
-    HRESULT STDMETHODCALLTYPE GetVertexShaderConstantI(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetVertexShaderConstantI(
             UINT StartRegister,
             int* pConstantData,
             UINT Vector4iCount);
 
-    HRESULT STDMETHODCALLTYPE SetVertexShaderConstantB(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE SetVertexShaderConstantB(
             UINT  StartRegister,
       const BOOL* pConstantData,
             UINT  BoolCount);
 
-    HRESULT STDMETHODCALLTYPE GetVertexShaderConstantB(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetVertexShaderConstantB(
             UINT  StartRegister,
             BOOL* pConstantData,
             UINT  BoolCount);
 
-    HRESULT STDMETHODCALLTYPE SetStreamSource(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE SetStreamSource(
             UINT                    StreamNumber,
             IDirect3DVertexBuffer9* pStreamData,
             UINT                    OffsetInBytes,
             UINT                    Stride);
 
-    HRESULT STDMETHODCALLTYPE GetStreamSource(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetStreamSource(
             UINT                     StreamNumber,
             IDirect3DVertexBuffer9** ppStreamData,
             UINT*                    pOffsetInBytes,
             UINT*                    pStride);
 
-    HRESULT STDMETHODCALLTYPE SetStreamSourceFreq(UINT StreamNumber, UINT Setting);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE SetStreamSourceFreq(UINT StreamNumber, UINT Setting);
 
-    HRESULT STDMETHODCALLTYPE GetStreamSourceFreq(UINT StreamNumber, UINT* pSetting);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetStreamSourceFreq(UINT StreamNumber, UINT* pSetting);
 
-    HRESULT STDMETHODCALLTYPE SetIndices(IDirect3DIndexBuffer9* pIndexData);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE SetIndices(IDirect3DIndexBuffer9* pIndexData);
 
-    HRESULT STDMETHODCALLTYPE GetIndices(IDirect3DIndexBuffer9** ppIndexData);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetIndices(IDirect3DIndexBuffer9** ppIndexData);
 
-    HRESULT STDMETHODCALLTYPE CreatePixelShader(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE CreatePixelShader(
       const DWORD*                  pFunction, 
             IDirect3DPixelShader9** ppShader);
 
-    HRESULT STDMETHODCALLTYPE SetPixelShader(IDirect3DPixelShader9* pShader);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE SetPixelShader(IDirect3DPixelShader9* pShader);
 
-    HRESULT STDMETHODCALLTYPE GetPixelShader(IDirect3DPixelShader9** ppShader);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetPixelShader(IDirect3DPixelShader9** ppShader);
 
-    HRESULT STDMETHODCALLTYPE SetPixelShaderConstantF(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE SetPixelShaderConstantF(
             UINT   StartRegister,
       const float* pConstantData,
             UINT   Vector4fCount);
 
-    HRESULT STDMETHODCALLTYPE GetPixelShaderConstantF(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetPixelShaderConstantF(
             UINT   StartRegister,
             float* pConstantData,
             UINT   Vector4fCount);
 
-    HRESULT STDMETHODCALLTYPE SetPixelShaderConstantI(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE SetPixelShaderConstantI(
             UINT StartRegister,
       const int* pConstantData,
             UINT Vector4iCount);
 
-    HRESULT STDMETHODCALLTYPE GetPixelShaderConstantI(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetPixelShaderConstantI(
             UINT StartRegister,
             int* pConstantData,
             UINT Vector4iCount);
 
-    HRESULT STDMETHODCALLTYPE SetPixelShaderConstantB(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE SetPixelShaderConstantB(
             UINT  StartRegister,
       const BOOL* pConstantData,
             UINT  BoolCount);
 
-    HRESULT STDMETHODCALLTYPE GetPixelShaderConstantB(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetPixelShaderConstantB(
             UINT  StartRegister,
             BOOL* pConstantData,
             UINT  BoolCount);
 
-    HRESULT STDMETHODCALLTYPE DrawRectPatch(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE DrawRectPatch(
             UINT               Handle,
       const float*             pNumSegs,
       const D3DRECTPATCH_INFO* pRectPatchInfo);
 
-    HRESULT STDMETHODCALLTYPE DrawTriPatch(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE DrawTriPatch(
             UINT              Handle,
       const float*            pNumSegs,
       const D3DTRIPATCH_INFO* pTriPatchInfo);
 
-    HRESULT STDMETHODCALLTYPE DeletePatch(UINT Handle);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE DeletePatch(UINT Handle);
 
-    HRESULT STDMETHODCALLTYPE CreateQuery(D3DQUERYTYPE Type, IDirect3DQuery9** ppQuery);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE CreateQuery(D3DQUERYTYPE Type, IDirect3DQuery9** ppQuery);
 
     // Ex Methods
 
-    HRESULT STDMETHODCALLTYPE SetConvolutionMonoKernel(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE SetConvolutionMonoKernel(
             UINT   width,
             UINT   height,
             float* rows,
             float* columns);
 
-    HRESULT STDMETHODCALLTYPE ComposeRects(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE ComposeRects(
             IDirect3DSurface9*      pSrc,
             IDirect3DSurface9*      pDst,
             IDirect3DVertexBuffer9* pSrcRectDescs,
@@ -580,28 +580,28 @@ namespace dxvk {
             int                     Xoffset,
             int                     Yoffset);
 
-    HRESULT STDMETHODCALLTYPE GetGPUThreadPriority(INT* pPriority);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetGPUThreadPriority(INT* pPriority);
 
-    HRESULT STDMETHODCALLTYPE SetGPUThreadPriority(INT Priority);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE SetGPUThreadPriority(INT Priority);
 
-    HRESULT STDMETHODCALLTYPE WaitForVBlank(UINT iSwapChain);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE WaitForVBlank(UINT iSwapChain);
 
-    HRESULT STDMETHODCALLTYPE CheckResourceResidency(IDirect3DResource9** pResourceArray, UINT32 NumResources);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE CheckResourceResidency(IDirect3DResource9** pResourceArray, UINT32 NumResources);
 
-    HRESULT STDMETHODCALLTYPE SetMaximumFrameLatency(UINT MaxLatency);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE SetMaximumFrameLatency(UINT MaxLatency);
 
-    HRESULT STDMETHODCALLTYPE GetMaximumFrameLatency(UINT* pMaxLatency);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetMaximumFrameLatency(UINT* pMaxLatency);
 
-    HRESULT STDMETHODCALLTYPE CheckDeviceState(HWND hDestinationWindow);
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE CheckDeviceState(HWND hDestinationWindow);
 
-    HRESULT STDMETHODCALLTYPE PresentEx(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE PresentEx(
       const RECT*    pSourceRect,
       const RECT*    pDestRect,
             HWND     hDestWindowOverride,
       const RGNDATA* pDirtyRegion,
             DWORD    dwFlags);
 
-    HRESULT STDMETHODCALLTYPE CreateRenderTargetEx(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE CreateRenderTargetEx(
             UINT                Width,
             UINT                Height,
             D3DFORMAT           Format,
@@ -612,7 +612,7 @@ namespace dxvk {
             HANDLE*             pSharedHandle,
             DWORD               Usage);
 
-    HRESULT STDMETHODCALLTYPE CreateOffscreenPlainSurfaceEx(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE CreateOffscreenPlainSurfaceEx(
             UINT                Width,
             UINT                Height,
             D3DFORMAT           Format,
@@ -621,7 +621,7 @@ namespace dxvk {
             HANDLE*             pSharedHandle,
             DWORD               Usage);
 
-    HRESULT STDMETHODCALLTYPE CreateDepthStencilSurfaceEx(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE CreateDepthStencilSurfaceEx(
             UINT                Width,
             UINT                Height,
             D3DFORMAT           Format,
@@ -632,16 +632,16 @@ namespace dxvk {
             HANDLE*             pSharedHandle,
             DWORD               Usage);
 
-    HRESULT STDMETHODCALLTYPE ResetEx(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE ResetEx(
             D3DPRESENT_PARAMETERS* pPresentationParameters,
             D3DDISPLAYMODEEX*      pFullscreenDisplayMode);
 
-    HRESULT STDMETHODCALLTYPE GetDisplayModeEx(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetDisplayModeEx(
             UINT                iSwapChain,
             D3DDISPLAYMODEEX*   pMode,
             D3DDISPLAYROTATION* pRotation);
 
-    HRESULT STDMETHODCALLTYPE CreateAdditionalSwapChainEx(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE CreateAdditionalSwapChainEx(
             D3DPRESENT_PARAMETERS* pPresentationParameters,
       const D3DDISPLAYMODEEX*      pFullscreenDisplayMode,
             IDirect3DSwapChain9**  ppSwapChain);

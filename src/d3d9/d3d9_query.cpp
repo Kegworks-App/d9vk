@@ -52,7 +52,7 @@ namespace dxvk {
   }
 
 
-  HRESULT STDMETHODCALLTYPE D3D9Query::QueryInterface(REFIID riid, void** ppvObject) {
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9Query::QueryInterface(REFIID riid, void** ppvObject) {
     if (ppvObject == nullptr)
       return E_POINTER;
 
@@ -99,7 +99,7 @@ namespace dxvk {
   }
 
 
-  HRESULT STDMETHODCALLTYPE D3D9Query::Issue(DWORD dwIssueFlags) {
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9Query::Issue(DWORD dwIssueFlags) {
     // Note: No need to submit to CS if we don't do anything!
 
     if (dwIssueFlags == D3DISSUE_BEGIN) {
@@ -131,7 +131,7 @@ namespace dxvk {
   }
 
 
-  HRESULT STDMETHODCALLTYPE D3D9Query::GetData(void* pData, DWORD dwSize, DWORD dwGetDataFlags) {
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9Query::GetData(void* pData, DWORD dwSize, DWORD dwGetDataFlags) {
     if (m_state == D3D9_VK_QUERY_CACHED) {
       // Query data was already retrieved once.
       // Use cached query data to prevent having to check the VK event

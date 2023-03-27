@@ -117,7 +117,7 @@ namespace dxvk {
   }
 
 
-  HRESULT STDMETHODCALLTYPE D3D9UserDefinedAnnotation::QueryInterface(
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9UserDefinedAnnotation::QueryInterface(
           REFIID                  riid,
           void**                  ppvObject) {
     return m_container->QueryInterface(riid, ppvObject);

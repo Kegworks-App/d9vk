@@ -61,7 +61,7 @@ namespace dxvk {
     D3D9SurfaceBase::ReleasePrivate();
   }
 
-  HRESULT STDMETHODCALLTYPE D3D9Surface::QueryInterface(REFIID riid, void** ppvObject) {
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9Surface::QueryInterface(REFIID riid, void** ppvObject) {
     if (ppvObject == nullptr)
       return E_POINTER;
 
@@ -86,7 +86,7 @@ namespace dxvk {
     return D3DRTYPE_SURFACE;
   }
 
-  HRESULT STDMETHODCALLTYPE D3D9Surface::GetDesc(D3DSURFACE_DESC *pDesc) {
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9Surface::GetDesc(D3DSURFACE_DESC *pDesc) {
     if (pDesc == nullptr)
       return D3DERR_INVALIDCALL;
 
@@ -105,7 +105,7 @@ namespace dxvk {
     return D3D_OK;
   }
 
-  HRESULT STDMETHODCALLTYPE D3D9Surface::LockRect(D3DLOCKED_RECT* pLockedRect, CONST RECT* pRect, DWORD Flags) {
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9Surface::LockRect(D3DLOCKED_RECT* pLockedRect, CONST RECT* pRect, DWORD Flags) {
     if (unlikely(pLockedRect == nullptr))
       return D3DERR_INVALIDCALL;
 
@@ -134,13 +134,13 @@ namespace dxvk {
     return hr;
   }
 
-  HRESULT STDMETHODCALLTYPE D3D9Surface::UnlockRect() {
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9Surface::UnlockRect() {
     return m_parent->UnlockImage(
       m_texture,
       m_face, m_mipLevel);
   }
 
-  HRESULT STDMETHODCALLTYPE D3D9Surface::GetDC(HDC *phDC) {
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9Surface::GetDC(HDC *phDC) {
     if (phDC == nullptr)
       return D3DERR_INVALIDCALL;
 
@@ -176,7 +176,7 @@ namespace dxvk {
     return D3D_OK;
   }
 
-  HRESULT STDMETHODCALLTYPE D3D9Surface::ReleaseDC(HDC hDC) {
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9Surface::ReleaseDC(HDC hDC) {
     if (m_dcDesc.hDC == nullptr || m_dcDesc.hDC != hDC)
       return D3DERR_INVALIDCALL;
 

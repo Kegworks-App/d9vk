@@ -29,7 +29,7 @@ namespace dxvk {
     return m_interface->Release();
   }
   
-  HRESULT STDMETHODCALLTYPE D3D9VkInteropInterface::QueryInterface(
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9VkInteropInterface::QueryInterface(
           REFIID                riid,
           void**                ppvObject) {
     return m_interface->QueryInterface(riid, ppvObject);
@@ -74,13 +74,13 @@ namespace dxvk {
     return m_interface->Release();
   }
   
-  HRESULT STDMETHODCALLTYPE D3D9VkInteropTexture::QueryInterface(
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9VkInteropTexture::QueryInterface(
           REFIID                riid,
           void**                ppvObject) {
     return m_interface->QueryInterface(riid, ppvObject);
   }
 
-  HRESULT STDMETHODCALLTYPE D3D9VkInteropTexture::GetVulkanImageInfo(
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9VkInteropTexture::GetVulkanImageInfo(
           VkImage*              pHandle,
           VkImageLayout*        pLayout,
           VkImageCreateInfo*    pInfo) {
@@ -138,7 +138,7 @@ namespace dxvk {
     return m_device->Release();
   }
   
-  HRESULT STDMETHODCALLTYPE D3D9VkInteropDevice::QueryInterface(
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9VkInteropDevice::QueryInterface(
           REFIID                riid,
           void**                ppvObject) {
     return m_device->QueryInterface(riid, ppvObject);

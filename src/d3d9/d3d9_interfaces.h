@@ -68,7 +68,7 @@ ID3D9VkInteropTexture : public IUnknown {
    * \param [out] pInfo Image properties
    * \returns \c S_OK on success, or \c D3DERR_INVALIDCALL
    */
-  virtual HRESULT STDMETHODCALLTYPE GetVulkanImageInfo(
+  virtual DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE GetVulkanImageInfo(
           VkImage*              pHandle,
           VkImageLayout*        pLayout,
           VkImageCreateInfo*    pInfo) = 0;

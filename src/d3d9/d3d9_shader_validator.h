@@ -8,18 +8,18 @@ namespace dxvk {
 
   public:
 
-    virtual HRESULT STDMETHODCALLTYPE Begin(
+    virtual DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE Begin(
             void* pCallback,
             void* pUserParam,
             DWORD Unknown) = 0;
 
-    virtual HRESULT STDMETHODCALLTYPE Instruction(
+    virtual DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE Instruction(
       const char*  pUnknown1,
             UINT   Unknown2,
       const DWORD* pInstruction,
             DWORD  InstructionLength) = 0;
 
-    virtual HRESULT STDMETHODCALLTYPE End() = 0;
+    virtual DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE End() = 0;
 
   };
 
@@ -27,7 +27,7 @@ namespace dxvk {
 
   public:
 
-    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) {
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) {
       if (ppvObject == nullptr)
         return E_POINTER;
 
@@ -36,7 +36,7 @@ namespace dxvk {
     }
 
 
-    HRESULT STDMETHODCALLTYPE Begin(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE Begin(
             void* pCallback,
             void* pUserParam,
             DWORD Unknown) {
@@ -46,7 +46,7 @@ namespace dxvk {
     }
 
 
-    HRESULT STDMETHODCALLTYPE Instruction(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE Instruction(
       const char*  pUnknown1,
             UINT   Unknown2,
       const DWORD* pInstruction,
@@ -57,7 +57,7 @@ namespace dxvk {
     }
 
 
-    HRESULT STDMETHODCALLTYPE End() {
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE End() {
       Logger::debug("D3D9ShaderValidator::End: Stub");
 
       return D3D_OK;

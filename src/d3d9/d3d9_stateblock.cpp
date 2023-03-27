@@ -18,7 +18,7 @@ namespace dxvk {
   }
 
 
-  HRESULT STDMETHODCALLTYPE D3D9StateBlock::QueryInterface(
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9StateBlock::QueryInterface(
           REFIID  riid,
           void** ppvObject) {
     if (ppvObject == nullptr)
@@ -41,7 +41,7 @@ namespace dxvk {
   }
 
 
-  HRESULT STDMETHODCALLTYPE D3D9StateBlock::Capture() {
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9StateBlock::Capture() {
     if (m_captures.flags.test(D3D9CapturedStateFlag::VertexDecl))
       SetVertexDeclaration(m_deviceState->vertexDecl.ptr());
 
@@ -51,7 +51,7 @@ namespace dxvk {
   }
 
 
-  HRESULT STDMETHODCALLTYPE D3D9StateBlock::Apply() {
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9StateBlock::Apply() {
     m_applying = true;
 
     if (m_captures.flags.test(D3D9CapturedStateFlag::VertexDecl) && m_state.vertexDecl != nullptr)

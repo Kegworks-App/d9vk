@@ -66,7 +66,7 @@ namespace dxvk {
 
     ULONG STDMETHODCALLTYPE Release();
 
-    HRESULT STDMETHODCALLTYPE QueryInterface(
+    DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE QueryInterface(
             REFIID                  riid,
             void**                  ppvObject);
 

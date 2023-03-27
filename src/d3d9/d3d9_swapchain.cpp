@@ -71,7 +71,7 @@ namespace dxvk {
   }
 
 
-  HRESULT STDMETHODCALLTYPE D3D9SwapChainEx::QueryInterface(REFIID riid, void** ppvObject) {
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9SwapChainEx::QueryInterface(REFIID riid, void** ppvObject) {
     if (ppvObject == nullptr)
       return E_POINTER;
 
@@ -93,7 +93,7 @@ namespace dxvk {
   }
 
 
-  HRESULT STDMETHODCALLTYPE D3D9SwapChainEx::Present(
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9SwapChainEx::Present(
     const RECT*    pSourceRect,
     const RECT*    pDestRect,
           HWND     hDestWindowOverride,
@@ -161,7 +161,7 @@ namespace dxvk {
   }
 
 
-  HRESULT STDMETHODCALLTYPE D3D9SwapChainEx::GetFrontBufferData(IDirect3DSurface9* pDestSurface) {
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9SwapChainEx::GetFrontBufferData(IDirect3DSurface9* pDestSurface) {
     D3D9DeviceLock lock = m_parent->LockDevice();
 
     // This function can do absolutely everything!
@@ -346,7 +346,7 @@ namespace dxvk {
   }
 
 
-  HRESULT STDMETHODCALLTYPE D3D9SwapChainEx::GetBackBuffer(
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9SwapChainEx::GetBackBuffer(
           UINT                iBackBuffer,
           D3DBACKBUFFER_TYPE  Type,
           IDirect3DSurface9** ppBackBuffer) {
@@ -366,7 +366,7 @@ namespace dxvk {
   }
 
 
-  HRESULT STDMETHODCALLTYPE D3D9SwapChainEx::GetRasterStatus(D3DRASTER_STATUS* pRasterStatus) {
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9SwapChainEx::GetRasterStatus(D3DRASTER_STATUS* pRasterStatus) {
     // We could use D3DKMTGetScanLine but Wine doesn't implement that.
     // So... we lie here and make some stuff up
     // enough that it makes games work.
@@ -401,7 +401,7 @@ namespace dxvk {
   }
 
   
-  HRESULT STDMETHODCALLTYPE D3D9SwapChainEx::GetDisplayMode(D3DDISPLAYMODE* pMode) {
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9SwapChainEx::GetDisplayMode(D3DDISPLAYMODE* pMode) {
     if (pMode == nullptr)
       return D3DERR_INVALIDCALL;
 
@@ -423,7 +423,7 @@ namespace dxvk {
   }
 
 
-  HRESULT STDMETHODCALLTYPE D3D9SwapChainEx::GetPresentParameters(D3DPRESENT_PARAMETERS* pPresentationParameters) {
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9SwapChainEx::GetPresentParameters(D3DPRESENT_PARAMETERS* pPresentationParameters) {
     if (pPresentationParameters == nullptr)
       return D3DERR_INVALIDCALL;
 
@@ -433,19 +433,19 @@ namespace dxvk {
   }
 
 
-  HRESULT STDMETHODCALLTYPE D3D9SwapChainEx::GetLastPresentCount(UINT* pLastPresentCount) {
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9SwapChainEx::GetLastPresentCount(UINT* pLastPresentCount) {
     Logger::warn("D3D9SwapChainEx::GetLastPresentCount: Stub");
     return D3D_OK;
   }
 
 
-  HRESULT STDMETHODCALLTYPE D3D9SwapChainEx::GetPresentStats(D3DPRESENTSTATS* pPresentationStatistics) {
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9SwapChainEx::GetPresentStats(D3DPRESENTSTATS* pPresentationStatistics) {
     Logger::warn("D3D9SwapChainEx::GetPresentStats: Stub");
     return D3D_OK;
   }
 
 
-  HRESULT STDMETHODCALLTYPE D3D9SwapChainEx::GetDisplayModeEx(D3DDISPLAYMODEEX* pMode, D3DDISPLAYROTATION* pRotation) {
+  DECLSPEC_NOTHROW HRESULT STDMETHODCALLTYPE D3D9SwapChainEx::GetDisplayModeEx(D3DDISPLAYMODEEX* pMode, D3DDISPLAYROTATION* pRotation) {
     if (pMode == nullptr && pRotation == nullptr)
       return D3DERR_INVALIDCALL;
 
@@ -1077,7 +1077,7 @@ namespace dxvk {
         Logger::err("D3D9: EnterFullscreenMode: Failed to enter fullscreen mode");
         return D3DERR_INVALIDCALL;
     }
-    
+
     return D3D_OK;
   }
   

@@ -40,14 +40,14 @@ namespace dxvk {
     
     virtual ~ComObject() { }
     
-    ULONG STDMETHODCALLTYPE AddRef() {
+    DECLSPEC_NOTHROW ULONG STDMETHODCALLTYPE AddRef() {
       uint32_t refCount = m_refCount++;
       if (unlikely(!refCount))
         AddRefPrivate();
       return refCount + 1;
     }
     
-    ULONG STDMETHODCALLTYPE Release() {
+    DECLSPEC_NOTHROW ULONG STDMETHODCALLTYPE Release() {
       uint32_t refCount = --m_refCount;
       if (unlikely(!refCount))
         ReleasePrivate();
