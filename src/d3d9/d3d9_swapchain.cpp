@@ -37,7 +37,7 @@ namespace dxvk {
     m_window = m_presentParams.hDeviceWindow;
 
     UpdatePresentRegion(nullptr, nullptr);
-    if (m_window && !pDevice->GetOptions()->deferSurfaceCreation)
+    if (m_window && !pDevice->GetOptions()->deferSurfaceCreation && !UseExplicitFrontBuffer())
       CreatePresenter();
 
     swapchainCount++;
@@ -102,6 +102,19 @@ swapchainCount--;
           DWORD    dwFlags) {
     D3D9DeviceLock lock = m_parent->LockDevice();
 
+    HWND window = m_presentParams.hDeviceWindow;
+    if (hDestWindowOverride != nullptr)
+      window    = hDestWindowOverride;
+
+    const bool dstRectDirty = UpdatePresentRegion(pSourceRect, pDestRect);
+
+    if (UseExplicitFrontBuffer()) {
+      Logger::warn("Present explicit");
+      D3D9SwapChainEx* parentSwapchain = m_parent->GetWindowSwapChain(window);
+      BlitToParentSwapchain(parentSwapchain, window);
+      return parentSwapchain->Present(nullptr, nullptr, nullptr, nullptr, dwFlags);
+    }
+
     uint32_t presentInterval = m_presentParams.PresentationInterval;
 
     Logger::warn(str::format("swapchain: ", uint64_t(this), " window: ", m_window, " window override: ", hDestWindowOverride));
@@ -121,10 +134,6 @@ swapchainCount--;
 
     bool vsync  = presentInterval != 0;
 
-    HWND window = m_presentParams.hDeviceWindow;
-    if (hDestWindowOverride != nullptr)
-      window    = hDestWindowOverride;
-
     bool recreate = false;
     recreate   |= m_presenter == nullptr;
     recreate   |= window != m_window;    
@@ -133,7 +142,7 @@ swapchainCount--;
     m_window    = window;
 
     m_dirty    |= vsync != m_vsync;
-    m_dirty    |= UpdatePresentRegion(pSourceRect, pDestRect);
+    m_dirty    |= dstRectDirty;
     m_dirty    |= recreate;
     m_dirty    |= m_presenter != nullptr &&
                  !m_presenter->hasSwapChain();
@@ -167,6 +176,10 @@ swapchainCount--;
   HRESULT STDMETHODCALLTYPE D3D9SwapChainEx::GetFrontBufferData(IDirect3DSurface9* pDestSurface) {
     D3D9DeviceLock lock = m_parent->LockDevice();
 
+    if (UseExplicitFrontBuffer()) {
+      return m_parent->GetWindowSwapChain(m_window)->GetFrontBufferData(pDestSurface);
+    }
+
     Logger::warn("get frontbuffer data");
 
     // This function can do absolutely everything!
@@ -185,7 +198,7 @@ swapchainCount--;
       return D3DERR_INVALIDCALL;
 
     D3D9CommonTexture* dstTexInfo = dst->GetCommonTexture();
-    D3D9CommonTexture* srcTexInfo = UseExplicitFrontBuffer() ? m_parent->GetFrontBuffer(m_window)->GetCommonTexture() : m_backBuffers.back()->GetCommonTexture();
+    D3D9CommonTexture* srcTexInfo = m_backBuffers.back()->GetCommonTexture();
 
     if (unlikely(dstTexInfo->Desc()->Pool != D3DPOOL_SYSTEMMEM && dstTexInfo->Desc()->Pool != D3DPOOL_SCRATCH))
       return D3DERR_INVALIDCALL;
@@ -708,31 +721,6 @@ swapchainCount--;
 
         Logger::warn(str::format("Present ", "swapchain: ", uint64_t(this), " ", m_dstRect.left, ",", m_dstRect.top, " - ", m_dstRect.top, ",", m_dstRect.bottom, " bb count: ", m_presentParams.BackBufferCount));
 
-      if (UseExplicitFrontBuffer()) {
-        // TODO Window override
-        D3D9Surface* frontBuffer = m_parent->GetFrontBuffer(m_window);
-
-        VkOffset3D srcOffset = { srcRect.offset.x, srcRect.offset.y, 0 };
-        VkOffset3D dstOffset = { dstRect.offset.x, dstRect.offset.y, 0 };
-        VkImageSubresourceLayers singleLayerSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
-        VkExtent3D copyExtent =
-          { dstRect.extent.width, dstRect.extent.height, 0 };
-
-        m_context->copyImage(
-          frontBuffer->GetCommonTexture()->GetImage(),
-          singleLayerSubresource,
-          srcOffset,
-          swapImage,
-          singleLayerSubresource,
-          dstOffset,
-          copyExtent);
-
-        swapImageView = frontBuffer->GetImageView(false);
-
-        srcRect = { 0, 0, m_presentParams.BackBufferWidth, m_presentParams.BackBufferHeight };
-        dstRect = { 0, 0, m_presentParams.BackBufferWidth, m_presentParams.BackBufferHeight };
-      }
-
       m_blitter->presentImage(m_context.ptr(),
         m_imageViews.at(imageIndex), dstRect,
         swapImageView, srcRect);
@@ -754,6 +742,35 @@ swapchainCount--;
       m_backBuffers[i]->Swap(m_backBuffers[i - 1].ptr());
 
     m_parent->m_flags.set(D3D9DeviceFlag::DirtyFramebuffer);
+  }
+
+  
+  void D3D9SwapChainEx::BlitToParentSwapchain(D3D9SwapChainEx* ParentSwapchain, HWND Window) {
+    D3D9Surface* frontBuffer = ParentSwapchain->GetBackBuffer(0);
+    auto swapImage = m_backBuffers[0]->GetCommonTexture()->GetImage();
+
+    VkOffset3D srcOffset = { m_srcRect.left, m_srcRect.top, 0 };
+    VkOffset3D dstOffset = { m_dstRect.left, m_dstRect.top, 0 };
+    VkImageSubresourceLayers singleLayerSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
+    VkExtent3D copyExtent =
+      { uint32_t(m_dstRect.right) - uint32_t(m_dstRect.left), uint32_t(m_dstRect.bottom) - uint32_t(m_dstRect.top), 0 };
+
+    m_context->copyImage(
+      frontBuffer->GetCommonTexture()->GetImage(),
+      singleLayerSubresource,
+      srcOffset,
+      swapImage,
+      singleLayerSubresource,
+      dstOffset,
+      copyExtent);
+
+      m_parent->EmitCs([this,
+      cCommandList = m_context->endRecording()
+    ] (DxvkContext* ctx) {
+      m_device->submitCommandList(cCommandList);
+    });
+
+    m_parent->FlushCsChunk();
   }
 
 
@@ -782,6 +799,10 @@ swapchainCount--;
 
 
   void D3D9SwapChainEx::SynchronizePresent() {
+    if (UseExplicitFrontBuffer()) {
+      return;
+    }
+
     // Recreate swap chain if the previous present call failed
     VkResult status = m_device->waitForSubmission(&m_presentStatus);
 

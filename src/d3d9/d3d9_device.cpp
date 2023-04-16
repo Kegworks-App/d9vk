@@ -7497,41 +7497,44 @@ namespace dxvk {
   }
 
 
-  D3D9Surface* D3D9DeviceEx::GetFrontBuffer(HWND Window) {
+  D3D9SwapChainEx* D3D9DeviceEx::GetWindowSwapChain(HWND Window) {
       UINT width, height;
       wsi::getWindowSize(m_window, &width, &height);
-      Logger::warn(str::format("front buffers ", m_frontBuffers.size(), " window ", Window));
+      Logger::warn(str::format("front buffers ", m_windowSwapchains.size(), " window ", Window));
 
-      auto existing = m_frontBuffers.find(Window);
-      if (existing != m_frontBuffers.end()) {
-        const D3D9_COMMON_TEXTURE_DESC* desc = existing->second->GetCommonTexture()->Desc();
+      auto existing = m_windowSwapchains.find(Window);
+      if (existing != m_windowSwapchains.end()) {
+
+
+          return existing->second.ptr();
+
+        /*const D3D9_COMMON_TEXTURE_DESC* desc = existing->second->GetCommonTexture()->Desc();
         if (desc->Width == width && desc->Height == height) {
           return existing->second.ptr();
         } else {
           Logger::warn("recreating front buffer");
           // TODO: preserve contents
-          m_frontBuffers.erase(existing);
-        }
+          m_windowSwapchains.erase(existing);
+        }*/
       }
 
-      D3D9_COMMON_TEXTURE_DESC desc;
-      desc.Width              = width;
-      desc.Height             = height;
-      desc.Depth              = 1;
-      desc.MipLevels          = 1;
-      desc.ArraySize          = 1;
-      desc.Format             = EnumerateFormat(m_presentParams.BackBufferFormat);
-      desc.MultiSample        = D3DMULTISAMPLE_NONE;
-      desc.MultisampleQuality = 0;
-      desc.Pool               = D3DPOOL_DEFAULT;
-      desc.Usage              = D3DUSAGE_RENDERTARGET;
-      desc.Discard            = FALSE;
-      desc.IsBackBuffer       = TRUE;
-      desc.IsAttachmentOnly   = FALSE;
-      Com<D3D9Surface, false> surface = new D3D9Surface(this, &desc, nullptr, nullptr);
-      m_initializer->InitTexture(surface->GetCommonTexture());
-      m_initializer->Flush();
-      m_frontBuffers.insert(std::make_pair(Window, surface));
+      D3DPRESENT_PARAMETERS presentParams;
+      presentParams.BackBufferCount = 1;
+      presentParams.BackBufferWidth = width;
+      presentParams.BackBufferHeight = height;
+      presentParams.BackBufferFormat = D3DFORMAT(D3D9Format::A8B8G8R8);
+      presentParams.MultiSampleType = D3DMULTISAMPLE_NONE;
+      presentParams.MultiSampleQuality = 0;
+      presentParams.SwapEffect = D3DSWAPEFFECT_FLIP;
+      presentParams.hDeviceWindow = Window;
+      presentParams.Windowed = true; // TODO
+      presentParams.EnableAutoDepthStencil = false;
+      presentParams.AutoDepthStencilFormat = D3DFORMAT(D3D9Format::Unknown);
+      presentParams.Flags = 0;
+      presentParams.FullScreen_RefreshRateInHz = 0;
+      presentParams.PresentationInterval = 1;
+      Com<D3D9SwapChainEx, false> swapchain = new D3D9SwapChainEx(this, &presentParams, nullptr);
+      m_windowSwapchains.insert(std::make_pair(Window, swapchain));
 
 
       /*
@@ -7541,7 +7544,7 @@ namespace dxvk {
         subresources, VK_IMAGE_LAYOUT_UNDEFINED);
       */
 
-      return surface.ptr();
+      return swapchain.ptr();
   }
 
 }

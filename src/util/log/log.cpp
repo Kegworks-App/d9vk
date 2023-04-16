@@ -66,6 +66,7 @@ namespace dxvk {
         if (m_fileStream)
           m_fileStream << prefix << line << std::endl;
       }
+      m_fileStream << std::flush;
     }
   }
   

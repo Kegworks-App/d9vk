@@ -950,7 +950,7 @@ namespace dxvk {
     void TouchMappedTexture(D3D9CommonTexture* pTexture);
     void RemoveMappedTexture(D3D9CommonTexture* pTexture);
 
-    D3D9Surface* GetFrontBuffer(HWND Window);
+    D3D9SwapChainEx* GetWindowSwapChain(HWND Window);
 
   private:
 
@@ -1325,7 +1325,7 @@ namespace dxvk {
 
     D3D9VkInteropDevice             m_d3d9Interop;
 
-    std::unordered_map<HWND, Com<D3D9Surface, false>> m_frontBuffers;
+    std::unordered_map<HWND, Com<D3D9SwapChainEx, false>> m_windowSwapchains;
   };
 
 }

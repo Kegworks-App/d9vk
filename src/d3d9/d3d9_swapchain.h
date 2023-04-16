@@ -85,6 +85,11 @@ namespace dxvk {
         return m_presentParams.SwapEffect == D3DSWAPEFFECT_COPY;
     }
 
+    void BlitToParentSwapchain(
+              D3D9SwapChainEx* ParentSwapchain,
+              HWND     Window
+    );
+
   private:
 
     enum BindingIds : uint32_t {
