@@ -38,7 +38,7 @@ namespace dxvk {
     if (m_window && !pDevice->GetOptions()->deferSurfaceCreation)
       CreatePresenter();
 
-    CreateBackBuffers(m_presentParams.BackBufferCount);
+    CreateBackBuffers(m_presentParams.BackBufferCount, m_presentParams.SwapEffect == D3DSWAPEFFECT_COPY);
     CreateBlitter();
     CreateHud();
 
@@ -172,7 +172,7 @@ namespace dxvk {
       return D3DERR_INVALIDCALL;
 
     D3D9CommonTexture* dstTexInfo = dst->GetCommonTexture();
-    D3D9CommonTexture* srcTexInfo = m_frontBuffer->GetCommonTexture();
+    D3D9CommonTexture* srcTexInfo = m_frontBuffer != nullptr ? m_frontBuffer->GetCommonTexture() : m_backBuffers.back()->GetCommonTexture();
 
     if (unlikely(dstTexInfo->Desc()->Pool != D3DPOOL_SYSTEMMEM && dstTexInfo->Desc()->Pool != D3DPOOL_SCRATCH))
       return D3DERR_INVALIDCALL;
@@ -467,6 +467,17 @@ namespace dxvk {
 
     bool changeFullscreen = m_presentParams.Windowed != pPresentParams->Windowed;
 
+    Logger::warn(str::format(
+      "RESET\n",
+      m_presentParams.BackBufferFormat, " new: ", pPresentParams->BackBufferFormat, "\n",
+      m_presentParams.BackBufferCount, " new: ", pPresentParams->BackBufferCount, "\n",
+      m_presentParams.SwapEffect, " new: ", pPresentParams->SwapEffect, "\n",
+      m_presentParams.BackBufferWidth, " new: ", pPresentParams->BackBufferWidth, "\n",
+      m_presentParams.BackBufferHeight, " new: ", pPresentParams->BackBufferHeight, "\n",
+      m_presentParams.MultiSampleType, " new: ", pPresentParams->MultiSampleType, "\n",
+      m_presentParams.MultiSampleQuality, " new: ", pPresentParams->MultiSampleQuality, "\n"
+    ));
+
     if (pPresentParams->Windowed) {
       if (changeFullscreen)
         this->LeaveFullscreenMode();
@@ -492,7 +503,7 @@ namespace dxvk {
     if (changeFullscreen)
       SetGammaRamp(0, &m_ramp);
 
-    CreateBackBuffers(m_presentParams.BackBufferCount);
+    CreateBackBuffers(m_presentParams.BackBufferCount, m_presentParams.SwapEffect == D3DSWAPEFFECT_COPY);
 
     return D3D_OK;
   }
@@ -673,12 +684,20 @@ namespace dxvk {
       m_context->beginRecording(
         m_device->createCommandList());
 
-      if (m_presentParams.SwapEffect != D3DSWAPEFFECT_DISCARD) {
-        VkOffset3D srcOffset = { int32_t(m_srcRect.left), int32_t(m_srcRect.top), 0 };
-        VkOffset3D dstOffset = { int32_t(m_dstRect.left), int32_t(m_dstRect.top), 0 };
+      VkRect2D srcRect = {
+        {  int32_t(m_srcRect.left),                    int32_t(m_srcRect.top)                    },
+        { uint32_t(m_srcRect.right - m_srcRect.left), uint32_t(m_srcRect.bottom - m_srcRect.top) } };
+
+      VkRect2D dstRect = {
+        {  int32_t(m_dstRect.left),                    int32_t(m_dstRect.top)                    },
+        { uint32_t(m_dstRect.right - m_dstRect.left), uint32_t(m_dstRect.bottom - m_dstRect.top) } };
+
+      if (m_frontBuffer != nullptr) {
+        VkOffset3D srcOffset = { srcRect.offset.x, srcRect.offset.y, 0 };
+        VkOffset3D dstOffset = { dstRect.offset.x, dstRect.offset.y, 0 };
         VkImageSubresourceLayers singleLayerSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
         VkExtent3D copyExtent =
-          { uint32_t(m_dstRect.right - m_dstRect.left), uint32_t(m_dstRect.bottom - m_dstRect.top), 0 };
+          { dstRect.extent.width, dstRect.extent.height, 0 };
 
         m_context->copyImage(
           m_frontBuffer->GetCommonTexture()->GetImage(),
@@ -688,15 +707,12 @@ namespace dxvk {
           singleLayerSubresource,
           dstOffset,
           copyExtent);
+
+        swapImageView = m_frontBuffer->GetImageView(false);
+
+        srcRect = { 0, 0, m_presentParams.BackBufferWidth, m_presentParams.BackBufferHeight };
+        dstRect = { 0, 0, m_presentParams.BackBufferWidth, m_presentParams.BackBufferHeight };
       }
-
-      VkRect2D srcRect = {
-        {  int32_t(m_srcRect.left),                    int32_t(m_srcRect.top)                    },
-        { uint32_t(m_srcRect.right - m_srcRect.left), uint32_t(m_srcRect.bottom - m_srcRect.top) } };
-
-      VkRect2D dstRect = {
-        {  int32_t(m_dstRect.left),                    int32_t(m_dstRect.top)                    },
-        { uint32_t(m_dstRect.right - m_dstRect.left), uint32_t(m_dstRect.bottom - m_dstRect.top) } };
 
       m_blitter->presentImage(m_context.ptr(),
         m_imageViews.at(imageIndex), dstRect,
@@ -717,11 +733,6 @@ namespace dxvk {
     // buffer at index 0 becomes the front buffer.
     for (uint32_t i = 1; i < m_backBuffers.size(); i++)
       m_backBuffers[i]->Swap(m_backBuffers[i - 1].ptr());
-
-    // For swap discard do not copy the content to the front buffer
-    // but replace the front buffer reference with the last back buffer.
-    if (m_presentParams.SwapEffect == D3DSWAPEFFECT_DISCARD)
-      m_backBuffers.back()->Swap(m_frontBuffer.ptr());
 
     m_parent->m_flags.set(D3D9DeviceFlag::DirtyFramebuffer);
   }
@@ -868,7 +879,7 @@ namespace dxvk {
   }
 
 
-  void D3D9SwapChainEx::CreateBackBuffers(uint32_t NumBackBuffers) {
+  void D3D9SwapChainEx::CreateBackBuffers(uint32_t NumBackBuffers, bool FrontBuffer) {
     // Explicitly destroy current swap image before
     // creating a new one to free up resources
     DestroyBackBuffers();
@@ -895,12 +906,14 @@ namespace dxvk {
       for (uint32_t i = 0; i < m_backBuffers.size(); i++)
         m_backBuffers[i] = new D3D9Surface(m_parent, &desc, this, nullptr);
 
-      // Create an additional hidden front buffer.
-      m_frontBuffer = new D3D9Surface(m_parent, &desc, this, nullptr);
+      if (FrontBuffer) {
+        // Create an additional hidden front buffer.
+        m_frontBuffer = new D3D9Surface(m_parent, &desc, this, nullptr);
+      }
     }
     catch (const DxvkError& e) {
       Logger::err(e.message());
-      return D3DERR_OUTOFVIDEOMEMORY;
+      return;
     }
 
     auto swapImage = m_backBuffers[0]->GetCommonTexture()->GetImage();
@@ -1174,15 +1187,23 @@ namespace dxvk {
     || m_dstRect.right  != dstRect.right
     || m_dstRect.bottom != dstRect.bottom;
 
+    recreate &= m_frontBuffer == nullptr;
+
     m_dstRect = dstRect;
 
     return recreate;
   }
 
   VkExtent2D D3D9SwapChainEx::GetPresentExtent() {
-    return VkExtent2D {
-      std::max<uint32_t>(m_dstRect.right  - m_dstRect.left, 1u),
-      std::max<uint32_t>(m_dstRect.bottom - m_dstRect.top,  1u) };
+    if (m_frontBuffer == nullptr) {
+      return VkExtent2D {
+        std::max<uint32_t>(m_dstRect.right  - m_dstRect.left, 1u),
+        std::max<uint32_t>(m_dstRect.bottom - m_dstRect.top,  1u) };
+    } else {
+      return VkExtent2D {
+        std::max<uint32_t>(m_presentParams.BackBufferWidth, 1u),
+        std::max<uint32_t>(m_presentParams.BackBufferHeight,  1u) };
+    }
   }
 
 

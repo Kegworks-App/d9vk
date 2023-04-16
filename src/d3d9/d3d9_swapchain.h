@@ -143,7 +143,8 @@ namespace dxvk {
     void DestroyBackBuffers();
 
     void CreateBackBuffers(
-            uint32_t            NumBackBuffers);
+            uint32_t            NumBackBuffers,
+            bool                FrontBuffer);
 
     void CreateBlitter();
 
