@@ -3665,6 +3665,7 @@ namespace dxvk {
     const D3DDISPLAYMODEEX*      pFullscreenDisplayMode,
           IDirect3DSwapChain9**  ppSwapChain) {
     D3D9DeviceLock lock = LockDevice();
+    Logger::warn("create additional sc");
 
     InitReturnPtr(ppSwapChain);
 
@@ -5228,6 +5229,8 @@ namespace dxvk {
     EmitCs([] (DxvkContext* ctx) {
       ctx->endFrame();
     });
+    Flush();
+    SynchronizeCsThread(DxvkCsThread::SynchronizeAll);
   }
 
 
@@ -7491,6 +7494,54 @@ namespace dxvk {
     }
 
     m_flags.clr(D3D9DeviceFlag::DirtySpecializationEntries);
+  }
+
+
+  D3D9Surface* D3D9DeviceEx::GetFrontBuffer(HWND Window) {
+      UINT width, height;
+      wsi::getWindowSize(m_window, &width, &height);
+      Logger::warn(str::format("front buffers ", m_frontBuffers.size(), " window ", Window));
+
+      auto existing = m_frontBuffers.find(Window);
+      if (existing != m_frontBuffers.end()) {
+        const D3D9_COMMON_TEXTURE_DESC* desc = existing->second->GetCommonTexture()->Desc();
+        if (desc->Width == width && desc->Height == height) {
+          return existing->second.ptr();
+        } else {
+          Logger::warn("recreating front buffer");
+          // TODO: preserve contents
+          m_frontBuffers.erase(existing);
+        }
+      }
+
+      D3D9_COMMON_TEXTURE_DESC desc;
+      desc.Width              = width;
+      desc.Height             = height;
+      desc.Depth              = 1;
+      desc.MipLevels          = 1;
+      desc.ArraySize          = 1;
+      desc.Format             = EnumerateFormat(m_presentParams.BackBufferFormat);
+      desc.MultiSample        = D3DMULTISAMPLE_NONE;
+      desc.MultisampleQuality = 0;
+      desc.Pool               = D3DPOOL_DEFAULT;
+      desc.Usage              = D3DUSAGE_RENDERTARGET;
+      desc.Discard            = FALSE;
+      desc.IsBackBuffer       = TRUE;
+      desc.IsAttachmentOnly   = FALSE;
+      Com<D3D9Surface, false> surface = new D3D9Surface(this, &desc, nullptr, nullptr);
+      m_initializer->InitTexture(surface->GetCommonTexture());
+      m_initializer->Flush();
+      m_frontBuffers.insert(std::make_pair(Window, surface));
+
+
+      /*
+
+    m_context->initImage(
+        m_frontBuffer->GetCommonTexture()->GetImage(),
+        subresources, VK_IMAGE_LAYOUT_UNDEFINED);
+      */
+
+      return surface.ptr();
   }
 
 }

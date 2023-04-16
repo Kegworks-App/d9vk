@@ -81,6 +81,10 @@ namespace dxvk {
 
     void SyncFrameLatency();
 
+    bool UseExplicitFrontBuffer() {
+        return m_presentParams.SwapEffect == D3DSWAPEFFECT_COPY;
+    }
+
   private:
 
     enum BindingIds : uint32_t {
@@ -100,7 +104,6 @@ namespace dxvk {
     Rc<hud::Hud>              m_hud;
 
     std::vector<Com<D3D9Surface, false>> m_backBuffers;
-    Com<D3D9Surface, false>   m_frontBuffer;
 
     RECT                      m_srcRect;
     RECT                      m_dstRect;
@@ -143,8 +146,7 @@ namespace dxvk {
     void DestroyBackBuffers();
 
     void CreateBackBuffers(
-            uint32_t            NumBackBuffers,
-            bool                FrontBuffer);
+            uint32_t            NumBackBuffers);
 
     void CreateBlitter();
 

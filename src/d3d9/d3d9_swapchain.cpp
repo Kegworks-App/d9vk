@@ -19,6 +19,8 @@ namespace dxvk {
     float offset[2];
   };
 
+  static uint32_t swapchainCount = 0;
+
 
   D3D9SwapChainEx::D3D9SwapChainEx(
           D3D9DeviceEx*          pDevice,
@@ -38,7 +40,11 @@ namespace dxvk {
     if (m_window && !pDevice->GetOptions()->deferSurfaceCreation)
       CreatePresenter();
 
-    CreateBackBuffers(m_presentParams.BackBufferCount, m_presentParams.SwapEffect == D3DSWAPEFFECT_COPY);
+    swapchainCount++;
+    Logger::warn(str::format("NEW SC ", (uint64_t)this, " window: ", pPresentParams->hDeviceWindow, " sc count: ", swapchainCount));
+
+
+    CreateBackBuffers(m_presentParams.BackBufferCount);
     CreateBlitter();
     CreateHud();
 
@@ -55,6 +61,9 @@ namespace dxvk {
     // in DxvkDevice::~DxvkDevice.
     if (this_thread::isInModuleDetachment())
       return;
+
+swapchainCount--;
+    Logger::warn(str::format("DESTROY SC ", (uint64_t)this, " window: ", m_presentParams.hDeviceWindow, " sccount: ", swapchainCount));
 
     DestroyBackBuffers();
 
@@ -94,6 +103,8 @@ namespace dxvk {
     D3D9DeviceLock lock = m_parent->LockDevice();
 
     uint32_t presentInterval = m_presentParams.PresentationInterval;
+
+    Logger::warn(str::format("swapchain: ", uint64_t(this), " window: ", m_window, " window override: ", hDestWindowOverride));
 
     // This is not true directly in d3d9 to to timing differences that don't matter for us.
     // For our purposes...
@@ -156,6 +167,8 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE D3D9SwapChainEx::GetFrontBufferData(IDirect3DSurface9* pDestSurface) {
     D3D9DeviceLock lock = m_parent->LockDevice();
 
+    Logger::warn("get frontbuffer data");
+
     // This function can do absolutely everything!
     // Copies the front buffer between formats with an implicit resolve.
     // Oh, and the dest is systemmem...
@@ -172,7 +185,7 @@ namespace dxvk {
       return D3DERR_INVALIDCALL;
 
     D3D9CommonTexture* dstTexInfo = dst->GetCommonTexture();
-    D3D9CommonTexture* srcTexInfo = m_frontBuffer != nullptr ? m_frontBuffer->GetCommonTexture() : m_backBuffers.back()->GetCommonTexture();
+    D3D9CommonTexture* srcTexInfo = UseExplicitFrontBuffer() ? m_parent->GetFrontBuffer(m_window)->GetCommonTexture() : m_backBuffers.back()->GetCommonTexture();
 
     if (unlikely(dstTexInfo->Desc()->Pool != D3DPOOL_SYSTEMMEM && dstTexInfo->Desc()->Pool != D3DPOOL_SCRATCH))
       return D3DERR_INVALIDCALL;
@@ -469,6 +482,7 @@ namespace dxvk {
 
     Logger::warn(str::format(
       "RESET\n",
+      "swapchain: ", uint64_t(this), "\n",
       m_presentParams.BackBufferFormat, " new: ", pPresentParams->BackBufferFormat, "\n",
       m_presentParams.BackBufferCount, " new: ", pPresentParams->BackBufferCount, "\n",
       m_presentParams.SwapEffect, " new: ", pPresentParams->SwapEffect, "\n",
@@ -503,7 +517,7 @@ namespace dxvk {
     if (changeFullscreen)
       SetGammaRamp(0, &m_ramp);
 
-    CreateBackBuffers(m_presentParams.BackBufferCount, m_presentParams.SwapEffect == D3DSWAPEFFECT_COPY);
+    CreateBackBuffers(m_presentParams.BackBufferCount);
 
     return D3D_OK;
   }
@@ -692,7 +706,12 @@ namespace dxvk {
         {  int32_t(m_dstRect.left),                    int32_t(m_dstRect.top)                    },
         { uint32_t(m_dstRect.right - m_dstRect.left), uint32_t(m_dstRect.bottom - m_dstRect.top) } };
 
-      if (m_frontBuffer != nullptr) {
+        Logger::warn(str::format("Present ", "swapchain: ", uint64_t(this), " ", m_dstRect.left, ",", m_dstRect.top, " - ", m_dstRect.top, ",", m_dstRect.bottom, " bb count: ", m_presentParams.BackBufferCount));
+
+      if (UseExplicitFrontBuffer()) {
+        // TODO Window override
+        D3D9Surface* frontBuffer = m_parent->GetFrontBuffer(m_window);
+
         VkOffset3D srcOffset = { srcRect.offset.x, srcRect.offset.y, 0 };
         VkOffset3D dstOffset = { dstRect.offset.x, dstRect.offset.y, 0 };
         VkImageSubresourceLayers singleLayerSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
@@ -700,7 +719,7 @@ namespace dxvk {
           { dstRect.extent.width, dstRect.extent.height, 0 };
 
         m_context->copyImage(
-          m_frontBuffer->GetCommonTexture()->GetImage(),
+          frontBuffer->GetCommonTexture()->GetImage(),
           singleLayerSubresource,
           srcOffset,
           swapImage,
@@ -708,7 +727,7 @@ namespace dxvk {
           dstOffset,
           copyExtent);
 
-        swapImageView = m_frontBuffer->GetImageView(false);
+        swapImageView = frontBuffer->GetImageView(false);
 
         srcRect = { 0, 0, m_presentParams.BackBufferWidth, m_presentParams.BackBufferHeight };
         dstRect = { 0, 0, m_presentParams.BackBufferWidth, m_presentParams.BackBufferHeight };
@@ -775,6 +794,7 @@ namespace dxvk {
     // Ensure that we can safely destroy the swap chain
     m_device->waitForSubmission(&m_presentStatus);
     m_device->waitForIdle();
+    Logger::warn(str::format("Recreate SC swapchain: ", uint64_t(this), ", window: ", m_window));
 
     m_presentStatus.result = VK_SUCCESS;
 
@@ -796,6 +816,8 @@ namespace dxvk {
     // Ensure that we can safely destroy the swap chain
     m_device->waitForSubmission(&m_presentStatus);
     m_device->waitForIdle();
+
+    Logger::warn(str::format("Create Presenter swapchain: ", uint64_t(this), ", window: ", m_window));
 
     m_presentStatus.result = VK_SUCCESS;
 
@@ -873,13 +895,10 @@ namespace dxvk {
       backBuffer->ClearContainer();
 
     m_backBuffers.clear();
-
-    if (m_frontBuffer != nullptr)
-      m_frontBuffer->ClearContainer();
   }
 
 
-  void D3D9SwapChainEx::CreateBackBuffers(uint32_t NumBackBuffers, bool FrontBuffer) {
+  void D3D9SwapChainEx::CreateBackBuffers(uint32_t NumBackBuffers) {
     // Explicitly destroy current swap image before
     // creating a new one to free up resources
     DestroyBackBuffers();
@@ -905,11 +924,6 @@ namespace dxvk {
     try {
       for (uint32_t i = 0; i < m_backBuffers.size(); i++)
         m_backBuffers[i] = new D3D9Surface(m_parent, &desc, this, nullptr);
-
-      if (FrontBuffer) {
-        // Create an additional hidden front buffer.
-        m_frontBuffer = new D3D9Surface(m_parent, &desc, this, nullptr);
-      }
     }
     catch (const DxvkError& e) {
       Logger::err(e.message());
@@ -935,10 +949,6 @@ namespace dxvk {
         m_backBuffers[i]->GetCommonTexture()->GetImage(),
         subresources, VK_IMAGE_LAYOUT_UNDEFINED);
     }
-
-    m_context->initImage(
-        m_frontBuffer->GetCommonTexture()->GetImage(),
-        subresources, VK_IMAGE_LAYOUT_UNDEFINED);
 
     m_device->submitCommandList(
       m_context->endRecording());
@@ -1187,7 +1197,7 @@ namespace dxvk {
     || m_dstRect.right  != dstRect.right
     || m_dstRect.bottom != dstRect.bottom;
 
-    recreate &= m_frontBuffer == nullptr;
+    recreate &= !UseExplicitFrontBuffer();
 
     m_dstRect = dstRect;
 
@@ -1195,7 +1205,7 @@ namespace dxvk {
   }
 
   VkExtent2D D3D9SwapChainEx::GetPresentExtent() {
-    if (m_frontBuffer == nullptr) {
+    if (!UseExplicitFrontBuffer()) {
       return VkExtent2D {
         std::max<uint32_t>(m_dstRect.right  - m_dstRect.left, 1u),
         std::max<uint32_t>(m_dstRect.bottom - m_dstRect.top,  1u) };

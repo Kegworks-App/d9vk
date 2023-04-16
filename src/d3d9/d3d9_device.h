@@ -950,6 +950,8 @@ namespace dxvk {
     void TouchMappedTexture(D3D9CommonTexture* pTexture);
     void RemoveMappedTexture(D3D9CommonTexture* pTexture);
 
+    D3D9Surface* GetFrontBuffer(HWND Window);
+
   private:
 
     DxvkCsChunkRef AllocCsChunk() {
@@ -1322,6 +1324,8 @@ namespace dxvk {
 #endif
 
     D3D9VkInteropDevice             m_d3d9Interop;
+
+    std::unordered_map<HWND, Com<D3D9Surface, false>> m_frontBuffers;
   };
 
 }
