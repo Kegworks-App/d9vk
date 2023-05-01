@@ -1602,6 +1602,10 @@ namespace dxvk {
     // This works around that.
     uint32_t alignment = m_d3d9Options.lenientClear ? 8 : 1;
 
+    if (extent.width == 0 || extent.height == 0) {
+      return D3D_OK;
+    }
+
     if (!Count) {
       // Clear our viewport & scissor minified region in this rendertarget.
       ClearViewRect(alignment, offset, extent);
@@ -1621,6 +1625,9 @@ namespace dxvk {
           1u
         };
 
+        if (rectExtent.width == 0 || rectExtent.height == 0) {
+          continue;
+        }
         ClearViewRect(alignment, rectOffset, rectExtent);
       }
     }
