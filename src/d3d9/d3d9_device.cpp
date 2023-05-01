@@ -7012,12 +7012,12 @@ namespace dxvk {
         srcVulkanFormatInfo->aspectMask, src->GetSubresource());
 
     const VkImageSubresourceLayers dstSubresourceLayers = {
-      dstSubresource.aspectMask,
+      VK_IMAGE_ASPECT_DEPTH_BIT,
       dstSubresource.mipLevel,
       dstSubresource.arrayLayer, 1 };
 
     const VkImageSubresourceLayers srcSubresourceLayers = {
-      srcSubresource.aspectMask,
+      VK_IMAGE_ASPECT_DEPTH_BIT,
       srcSubresource.mipLevel,
       srcSubresource.arrayLayer, 1 };
 
