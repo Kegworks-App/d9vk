@@ -717,7 +717,7 @@ namespace dxvk {
 
     if (!pipeInfo.pipeHandle)
       return;
-    
+
     // Create one depth view and one stencil view
     DxvkImageViewCreateInfo dViewInfo;
     dViewInfo.type       = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
@@ -1931,7 +1931,7 @@ namespace dxvk {
 
     if (useFb) {
       this->resolveImageFb(
-        dstImage, srcImage, region, VK_FORMAT_UNDEFINED,
+        dstImage, srcImage, region, srcImage->info().format,
         depthMode, stencilMode);
     } else {
       this->resolveImageDs(
@@ -4437,11 +4437,20 @@ namespace dxvk {
       imageInfo.extent = region.extent;
       imageInfo.numLayers = region.dstSubresource.layerCount;
       imageInfo.mipLevels = 1;
-      imageInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-      imageInfo.stages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT;
-      imageInfo.access = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_TRANSFER_READ_BIT;
       imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-      imageInfo.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+      auto formatInfo = lookupFormatInfo(format);
+      if (formatInfo->aspectMask & VK_IMAGE_ASPECT_COLOR_BIT) {
+        imageInfo.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        imageInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+        imageInfo.stages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT;
+        imageInfo.access = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_TRANSFER_READ_BIT;
+      } else {
+        imageInfo.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        imageInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+        imageInfo.stages = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT;
+        imageInfo.access = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_TRANSFER_READ_BIT;
+      }
 
       Rc<DxvkImage> tmpImage = m_device->createImage(imageInfo,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
@@ -4452,9 +4461,12 @@ namespace dxvk {
       tmpRegion.dstOffset = VkOffset3D { 0, 0, 0 };
 
       this->resolveImageFbDirect(tmpImage, srcImage,
-        tmpRegion, format, depthMode, stencilMode);
-
-      this->copyImageHw(
+        tmpRegion, VK_FORMAT_UNDEFINED, depthMode, stencilMode);
+      
+      
+      // TODO use hw variant when possible
+      // TODO fb variant doesnt work either :)
+      this->copyImageFb(
         dstImage, region.dstSubresource, region.dstOffset,
         tmpImage, tmpRegion.dstSubresource, tmpRegion.dstOffset,
         region.extent);
