@@ -3540,6 +3540,7 @@ namespace dxvk {
     VkFormat viewFormat = m_common->metaCopy().getCopyDestinationFormat(
       dstSubresource.aspectMask,
       srcSubresource.aspectMask,
+      dstImage->info().format,
       srcImage->info().format);
     
     if (!viewFormat) {
@@ -3683,7 +3684,7 @@ namespace dxvk {
     
     // Create pipeline for the copy operation
     DxvkMetaCopyPipeline pipeInfo = m_common->metaCopy().getPipeline(
-      views->getSrcViewType(), dstFormat, dstImage->info().sampleCount);
+      views->getSrcViewType(), dstFormat, dstSubresource.aspectMask, dstImage->info().sampleCount);
 
     // Create and initialize descriptor set    
     VkDescriptorSet descriptorSet = m_descriptorPool->alloc(pipeInfo.dsetLayout);
@@ -3737,7 +3738,7 @@ namespace dxvk {
     renderingInfo.renderArea.extent = VkExtent2D { mipExtent.width, mipExtent.height };
     renderingInfo.layerCount = dstSubresource.layerCount;
 
-    VkImageAspectFlags dstAspects = dstImage->formatInfo()->aspectMask;
+    VkImageAspectFlags dstAspects = dstSubresource.aspectMask;
 
     if (dstAspects & VK_IMAGE_ASPECT_COLOR_BIT) {
       renderingInfo.colorAttachmentCount = 1;

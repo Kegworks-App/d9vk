@@ -47,6 +47,7 @@ namespace dxvk {
     VkImageViewType       viewType;
     VkFormat              format;
     VkSampleCountFlagBits samples;
+    VkImageAspectFlags    aspect;
 
     bool eq(const DxvkMetaCopyPipelineKey& other) const {
       return this->viewType == other.viewType
@@ -128,6 +129,7 @@ namespace dxvk {
     VkFormat getCopyDestinationFormat(
             VkImageAspectFlags    dstAspect,
             VkImageAspectFlags    srcAspect,
+            VkFormat              dstFormat,
             VkFormat              srcFormat) const;
 
     /**
@@ -141,6 +143,7 @@ namespace dxvk {
     DxvkMetaCopyPipeline getPipeline(
             VkImageViewType       viewType,
             VkFormat              dstFormat,
+            VkImageAspectFlags    dstAspect,
             VkSampleCountFlagBits dstSamples);
 
     /**

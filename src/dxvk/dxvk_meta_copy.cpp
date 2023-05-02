@@ -133,9 +133,10 @@ namespace dxvk {
   VkFormat DxvkMetaCopyObjects::getCopyDestinationFormat(
           VkImageAspectFlags    dstAspect,
           VkImageAspectFlags    srcAspect,
+          VkFormat              dstFormat,
           VkFormat              srcFormat) const {
     if (srcAspect == dstAspect)
-      return srcFormat;
+      return dstFormat;
     
     if (dstAspect == VK_IMAGE_ASPECT_COLOR_BIT
      && srcAspect == VK_IMAGE_ASPECT_DEPTH_BIT) {
@@ -162,6 +163,7 @@ namespace dxvk {
   DxvkMetaCopyPipeline DxvkMetaCopyObjects::getPipeline(
           VkImageViewType       viewType,
           VkFormat              dstFormat,
+          VkImageAspectFlags    dstAspect,
           VkSampleCountFlagBits dstSamples) {
     std::lock_guard<dxvk::mutex> lock(m_mutex);
 
@@ -169,6 +171,7 @@ namespace dxvk {
     key.viewType = viewType;
     key.format   = dstFormat;
     key.samples  = dstSamples;
+    key.aspect   = dstAspect;
     
     auto entry = m_pipelines.find(key);
     if (entry != m_pipelines.end())
@@ -296,8 +299,6 @@ namespace dxvk {
   VkPipeline DxvkMetaCopyObjects::createPipelineObject(
     const DxvkMetaCopyPipelineKey&  key,
           VkPipelineLayout          pipelineLayout) {
-    auto aspect = lookupFormatInfo(key.format)->aspectMask;
-
     std::array<VkPipelineShaderStageCreateInfo, 3> stages;
     uint32_t stageCount = 0;
     
@@ -320,12 +321,12 @@ namespace dxvk {
     const FragShaders* shaderSet = nullptr;
     
     for (const auto& pair : shaderSets) {
-      if (pair.second == aspect)
+      if (pair.second == key.aspect)
         shaderSet = pair.first;
     }
 
     if (!shaderSet)
-      throw DxvkError(str::format("DxvkMetaCopyObjects: Unsupported aspect mask: ", aspect));
+      throw DxvkError(str::format("DxvkMetaCopyObjects: Unsupported aspect mask: ", key.aspect));
 
     VkShaderModule psModule = VK_NULL_HANDLE;
 
@@ -397,13 +398,13 @@ namespace dxvk {
     
     VkPipelineRenderingCreateInfo rtState = { VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO };
 
-    if (aspect & VK_IMAGE_ASPECT_COLOR_BIT) {
+    if (key.aspect & VK_IMAGE_ASPECT_COLOR_BIT) {
       rtState.colorAttachmentCount = 1;
       rtState.pColorAttachmentFormats = &key.format;
     } else {
-      if (aspect & VK_IMAGE_ASPECT_DEPTH_BIT)
+      if (key.aspect & VK_IMAGE_ASPECT_DEPTH_BIT)
         rtState.depthAttachmentFormat = key.format;
-      if (aspect & VK_IMAGE_ASPECT_STENCIL_BIT)
+      if (key.aspect & VK_IMAGE_ASPECT_STENCIL_BIT)
         rtState.stencilAttachmentFormat = key.format;
     }
 
@@ -415,8 +416,8 @@ namespace dxvk {
     info.pViewportState         = &vpState;
     info.pRasterizationState    = &rsState;
     info.pMultisampleState      = &msState;
-    info.pColorBlendState       = (aspect & VK_IMAGE_ASPECT_COLOR_BIT) ? &cbState : nullptr;
-    info.pDepthStencilState     = (aspect & VK_IMAGE_ASPECT_COLOR_BIT) ? nullptr : &dsState;
+    info.pColorBlendState       = (key.aspect & VK_IMAGE_ASPECT_COLOR_BIT) ? &cbState : nullptr;
+    info.pDepthStencilState     = (key.aspect & VK_IMAGE_ASPECT_COLOR_BIT) ? nullptr : &dsState;
     info.pDynamicState          = &dynState;
     info.layout                 = pipelineLayout;
     info.basePipelineIndex      = -1;
