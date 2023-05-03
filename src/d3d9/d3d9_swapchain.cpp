@@ -153,9 +153,9 @@ namespace dxvk {
     m_lastDialog = m_dialog;
 
 #ifdef _WIN32
-    const bool useGDIFallback = m_partialCopy && m_presentParams.SwapEffect == D3DSWAPEFFECT_COPY;
+    const bool useGDIFallback = m_partialCopy && DoFrontbufferBlit();
     if (useGDIFallback)
-      return BlitGDI(window);
+      return PresentImageGDI(window);
 #endif
 
     try {
@@ -176,7 +176,7 @@ namespace dxvk {
     } catch (const DxvkError& e) {
       Logger::err(e.message());
 #ifdef _WIN32
-      return BlitGDI(window);
+      return PresentImageGDI(window);
 #else
       return D3DERR_DEVICEREMOVED;
 #endif
@@ -186,8 +186,21 @@ namespace dxvk {
 #ifdef _WIN32
   #define DCX_USESTYLE 0x00010000
 
-  HRESULT D3D9SwapChainEx::BlitGDI(HWND Window) {
-    if (!std::exchange(m_warnedAboutFallback, true))
+  HRESULT D3D9SwapChainEx::PresentImageGDI(HWND Window) {
+    m_parent->EndFrame();
+    m_parent->Flush();
+
+    // Copy to front buffer image, so GetFrontBufferData returns correct data.
+    m_context->beginRecording(
+      m_device->createCommandList());
+
+    CopyToFrontBuffer();
+
+    m_device->submitCommandList(
+      m_context->endRecording(),
+      nullptr);
+
+    if (!std::exchange(m_warnedGDIAboutFallback, true))
       Logger::warn("Using GDI for swapchain presentation. This will impact performance.");
 
     HDC hDC;
@@ -239,7 +252,7 @@ namespace dxvk {
       return D3DERR_INVALIDCALL;
 
     D3D9CommonTexture* dstTexInfo = dst->GetCommonTexture();
-    D3D9CommonTexture* srcTexInfo = m_backBuffers.back()->GetCommonTexture();
+    D3D9CommonTexture* srcTexInfo = GetFrontBuffer()->GetCommonTexture();
 
     if (unlikely(dstTexInfo->Desc()->Pool != D3DPOOL_SYSTEMMEM && dstTexInfo->Desc()->Pool != D3DPOOL_SCRATCH))
       return D3DERR_INVALIDCALL;
@@ -730,8 +743,17 @@ namespace dxvk {
     m_parent->Flush();
 
     // Retrieve the image and image view to present
-    auto swapImage = m_backBuffers[0]->GetCommonTexture()->GetImage();
-    auto swapImageView = m_backBuffers[0]->GetImageView(false);
+    Rc<DxvkImage> swapImage;
+    Rc<DxvkImageView> swapImageView;
+
+    if (DoFrontbufferBlit()) {
+      // Swap from the front buffer
+      swapImage = GetFrontBuffer()->GetCommonTexture()->GetImage();
+      swapImageView = GetFrontBuffer()->GetImageView(false);
+    } else {
+      swapImage = m_backBuffers[0]->GetCommonTexture()->GetImage();
+      swapImageView = m_backBuffers[0]->GetImageView(false);
+    }
 
     // Bump our frame id.
     ++m_frameId;
@@ -756,6 +778,10 @@ namespace dxvk {
 
       m_context->beginRecording(
         m_device->createCommandList());
+
+      if (DoFrontbufferBlit()) {
+        CopyToFrontBuffer();
+      }
 
       VkRect2D srcRect = {
         {  int32_t(m_srcRect.left),                    int32_t(m_srcRect.top)                    },
@@ -782,8 +808,11 @@ namespace dxvk {
 
     // Rotate swap chain buffers so that the back
     // buffer at index 0 becomes the front buffer.
-    for (uint32_t i = 1; i < m_backBuffers.size(); i++)
-      m_backBuffers[i]->Swap(m_backBuffers[i - 1].ptr());
+    if (!DoFrontbufferBlit()) {
+      for (uint32_t i = 1; i < m_backBuffers.size(); i++) {
+        m_backBuffers[i]->Swap(m_backBuffers[i - 1].ptr());
+      }
+    }
 
     m_parent->m_flags.set(D3D9DeviceFlag::DirtyFramebuffer);
   }
@@ -819,6 +848,58 @@ namespace dxvk {
 
     if (status != VK_SUCCESS)
       RecreateSwapChain(m_vsync);
+  }
+
+  void D3D9SwapChainEx::CopyToFrontBuffer() {
+    auto swapImage = m_backBuffers[0]->GetCommonTexture()->GetImage();
+    auto frontBufferImage = GetFrontBuffer()->GetCommonTexture()->GetImage();
+
+    VkComponentMapping mapping = {
+      VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
+      VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY };
+
+    VkImageBlit blit = {
+      { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1},
+      { { m_srcRect.left, m_srcRect.top, 0 }, { m_srcRect.right, m_srcRect.bottom, 0 } },
+      { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1},
+      { { m_dstRect.left, m_dstRect.top, 0 }, { m_dstRect.right, m_dstRect.bottom, 0 } },
+    };
+
+    const VkExtent3D srcExtent = { uint32_t(m_srcRect.right - m_srcRect.left), uint32_t(m_srcRect.bottom - m_srcRect.top), 1u };
+    const VkExtent3D dstExtent = { uint32_t(m_dstRect.right - m_dstRect.left), uint32_t(m_dstRect.bottom - m_dstRect.top), 1u };
+    const VkOffset3D srcOffset = { m_srcRect.left, m_srcRect.top, 0 };
+    const VkOffset3D dstOffset = { m_dstRect.left, m_dstRect.top, 0 };
+    const bool isDirectCopy = srcExtent == dstExtent;
+    const bool isMultisampled = swapImage->info().sampleCount != VK_SAMPLE_COUNT_1_BIT;
+
+    if (isDirectCopy || isMultisampled) {
+      if (!isDirectCopy) {
+        Logger::warn("Stretching is not implemented for multisampled backbuffers.");
+      }
+
+      VkImageSubresourceLayers layers = {
+        VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1
+      };
+
+      m_context->copyImage(
+        frontBufferImage,
+        layers,
+        dstOffset,
+        swapImage,
+        layers,
+        srcOffset,
+        dstExtent
+      );
+    } else {
+      m_context->blitImage(
+        frontBufferImage,
+        mapping,
+        swapImage,
+        mapping,
+        blit,
+        VK_FILTER_LINEAR
+      );
+    }
   }
 
 
@@ -954,8 +1035,7 @@ namespace dxvk {
     // creating a new one to free up resources
     DestroyBackBuffers();
 
-    int NumFrontBuffer = m_parent->GetOptions()->noExplicitFrontBuffer ? 0 : 1;
-    const uint32_t NumBuffers = NumBackBuffers + NumFrontBuffer;
+    const uint32_t NumBuffers = NumBackBuffers + 1; // + Frontbuffer
 
     m_backBuffers.reserve(NumBuffers);
 
@@ -1235,7 +1315,11 @@ namespace dxvk {
   }
 
   bool    D3D9SwapChainEx::UpdatePresentRegion(const RECT* pSourceRect, const RECT* pDestRect) {
-    if (pSourceRect == nullptr) {
+    const bool isWindowed = m_presentParams.Windowed;
+
+    // Tests show that present regions are ignored in fullscreen
+
+    if (pSourceRect == nullptr || !isWindowed) {
       m_srcRect.top    = 0;
       m_srcRect.left   = 0;
       m_srcRect.right  = m_presentParams.BackBufferWidth;
@@ -1249,7 +1333,7 @@ namespace dxvk {
     wsi::getWindowSize(m_window, &width, &height);
 
     RECT dstRect;
-    if (pDestRect == nullptr) {
+    if (pDestRect == nullptr || !isWindowed) {
       // TODO: Should we hook WM_SIZE message for this?
       dstRect.top    = 0;
       dstRect.left   = 0;
@@ -1266,21 +1350,18 @@ namespace dxvk {
     || dstRect.right  - dstRect.left != LONG(width)
     || dstRect.bottom - dstRect.top  != LONG(height);
 
-    bool recreate = 
-       m_dstRect.left   != dstRect.left
-    || m_dstRect.top    != dstRect.top
-    || m_dstRect.right  != dstRect.right
-    || m_dstRect.bottom != dstRect.bottom;
+    bool recreate =
+       m_swapchainExtent.width  != width
+    || m_swapchainExtent.height != height;
 
+    m_swapchainExtent = { width, height };
     m_dstRect = dstRect;
 
     return recreate;
   }
 
   VkExtent2D D3D9SwapChainEx::GetPresentExtent() {
-    return VkExtent2D {
-      std::max<uint32_t>(m_dstRect.right  - m_dstRect.left, 1u),
-      std::max<uint32_t>(m_dstRect.bottom - m_dstRect.top,  1u) };
+    return m_swapchainExtent;
   }
 
 
