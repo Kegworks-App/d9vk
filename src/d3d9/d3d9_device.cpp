@@ -2590,6 +2590,7 @@ namespace dxvk {
       vbo.offset + vbo.stride * (BaseVertexIndex + StartVertex),
       vbo.offset + vbo.stride * (BaseVertexIndex + StartVertex + NumVertices),
     });
+    vbo.vertexBuffer->GetCommonBuffer()->TrackMappingBufferSequenceNumber(GetCurrentSequenceNumber());
   }
 
   void D3D9DeviceEx::TrackDirectlyMappedIndexBuffer(
@@ -2601,6 +2602,7 @@ namespace dxvk {
       StartIndex * indexSize,
       (StartIndex + NumIndices) * indexSize
     });
+    ibo->TrackMappingBufferSequenceNumber(GetCurrentSequenceNumber());
   }
 
 
@@ -2619,6 +2621,7 @@ namespace dxvk {
     PrepareDraw(PrimitiveType);
 
     if (unlikely(m_directMappedVertexBuffers != 0)) {
+      uint64_t sequenceNumber = GetCurrentSequenceNumber();
       for (uint32_t i : bit::BitMask(m_directMappedVertexBuffers)) {
         uint32_t vertexCount = GetVertexCount(PrimitiveType, PrimitiveCount);
         TrackDirectlyMappedVertexBuffer(i, 0, StartVertex, vertexCount);
@@ -2663,12 +2666,14 @@ namespace dxvk {
     PrepareDraw(PrimitiveType);
 
     if (unlikely(m_directMappedVertexBuffers != 0)) {
+      uint64_t sequenceNumber = GetCurrentSequenceNumber();
       for (uint32_t i : bit::BitMask(m_directMappedVertexBuffers)) {
         TrackDirectlyMappedVertexBuffer(i, BaseVertexIndex, MinVertexIndex, NumVertices);
       }
     }
 
-    if (unlikely(m_state.indices->GetCommonBuffer()->GetMapMode() == D3D9_COMMON_BUFFER_MAP_MODE_DIRECT)) {
+    D3D9CommonBuffer* ibo = m_state.indices->GetCommonBuffer();
+    if (unlikely(ibo->GetMapMode() == D3D9_COMMON_BUFFER_MAP_MODE_DIRECT)) {
       uint32_t vertexCount = GetVertexCount(PrimitiveType, PrimitiveCount);
       TrackDirectlyMappedIndexBuffer(StartIndex, vertexCount);
     }

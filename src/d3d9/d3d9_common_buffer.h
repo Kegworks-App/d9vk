@@ -184,10 +184,6 @@ namespace dxvk {
 
     void PreLoad();
 
-    bool HasSequenceNumber() const {
-      return m_mapMode != D3D9_COMMON_BUFFER_MAP_MODE_DIRECT;
-    }
-
      /**
      * \brief Tracks sequence number
      *
@@ -207,8 +203,7 @@ namespace dxvk {
      * \returns Sequence number for the given subresource
      */
     uint64_t GetMappingBufferSequenceNumber() const {
-      return HasSequenceNumber() ? m_seq
-        : DxvkCsThread::SynchronizeAll;
+      return m_seq;
     }
 
   private:
