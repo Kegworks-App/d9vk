@@ -23,6 +23,9 @@ namespace dxvk {
   D3D9CommonBuffer::~D3D9CommonBuffer() {
     if (m_desc.Pool == D3DPOOL_DEFAULT)
       m_parent->DecrementLosableCounter();
+
+    D3D9DeviceLock lock = m_parent->LockDevice(); 
+    m_parent->SynchronizeCsThread(GetMappingBufferSequenceNumber());
   }
 
 

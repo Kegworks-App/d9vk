@@ -447,8 +447,13 @@ namespace dxvk {
      * \param [in] Seq Sequence number
      */
     void TrackMappingBufferSequenceNumber(UINT Subresource, uint64_t Seq) {
-      if (Subresource < m_seqs.size())
-        m_seqs[Subresource] = Seq;
+      if (unlikely(Subresource >= m_seqs.size()))
+        return;
+
+      m_seqs[Subresource] = Seq;
+      
+      if (Seq > m_highestSeq)
+        m_highestSeq = Seq;
     }
 
     /**
@@ -458,10 +463,19 @@ namespace dxvk {
      * \param [in] Subresource Subresource index
      * \returns Sequence number for the given subresource
      */
-    uint64_t GetMappingBufferSequenceNumber(UINT Subresource) {
+    uint64_t GetMappingBufferSequenceNumber(UINT Subresource) const {
       return Subresource < m_seqs.size()
         ? m_seqs[Subresource]
         : 0ull;
+    }
+
+    /**
+     * \brief Queries highest sequence number of any subresource
+     * 
+     * \returns Highest sequence number of the texture
+     */
+    uint64_t GetHighestSequenceNumber() const {
+      return m_highestSeq;
     }
 
     /**
@@ -498,6 +512,7 @@ namespace dxvk {
 
     D3D9SubresourceArray<
       uint64_t>                   m_seqs = { };
+    uint64_t                      m_highestSeq = 0;
 
     D3D9SubresourceArray<
       uint32_t>                   m_memoryOffset = { };

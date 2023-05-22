@@ -94,6 +94,11 @@ namespace dxvk {
 
 
   D3D9CommonTexture::~D3D9CommonTexture() {
+    {
+      D3D9DeviceLock lock = m_device->LockDevice(); 
+      m_device->SynchronizeCsThread(GetHighestSequenceNumber());
+    }
+
     if (m_size != 0)
       m_device->ChangeReportedMemory(m_size);
 

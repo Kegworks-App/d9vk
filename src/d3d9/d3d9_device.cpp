@@ -4560,6 +4560,9 @@ namespace dxvk {
       pResource->CreateBuffer(!needsReadback);
     }
 
+    if (!readOnly)
+      SynchronizeCsThread(pResource->GetMappingBufferSequenceNumber(Subresource));
+
     // Don't use MapTexture here to keep the mapped list small while the resource is still locked.
     void* mapPtr = pResource->GetData(Subresource);
 
@@ -4853,14 +4856,17 @@ namespace dxvk {
       const void* mapPtr = MapTexture(pSrcTexture, SrcSubresource);
       VkDeviceSize dirtySize = extentBlockCount.width * extentBlockCount.height * extentBlockCount.depth * formatInfo->elementSize;
       D3D9BufferSlice slice = AllocStagingBuffer(dirtySize);
-      const void* srcData = reinterpret_cast<const uint8_t*>(mapPtr) + copySrcOffset;
-      util::packImageData(
-        slice.mapPtr, srcData, extentBlockCount, formatInfo->elementSize,
-        pitch, pitch * srcTexLevelExtentBlockCount.height);
 
       VkFormat packedDSFormat = GetPackedDepthStencilFormat(pDestTexture->Desc()->Format);
 
       EmitCs([
+        cResourceMapPtr = mapPtr,
+        cCopySrcOffset  = copySrcOffset,
+        cPitch          = pitch,
+        cFormatInfo     = formatInfo,
+        cExtentBlockCount = extentBlockCount,
+        cSrcTexLevelBlockCountHeight = srcTexLevelExtentBlockCount.height,
+
         cSrcSlice       = slice.slice,
         cDstImage       = image,
         cDstLayers      = dstLayers,
@@ -4868,6 +4874,12 @@ namespace dxvk {
         cOffset         = alignedDestOffset,
         cPackedDSFormat = packedDSFormat
       ] (DxvkContext* ctx) {
+        
+        const void* srcData = reinterpret_cast<const uint8_t*>(cResourceMapPtr) + cCopySrcOffset;
+        util::packImageData(
+          cSrcSlice.mapPtr(0), srcData, cExtentBlockCount, cFormatInfo->elementSize,
+          cPitch, cPitch * cSrcTexLevelBlockCountHeight);
+
         if (cDstLayers.aspectMask != (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT)) {
           ctx->copyBufferToImage(
             cDstImage,  cDstLayers,
@@ -5019,15 +5031,17 @@ namespace dxvk {
       pResource->GPUReadingRange().Clear();
     }
     else {
+      const bool readOnly = Flags & D3DLOCK_READONLY;
+      const bool noOverwrite = Flags & D3DLOCK_NOOVERWRITE;
+      if (!readOnly && !noOverwrite)
+        SynchronizeCsThread(pResource->GetMappingBufferSequenceNumber());
+
       // Use map pointer from previous map operation. This
       // way we don't have to synchronize with the CS thread
       // if the map mode is D3DLOCK_NOOVERWRITE.
       physSlice = pResource->GetMappedSlice();
 
       const bool needsReadback = pResource->NeedsReadback();
-      const bool readOnly = Flags & D3DLOCK_READONLY;
-      // NOOVERWRITE promises that they will not write in a currently used area.
-      const bool noOverwrite = Flags & D3DLOCK_NOOVERWRITE;
       const bool directMapping = pResource->GetMapMode() == D3D9_COMMON_BUFFER_MAP_MODE_DIRECT;
       const bool skipWait = (!needsReadback && (readOnly || !directMapping || !pResource->GPUReadingRange().Overlaps(lockRange))) || noOverwrite;
       if (!skipWait) {
@@ -5071,15 +5085,16 @@ namespace dxvk {
     D3D9Range& range = pResource->DirtyRange();
 
     D3D9BufferSlice slice = AllocStagingBuffer(range.max - range.min);
-    void* srcData = reinterpret_cast<uint8_t*>(srcSlice.mapPtr) + range.min;
-    memcpy(slice.mapPtr, srcData, range.max - range.min);
 
     EmitCs([
+      cMappingSlice = srcSlice,
       cDstSlice  = dstBuffer,
       cSrcSlice  = slice.slice,
       cDstOffset = range.min,
       cLength    = range.max - range.min
     ] (DxvkContext* ctx) {
+      void* srcData = reinterpret_cast<uint8_t*>(cMappingSlice.mapPtr) + cDstOffset;
+      memcpy(cSrcSlice.mapPtr(0), srcData, cLength);
       ctx->copyBuffer(
         cDstSlice.buffer(),
         cDstSlice.offset() + cDstOffset,
@@ -7738,8 +7753,9 @@ namespace dxvk {
     uint32_t threshold = (m_d3d9Options.textureMemory / 4) * 3;
 
     auto iter = m_mappedTextures.leastRecentlyUsedIter();
+    uint64_t lastSequenceNumber = m_csThread.lastSequenceNumber();
     while (m_memoryAllocator.MappedMemory() >= threshold && iter != m_mappedTextures.leastRecentlyUsedEndIter()) {
-      if (unlikely((*iter)->IsAnySubresourceLocked() != 0)) {
+      if (unlikely((*iter)->IsAnySubresourceLocked() != 0 || (*iter)->GetHighestSequenceNumber() > lastSequenceNumber)) {
         iter++;
         continue;
       }
