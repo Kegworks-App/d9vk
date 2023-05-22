@@ -2580,6 +2580,29 @@ namespace dxvk {
     return 0.0f;
   }
 
+  void D3D9DeviceEx::TrackDirectlyMappedVertexBuffer(
+          UINT             Stream,
+          UINT             BaseVertexIndex,
+          UINT             StartVertex,
+          UINT             NumVertices) {
+    const auto& vbo = m_state.vertexBuffers[Stream];
+    vbo.vertexBuffer->GetCommonBuffer()->GPUReadingRange().Conjoin({
+      vbo.offset + vbo.stride * (BaseVertexIndex + StartVertex),
+      vbo.offset + vbo.stride * (BaseVertexIndex + StartVertex + NumVertices),
+    });
+  }
+
+  void D3D9DeviceEx::TrackDirectlyMappedIndexBuffer(
+          UINT             StartIndex,
+          UINT             NumIndices) {
+    D3D9CommonBuffer* ibo = m_state.indices->GetCommonBuffer();
+    uint32_t indexSize = ibo->Desc()->Format == D3D9Format::INDEX32 ? 4 : 2;
+    ibo->GPUReadingRange().Conjoin({
+      StartIndex * indexSize,
+      (StartIndex + NumIndices) * indexSize
+    });
+  }
+
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::DrawPrimitive(
           D3DPRIMITIVETYPE PrimitiveType,
@@ -2594,6 +2617,13 @@ namespace dxvk {
       return S_OK;
 
     PrepareDraw(PrimitiveType);
+
+    if (unlikely(m_directMappedVertexBuffers != 0)) {
+      for (uint32_t i : bit::BitMask(m_directMappedVertexBuffers)) {
+        uint32_t vertexCount = GetVertexCount(PrimitiveType, PrimitiveCount);
+        TrackDirectlyMappedVertexBuffer(i, 0, StartVertex, vertexCount);
+      }
+    }
 
     EmitCs([this,
       cPrimType    = PrimitiveType,
@@ -2631,6 +2661,17 @@ namespace dxvk {
       return S_OK;
 
     PrepareDraw(PrimitiveType);
+
+    if (unlikely(m_directMappedVertexBuffers != 0)) {
+      for (uint32_t i : bit::BitMask(m_directMappedVertexBuffers)) {
+        TrackDirectlyMappedVertexBuffer(i, BaseVertexIndex, MinVertexIndex, NumVertices);
+      }
+    }
+
+    if (unlikely(m_state.indices->GetCommonBuffer()->GetMapMode() == D3D9_COMMON_BUFFER_MAP_MODE_DIRECT)) {
+      uint32_t vertexCount = GetVertexCount(PrimitiveType, PrimitiveCount);
+      TrackDirectlyMappedIndexBuffer(StartIndex, vertexCount);
+    }
 
     EmitCs([this,
       cPrimType        = PrimitiveType,
@@ -2696,6 +2737,8 @@ namespace dxvk {
     m_state.vertexBuffers[0].vertexBuffer = nullptr;
     m_state.vertexBuffers[0].offset       = 0;
     m_state.vertexBuffers[0].stride       = 0;
+
+    m_directMappedVertexBuffers &= ~1;
 
     return D3D_OK;
   }
@@ -2764,6 +2807,8 @@ namespace dxvk {
     m_state.vertexBuffers[0].stride       = 0;
 
     m_state.indices = nullptr;
+    
+    m_directMappedVertexBuffers &= ~1;
 
     return D3D_OK;
   }
@@ -3207,6 +3252,11 @@ namespace dxvk {
 
     if (needsUpdate)
       BindVertexBuffer(StreamNumber, buffer, OffsetInBytes, Stride);
+
+    if (buffer == nullptr || buffer->GetCommonBuffer()->GetMapMode() != D3D9_COMMON_BUFFER_MAP_MODE_DIRECT)
+      m_directMappedVertexBuffers &= ~(1 << StreamNumber);
+    else
+      m_directMappedVertexBuffers |= 1 << StreamNumber;
 
     return D3D_OK;
   }
@@ -4961,6 +5011,7 @@ namespace dxvk {
       });
 
       pResource->SetNeedsReadback(false);
+      pResource->GPUReadingRange().Clear();
     }
     else {
       // Use map pointer from previous map operation. This
@@ -4973,13 +5024,14 @@ namespace dxvk {
       // NOOVERWRITE promises that they will not write in a currently used area.
       const bool noOverwrite = Flags & D3DLOCK_NOOVERWRITE;
       const bool directMapping = pResource->GetMapMode() == D3D9_COMMON_BUFFER_MAP_MODE_DIRECT;
-      const bool skipWait = (!needsReadback && (readOnly || !directMapping)) || noOverwrite;
+      const bool skipWait = (!needsReadback && (readOnly || !directMapping || !pResource->GPUReadingRange().Overlaps(lockRange))) || noOverwrite;
       if (!skipWait) {
         const Rc<DxvkBuffer> mappingBuffer = pResource->GetBuffer<D3D9_COMMON_BUFFER_TYPE_MAPPING>();
         if (!WaitForResource(mappingBuffer, pResource->GetMappingBufferSequenceNumber(), Flags))
           return D3DERR_WASSTILLDRAWING;
 
         pResource->SetNeedsReadback(false);
+        pResource->GPUReadingRange().Clear();
       }
     }
 

@@ -138,7 +138,17 @@ namespace dxvk {
     return Matrix4(Matrix->m);
   }
 
-  uint32_t GetVertexCount(D3DPRIMITIVETYPE type, UINT count);
+  inline uint32_t GetVertexCount(D3DPRIMITIVETYPE type, UINT count) {
+    switch (type) {
+      default:
+      case D3DPT_TRIANGLELIST:  return count * 3;
+      case D3DPT_POINTLIST:     return count;
+      case D3DPT_LINELIST:      return count * 2;
+      case D3DPT_LINESTRIP:     return count + 1;
+      case D3DPT_TRIANGLESTRIP: return count + 2;
+      case D3DPT_TRIANGLEFAN:   return count + 2;
+    }
+  }
 
   DxvkInputAssemblyState DecodeInputAssemblyState(D3DPRIMITIVETYPE type);
 

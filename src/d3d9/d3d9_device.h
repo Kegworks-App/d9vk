@@ -1185,6 +1185,16 @@ namespace dxvk {
 
     void BindSpecConstants();
 
+    void TrackDirectlyMappedVertexBuffer(
+          UINT             Stream,
+          UINT             BaseVertexIndex,
+          UINT             StartVertex,
+          UINT             NumVertices);
+    
+    void TrackDirectlyMappedIndexBuffer(
+          UINT             StartIndex,
+          UINT             NumIndices);
+
     void TrackBufferMappingBufferSequenceNumber(
       D3D9CommonBuffer* pResource);
 
@@ -1291,6 +1301,9 @@ namespace dxvk {
     uint32_t                        m_activeTextures         = 0;
     uint32_t                        m_activeTexturesToUpload = 0;
     uint32_t                        m_activeTexturesToGen    = 0;
+
+    uint32_t                        m_directMappedVertexBuffers = 0;
+    uint32_t                        m_sysMemVertexBuffers = 0;
 
     // m_fetch4Enabled is whether fetch4 is currently enabled
     // from the application.
