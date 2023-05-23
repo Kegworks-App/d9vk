@@ -4560,7 +4560,7 @@ namespace dxvk {
       pResource->CreateBuffer(!needsReadback);
     }
 
-    if (!readOnly)
+    if (!readOnly && desc.Pool != D3DPOOL_SYSTEMMEM)
       SynchronizeCsThread(pResource->GetMappingBufferSequenceNumber(Subresource));
 
     // Don't use MapTexture here to keep the mapped list small while the resource is still locked.
@@ -4859,14 +4859,31 @@ namespace dxvk {
 
       VkFormat packedDSFormat = GetPackedDepthStencilFormat(pDestTexture->Desc()->Format);
 
-      EmitCs([
-        cResourceMapPtr = mapPtr,
-        cCopySrcOffset  = copySrcOffset,
-        cPitch          = pitch,
-        cFormatInfo     = formatInfo,
-        cExtentBlockCount = extentBlockCount,
-        cSrcTexLevelBlockCountHeight = srcTexLevelExtentBlockCount.height,
+      if (pSrcTexture->Desc()->Pool != D3DPOOL_SYSTEMMEM) {
+        EmitCs([
+          cResourceMapPtr   = mapPtr,
+          cCopySrcOffset    = copySrcOffset,
+          cPitch            = pitch,
+          cFormatInfo       = formatInfo,
+          cExtentBlockCount = extentBlockCount,
+          cSlice            = slice.slice,
+          cSrcTexLevelBlockCountHeight = srcTexLevelExtentBlockCount.height
+        ] (DxvkContext* ctx) {
+          const void* srcData = reinterpret_cast<const uint8_t*>(cResourceMapPtr) + cCopySrcOffset;
+          util::packImageData(
+            cSlice.mapPtr(0), srcData, cExtentBlockCount, cFormatInfo->elementSize,
+            cPitch, cPitch * cSrcTexLevelBlockCountHeight);
+        });
+      } else {
+        // GTA IV uses a single SYSTEMMEM texture as a staging texture
+        // for all texture uploads. We don't want that to cause a CS sync, so we do it on the render thread.
+        const void* srcData = reinterpret_cast<const uint8_t*>(mapPtr) + copySrcOffset;
+        util::packImageData(
+          slice.mapPtr, srcData, extentBlockCount, formatInfo->elementSize,
+          pitch, pitch * srcTexLevelExtentBlockCount.height);
+      }
 
+      EmitCs([
         cSrcSlice       = slice.slice,
         cDstImage       = image,
         cDstLayers      = dstLayers,
@@ -4874,11 +4891,6 @@ namespace dxvk {
         cOffset         = alignedDestOffset,
         cPackedDSFormat = packedDSFormat
       ] (DxvkContext* ctx) {
-        
-        const void* srcData = reinterpret_cast<const uint8_t*>(cResourceMapPtr) + cCopySrcOffset;
-        util::packImageData(
-          cSrcSlice.mapPtr(0), srcData, cExtentBlockCount, cFormatInfo->elementSize,
-          cPitch, cPitch * cSrcTexLevelBlockCountHeight);
 
         if (cDstLayers.aspectMask != (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT)) {
           ctx->copyBufferToImage(
