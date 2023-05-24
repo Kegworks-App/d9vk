@@ -1195,6 +1195,16 @@ namespace dxvk {
           UINT             StartIndex,
           UINT             NumIndices);
 
+    void UploadAndBindSysmemVertexData(
+          UINT             Stream,
+          UINT             BaseVertexIndex,
+          UINT             StartVertex,
+          UINT             NumVertices);
+
+    void UploadAndBindSysmemIndexData(
+          UINT             StartIndex,
+          UINT             NumIndices);
+
     void TrackBufferMappingBufferSequenceNumber(
       D3D9CommonBuffer* pResource);
 

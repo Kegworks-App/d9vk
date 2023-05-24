@@ -180,7 +180,7 @@ namespace dxvk {
     /**
      * \brief Whether or not the staging buffer needs to be copied to the actual buffer
      */
-    inline bool NeedsUpload() { return m_desc.Pool != D3DPOOL_DEFAULT && !m_dirtyRange.IsDegenerate(); }
+    inline bool NeedsUpload() { return m_desc.Pool == D3DPOOL_MANAGED && !m_dirtyRange.IsDegenerate(); }
 
     void PreLoad();
 

@@ -2592,7 +2592,7 @@ namespace dxvk {
     });
     vbo.vertexBuffer->GetCommonBuffer()->TrackMappingBufferSequenceNumber(GetCurrentSequenceNumber());
   }
-
+  
   void D3D9DeviceEx::TrackDirectlyMappedIndexBuffer(
           UINT             StartIndex,
           UINT             NumIndices) {
@@ -2605,6 +2605,51 @@ namespace dxvk {
     ibo->TrackMappingBufferSequenceNumber(GetCurrentSequenceNumber());
   }
 
+  void D3D9DeviceEx::UploadAndBindSysmemVertexData(
+          UINT             Stream,
+          UINT             BaseVertexIndex,
+          UINT             StartVertex,
+          UINT             NumVertices) {
+    const auto& vbo = m_state.vertexBuffers[Stream];
+    const uint32_t vertexDataSize = NumVertices * vbo.stride;
+    auto upSlice = AllocUPBuffer(vertexDataSize);
+    uint8_t* srcPtr = reinterpret_cast<uint8_t*>(vbo.vertexBuffer->GetCommonBuffer()->GetMappedSlice().mapPtr);
+    srcPtr += vbo.offset;
+    srcPtr += (BaseVertexIndex + StartVertex) * vbo.stride;
+    memcpy(upSlice.mapPtr, srcPtr, vertexDataSize);
+    EmitCs([
+      cBufferSlice = std::move(upSlice.slice),
+      cSlot = Stream,
+      cStride = vbo.stride
+    ] (DxvkContext* ctx) mutable {
+      ctx->bindVertexBuffer(cSlot, std::move(cBufferSlice), cStride);
+    });
+
+    // TODO: REBIND VERTEX BUFFER
+  }
+
+  void D3D9DeviceEx::UploadAndBindSysmemIndexData(
+          UINT             StartIndex,
+          UINT             NumIndices) {
+    const auto& ibo = m_state.indices->GetCommonBuffer();
+
+    uint32_t indexSize = ibo->Desc()->Format == D3D9Format::INDEX32 ? 4 : 2;
+    const uint32_t indexDataSize = NumIndices * indexSize;
+    auto upSlice = AllocUPBuffer(indexDataSize);
+    uint8_t* srcPtr = reinterpret_cast<uint8_t*>(ibo->GetMappedSlice().mapPtr);
+    srcPtr += StartIndex * indexSize;
+    memcpy(upSlice.mapPtr, srcPtr, indexDataSize);
+    D3D9Format format = ibo->Desc()->Format;
+    EmitCs([
+      cBufferSlice = std::move(upSlice.slice),
+      cIndexType   = DecodeIndexType(
+                        static_cast<D3D9Format>(format))
+    ] (DxvkContext* ctx) mutable {
+      ctx->bindIndexBuffer(std::move(cBufferSlice), cIndexType);
+    });
+    
+    // TODO: REBIND INDEX BUFFER
+  }
 
   HRESULT STDMETHODCALLTYPE D3D9DeviceEx::DrawPrimitive(
           D3DPRIMITIVETYPE PrimitiveType,
@@ -2625,6 +2670,12 @@ namespace dxvk {
       for (uint32_t i : bit::BitMask(m_directMappedVertexBuffers)) {
         uint32_t vertexCount = GetVertexCount(PrimitiveType, PrimitiveCount);
         TrackDirectlyMappedVertexBuffer(i, 0, StartVertex, vertexCount);
+      }
+    }
+
+    if (unlikely(m_sysMemVertexBuffers != 0)) {
+      for (uint32_t i : bit::BitMask(m_sysMemVertexBuffers)) {
+        UploadAndBindSysmemVertexData(i, 0, StartVertex, GetVertexCount(PrimitiveType, PrimitiveCount));
       }
     }
 
@@ -2671,11 +2722,20 @@ namespace dxvk {
         TrackDirectlyMappedVertexBuffer(i, BaseVertexIndex, MinVertexIndex, NumVertices);
       }
     }
+    
+    if (unlikely(m_sysMemVertexBuffers != 0)) {
+      for (uint32_t i : bit::BitMask(m_sysMemVertexBuffers)) {
+        UploadAndBindSysmemVertexData(i, BaseVertexIndex, MinVertexIndex, NumVertices);
+      }
+    }
 
     D3D9CommonBuffer* ibo = m_state.indices->GetCommonBuffer();
     if (unlikely(ibo->GetMapMode() == D3D9_COMMON_BUFFER_MAP_MODE_DIRECT)) {
       uint32_t vertexCount = GetVertexCount(PrimitiveType, PrimitiveCount);
       TrackDirectlyMappedIndexBuffer(StartIndex, vertexCount);
+    } else if (unlikely(ibo->Desc()->Pool == D3DPOOL_SYSTEMMEM)) {
+      uint32_t vertexCount = GetVertexCount(PrimitiveType, PrimitiveCount);
+      UploadAndBindSysmemIndexData(StartIndex, vertexCount);
     }
 
     EmitCs([this,
@@ -2744,6 +2804,7 @@ namespace dxvk {
     m_state.vertexBuffers[0].stride       = 0;
 
     m_directMappedVertexBuffers &= ~1;
+    m_sysMemVertexBuffers &= ~1;
 
     return D3D_OK;
   }
@@ -2814,6 +2875,9 @@ namespace dxvk {
     m_state.indices = nullptr;
     
     m_directMappedVertexBuffers &= ~1;
+
+    m_directMappedVertexBuffers &= ~1;
+    m_sysMemVertexBuffers &= ~1;
 
     return D3D_OK;
   }
@@ -3255,13 +3319,19 @@ namespace dxvk {
       vbo.stride = Stride;
     }
 
-    if (needsUpdate)
+    D3D9CommonBuffer* commonBuffer = GetCommonBuffer(buffer);
+    if (likely(needsUpdate && (commonBuffer == nullptr || commonBuffer->GetBuffer<D3D9_COMMON_BUFFER_TYPE_REAL>() != nullptr)))
       BindVertexBuffer(StreamNumber, buffer, OffsetInBytes, Stride);
 
-    if (buffer == nullptr || buffer->GetCommonBuffer()->GetMapMode() != D3D9_COMMON_BUFFER_MAP_MODE_DIRECT)
+    if (commonBuffer == nullptr || commonBuffer->GetMapMode() != D3D9_COMMON_BUFFER_MAP_MODE_DIRECT)
       m_directMappedVertexBuffers &= ~(1 << StreamNumber);
     else
       m_directMappedVertexBuffers |= 1 << StreamNumber;
+
+    if (commonBuffer == nullptr || commonBuffer->Desc()->Pool != D3DPOOL_SYSTEMMEM)
+      m_sysMemVertexBuffers &= ~(1 << StreamNumber);
+    else
+      m_sysMemVertexBuffers |= 1 << StreamNumber;
 
     return D3D_OK;
   }
@@ -3363,7 +3433,8 @@ namespace dxvk {
 
     m_state.indices = buffer;
 
-    BindIndices();
+    if (likely(buffer == nullptr || buffer->GetCommonBuffer()->Desc()->Pool != D3DPOOL_SYSTEMMEM))
+      BindIndices();
 
     return D3D_OK;
   }
@@ -5089,6 +5160,9 @@ namespace dxvk {
 
   HRESULT D3D9DeviceEx::FlushBuffer(
         D3D9CommonBuffer*       pResource) {
+    if (unlikely(pResource->GetBuffer<D3D9_COMMON_BUFFER_TYPE_REAL>() == nullptr))
+      return D3D_OK;
+
     WaitStagingBuffer();
 
     auto dstBuffer = pResource->GetBufferSlice<D3D9_COMMON_BUFFER_TYPE_REAL>();
