@@ -2590,6 +2590,7 @@ namespace dxvk {
       vbo.offset + vbo.stride * (BaseVertexIndex + StartVertex),
       vbo.offset + vbo.stride * (BaseVertexIndex + StartVertex + NumVertices),
     });
+    Logger::warn(str::format("drawing with vbo: ", (uint64_t) vbo.vertexBuffer->GetCommonBuffer(), " ", vbo.offset + vbo.stride * (BaseVertexIndex + StartVertex), "-", vbo.offset + vbo.stride * (BaseVertexIndex + StartVertex + NumVertices), " tracked: ", vbo.vertexBuffer->GetCommonBuffer()->GPUReadingRange().min, "-",  vbo.vertexBuffer->GetCommonBuffer()->GPUReadingRange().max));
     vbo.vertexBuffer->GetCommonBuffer()->TrackMappingBufferSequenceNumber(GetCurrentSequenceNumber());
   }
   
@@ -5128,6 +5129,8 @@ namespace dxvk {
       const bool directMapping = pResource->GetMapMode() == D3D9_COMMON_BUFFER_MAP_MODE_DIRECT;
       const bool skipWait = (!needsReadback && (readOnly || !directMapping || !pResource->GPUReadingRange().Overlaps(lockRange))) || noOverwrite;
       if (!skipWait) {
+        Logger::warn(str::format("locking with vbo: ", (uint64_t) pResource, " ", OffsetToLock, "-", OffsetToLock+SizeToLock, " actual: ", offset, "-", offset+size, " tracked: ", pResource->GPUReadingRange().min, "-",  pResource->GPUReadingRange().max));
+
         const Rc<DxvkBuffer> mappingBuffer = pResource->GetBuffer<D3D9_COMMON_BUFFER_TYPE_MAPPING>();
         if (!WaitForResource(mappingBuffer, pResource->GetMappingBufferSequenceNumber(), Flags))
           return D3DERR_WASSTILLDRAWING;
@@ -5622,6 +5625,8 @@ namespace dxvk {
 
   void D3D9DeviceEx::EndFrame() {
     D3D9DeviceLock lock = LockDevice();
+
+    Logger::warn("End frame");
 
     EmitCs([] (DxvkContext* ctx) {
       ctx->endFrame();
