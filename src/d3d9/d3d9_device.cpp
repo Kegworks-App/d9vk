@@ -2664,6 +2664,18 @@ namespace dxvk {
     if (unlikely(!PrimitiveCount))
       return S_OK;
 
+    if (unlikely(m_sysMemVertexBuffers != 0)) {
+      for (uint32_t i : bit::BitMask(m_sysMemVertexBuffers)) {
+        uint32_t vertexCount = GetVertexCount(PrimitiveType, PrimitiveCount);
+        auto& vbo = m_state.vertexBuffers[i];
+        D3D9CommonBuffer* buffer = vbo.vertexBuffer->GetCommonBuffer();
+        buffer->DirtyRange().Conjoin({
+           vbo.offset + StartVertex * vbo.stride,
+           vbo.offset + (StartVertex + vertexCount) * vbo.stride
+        });
+      }
+    }
+
     PrepareDraw(PrimitiveType);
 
     if (unlikely(m_directMappedVertexBuffers != 0)) {
@@ -2671,12 +2683,6 @@ namespace dxvk {
       for (uint32_t i : bit::BitMask(m_directMappedVertexBuffers)) {
         uint32_t vertexCount = GetVertexCount(PrimitiveType, PrimitiveCount);
         TrackDirectlyMappedVertexBuffer(i, 0, StartVertex, vertexCount);
-      }
-    }
-
-    if (unlikely(m_sysMemVertexBuffers != 0)) {
-      for (uint32_t i : bit::BitMask(m_sysMemVertexBuffers)) {
-        UploadAndBindSysmemVertexData(i, 0, StartVertex, GetVertexCount(PrimitiveType, PrimitiveCount));
       }
     }
 
@@ -5088,7 +5094,7 @@ namespace dxvk {
     uint32_t size   = respectUserBounds ? std::min(SizeToLock, desc.Size - offset) : desc.Size;
     D3D9Range lockRange = D3D9Range(offset, offset + size);
 
-    if ((desc.Pool == D3DPOOL_DEFAULT || !(Flags & D3DLOCK_NO_DIRTY_UPDATE)) && !(Flags & D3DLOCK_READONLY))
+    if ((desc.Pool == D3DPOOL_DEFAULT || !(Flags & D3DLOCK_NO_DIRTY_UPDATE)) && !(Flags & D3DLOCK_READONLY) && desc.Pool != D3DPOOL_SYSTEMMEM)
       pResource->DirtyRange().Conjoin(lockRange);
 
     const bool directMapping = pResource->GetMapMode() == D3D9_COMMON_BUFFER_MAP_MODE_DIRECT;

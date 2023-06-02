@@ -154,6 +154,11 @@ namespace dxvk {
     inline D3D9Range& DirtyRange()  { return m_dirtyRange; }
 
     /**
+     * \brief The range of the buffer that was changed using Lock calls
+     */
+    inline D3D9Range& SysmemDirtyRange()  { return m_dirtyRange; }
+
+    /**
      * \brief The range of the buffer that might currently be read by the GPU
      */
     inline D3D9Range& GPUReadingRange() { return m_gpuReadingRange; }
@@ -235,6 +240,7 @@ namespace dxvk {
     DxvkBufferSliceHandle       m_sliceHandle;
 
     D3D9Range                   m_dirtyRange;
+    D3D9Range                   m_sysmemDirtyRange;
     D3D9Range                   m_gpuReadingRange;
 
     uint32_t                    m_lockCount = 0;
