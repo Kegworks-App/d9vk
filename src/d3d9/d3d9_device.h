@@ -754,7 +754,9 @@ namespace dxvk {
             DWORD                   Flags);
 
     HRESULT FlushBuffer(
-            D3D9CommonBuffer*       pResource);
+            D3D9CommonBuffer*       pResource,
+            uint32_t                Offset = 0,
+            uint32_t                Size = 0);
 
     HRESULT UnlockBuffer(
             D3D9CommonBuffer*       pResource);
@@ -886,7 +888,13 @@ namespace dxvk {
     
     uint32_t GetInstanceCount() const;
 
-    void PrepareDraw(D3DPRIMITIVETYPE PrimitiveType);
+    void PrepareDraw(
+            D3DPRIMITIVETYPE PrimitiveType,
+            UINT             BaseVertexIndex,
+            UINT             MinVertexIndex,
+            UINT             NumVertices,
+            UINT             StartIndex,
+            UINT             PrimitiveCount);
 
     template <DxsoProgramType ShaderStage>
     void BindShader(

@@ -46,7 +46,7 @@ namespace dxvk {
 
     }
 
-    inline bool IsDegenerate() { return min == max; }
+    inline bool IsDegenerate() const { return min == max; }
 
     inline void Conjoin(D3D9Range range) {
       if (IsDegenerate())
@@ -57,11 +57,61 @@ namespace dxvk {
       }
     }
 
-    inline bool Overlaps(D3D9Range range) {
-      if (IsDegenerate())
+    inline bool Contains(D3D9Range range) const {
+      if (IsDegenerate() || range.IsDegenerate())
+        return false;
+
+      return min <= range.min && max >= range.max;
+    }
+
+    inline bool Overlaps(D3D9Range range) const {
+      if (IsDegenerate() || range.IsDegenerate())
         return false;
 
       return range.max > min && range.min < max;
+    }
+
+    inline uint32_t Length() const {
+      return max - min;
+    }
+
+    D3D9Range Intersection(D3D9Range range) const {
+      if (!Overlaps(range))
+        return D3D9Range();
+
+      if (Contains(range))
+        return range;
+        
+      if (range.Contains(*this))
+        return *this;
+
+      if (range.max > min && range.max <= max)
+          return { std::min(range.max, max), max };
+      
+      if (range.min < max && range.min >= min)
+        return { min, std::max(range.min, min) };
+
+      return D3D9Range();
+    }
+
+    void Remove(D3D9Range range) {
+      return;
+
+      if (!Overlaps(range))
+        return;
+
+      if (Contains(range))
+        return;
+
+      if (range.Contains(*this)) {
+        Clear();
+        return;
+      }
+
+      if (range.max > min && range.max <= max)
+          min = range.max;
+      else if (range.min < max && range.min >= min)
+          max = range.min;
     }
 
     inline void Clear() { min = 0; max = 0; }

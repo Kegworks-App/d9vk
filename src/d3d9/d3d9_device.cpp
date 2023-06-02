@@ -2498,7 +2498,7 @@ namespace dxvk {
     if (unlikely(!PrimitiveCount))
       return S_OK;
 
-    PrepareDraw(PrimitiveType);
+    PrepareDraw(PrimitiveType, 0, StartVertex, PrimitiveCount, 0, PrimitiveCount);
 
     EmitCs([this,
       cPrimType    = PrimitiveType,
@@ -2535,7 +2535,7 @@ namespace dxvk {
     if (unlikely(!PrimitiveCount))
       return S_OK;
 
-    PrepareDraw(PrimitiveType);
+    PrepareDraw(PrimitiveType, BaseVertexIndex, MinVertexIndex, NumVertices, StartIndex, PrimitiveCount);
 
     EmitCs([this,
       cPrimType        = PrimitiveType,
@@ -2571,9 +2571,9 @@ namespace dxvk {
     if (unlikely(!PrimitiveCount))
       return S_OK;
 
-    PrepareDraw(PrimitiveType);
-
     uint32_t vertexCount = GetVertexCount(PrimitiveType, PrimitiveCount);
+
+    PrepareDraw(PrimitiveType, 0, 0, vertexCount, 0, PrimitiveCount);
 
     const uint32_t dataSize = GetUPDataSize(vertexCount, VertexStreamZeroStride);
     const uint32_t bufferSize = GetUPBufferSize(vertexCount, VertexStreamZeroStride);
@@ -2623,7 +2623,7 @@ namespace dxvk {
     if (unlikely(!PrimitiveCount))
       return S_OK;
 
-    PrepareDraw(PrimitiveType);
+    PrepareDraw(PrimitiveType, 0, MinVertexIndex, NumVertices, 0, PrimitiveCount);
 
     uint32_t vertexCount = GetVertexCount(PrimitiveType, PrimitiveCount);
 
@@ -2710,7 +2710,7 @@ namespace dxvk {
     D3D9CommonBuffer* dst  = static_cast<D3D9VertexBuffer*>(pDestBuffer)->GetCommonBuffer();
     D3D9VertexDecl*   decl = static_cast<D3D9VertexDecl*>  (pVertexDecl);
 
-    PrepareDraw(D3DPT_FORCE_DWORD);
+    PrepareDraw(D3DPT_FORCE_DWORD, 0, 0, VertexCount, SrcStartIndex, VertexCount);
 
     if (decl == nullptr) {
       DWORD FVF = dst->Desc()->FVF;
@@ -4885,23 +4885,44 @@ namespace dxvk {
 
 
   HRESULT D3D9DeviceEx::FlushBuffer(
-        D3D9CommonBuffer*       pResource) {
+        D3D9CommonBuffer*       pResource,
+        uint32_t                Offset,
+        uint32_t                Size) {
     WaitStagingBuffer();
 
     auto dstBuffer = pResource->GetBufferSlice<D3D9_COMMON_BUFFER_TYPE_REAL>();
     auto srcSlice = pResource->GetMappedSlice();
 
-    D3D9Range& range = pResource->DirtyRange();
+    D3D9Range& dirtyRange = pResource->DirtyRange();
+    D3D9Range uploadRange;
+    if (likely(Size == 0)) {
+      uploadRange = dirtyRange;
+      pResource->DirtyRange().Clear();
+    } else {
+      uploadRange = {
+        Offset, Offset + Size
+      };
+      uploadRange = uploadRange.Intersection(dirtyRange);
 
-    D3D9BufferSlice slice = AllocStagingBuffer(range.max - range.min);
-    void* srcData = reinterpret_cast<uint8_t*>(srcSlice.mapPtr) + range.min;
-    memcpy(slice.mapPtr, srcData, range.max - range.min);
+      // If the difference is smaller than 8KB, upload the whole buffer to minimize render pass interruptions
+      if (unlikely(dirtyRange.Length() - uploadRange.Length() >= 8 << 10))
+        uploadRange = dirtyRange;
+
+      if (unlikely(dirtyRange.IsDegenerate()))
+        return S_OK;
+
+      dirtyRange.Remove(uploadRange);
+    }
+
+    D3D9BufferSlice slice = AllocStagingBuffer(uploadRange.max - uploadRange.min);
+    void* srcData = reinterpret_cast<uint8_t*>(srcSlice.mapPtr) + uploadRange.min;
+    memcpy(slice.mapPtr, srcData, uploadRange.max - uploadRange.min);
 
     EmitCs([
       cDstSlice  = dstBuffer,
       cSrcSlice  = slice.slice,
-      cDstOffset = range.min,
-      cLength    = range.max - range.min
+      cDstOffset = uploadRange.min,
+      cLength    = uploadRange.max - uploadRange.min
     ] (DxvkContext* ctx) {
       ctx->copyBuffer(
         cDstSlice.buffer(),
@@ -4911,11 +4932,13 @@ namespace dxvk {
         cLength);
     });
 
-    pResource->DirtyRange().Clear();
     TrackBufferMappingBufferSequenceNumber(pResource);
 
     UnmapTextures();
-    FlushImplicit(false);
+
+    if (pResource->Desc()->Pool != D3DPOOL_SYSTEMMEM)
+      FlushImplicit(false);
+
     return D3D_OK;
   }
 
@@ -6275,7 +6298,13 @@ namespace dxvk {
   }
 
 
-  void D3D9DeviceEx::PrepareDraw(D3DPRIMITIVETYPE PrimitiveType) {
+  void D3D9DeviceEx::PrepareDraw(
+          D3DPRIMITIVETYPE PrimitiveType,
+          UINT             BaseVertexIndex,
+          UINT             MinVertexIndex,
+          UINT             NumVertices,
+          UINT             StartIndex,
+          UINT             PrimitiveCount) {
     if (unlikely(m_activeHazardsRT != 0))
       MarkRenderHazards();
 
@@ -6287,9 +6316,15 @@ namespace dxvk {
     }
 
     for (uint32_t i = 0; i < caps::MaxStreams; i++) {
-      auto* vbo = GetCommonBuffer(m_state.vertexBuffers[i].vertexBuffer);
-      if (vbo != nullptr && vbo->NeedsUpload())
-        FlushBuffer(vbo);
+      auto& vboBinding = m_state.vertexBuffers[i];
+      D3D9CommonBuffer* buffer = GetCommonBuffer(vboBinding.vertexBuffer);
+      if (buffer != nullptr && buffer->NeedsUpload()) {
+        if (unlikely(buffer->Desc()->Pool == D3DPOOL_SYSTEMMEM)) {
+          FlushBuffer(buffer, vboBinding.offset + vboBinding.stride * (BaseVertexIndex + MinVertexIndex), vboBinding.stride * NumVertices);
+        } else {
+          FlushBuffer(buffer);
+        }
+      }
     }
 
     const uint32_t usedSamplerMask = m_psShaderMasks.samplerMask | m_vsShaderMasks.samplerMask;
@@ -6304,8 +6339,15 @@ namespace dxvk {
       GenerateTextureMips(texturesToGen);
 
     auto* ibo = GetCommonBuffer(m_state.indices);
-    if (ibo != nullptr && ibo->NeedsUpload())
-      FlushBuffer(ibo);
+    if (ibo != nullptr && ibo->NeedsUpload()) {
+      if (unlikely(ibo->Desc()->Pool == D3DPOOL_SYSTEMMEM)) {
+        uint32_t vertexCount = GetVertexCount(PrimitiveType, PrimitiveCount);
+        uint32_t indexSize = ibo->Desc()->Format == D3D9Format::INDEX32 ? 4 : 2;
+        FlushBuffer(ibo, StartIndex * indexSize, vertexCount * indexSize);
+      } else {
+        FlushBuffer(ibo);
+      }
+    }
 
     UpdateFog();
 
