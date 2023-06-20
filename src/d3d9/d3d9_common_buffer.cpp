@@ -11,8 +11,7 @@ namespace dxvk {
     : m_parent ( pDevice ), m_desc ( *pDesc ),
       m_mapMode(DetermineMapMode(pDevice->GetOptions())) {
 
-    if (m_desc.Pool != D3DPOOL_SYSTEMMEM && m_desc.Pool != D3DPOOL_SCRATCH)
-      m_buffer = CreateBuffer();
+    m_buffer = CreateBuffer();
     if (m_mapMode == D3D9_COMMON_BUFFER_MAP_MODE_BUFFER)
       m_stagingBuffer = CreateStagingBuffer();
 
@@ -69,6 +68,9 @@ namespace dxvk {
 
   
   D3D9_COMMON_BUFFER_MAP_MODE D3D9CommonBuffer::DetermineMapMode(const D3D9Options* options) const {
+    if (m_desc.Pool == D3DPOOL_SYSTEMMEM || m_desc.Pool == D3DPOOL_SCRATCH)
+      return D3D9_COMMON_BUFFER_MAP_MODE_DIRECT;
+
     if (m_desc.Pool != D3DPOOL_DEFAULT)
       return D3D9_COMMON_BUFFER_MAP_MODE_BUFFER;
 
@@ -128,8 +130,13 @@ namespace dxvk {
         info.access |= VK_ACCESS_HOST_READ_BIT;
 
       memoryFlags |= VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
-                  |  VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-                  |  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+                  |  VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+
+      if (m_desc.Pool != D3DPOOL_SYSTEMMEM && m_desc.Pool != D3DPOOL_SCRATCH) {
+        memoryFlags |= VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+      } else {
+        memoryFlags |= VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
+      }
     }
     else {
       info.stages |= VK_PIPELINE_STAGE_TRANSFER_BIT;

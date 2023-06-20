@@ -2740,7 +2740,8 @@ namespace dxvk {
     if (unlikely(ibo->GetMapMode() == D3D9_COMMON_BUFFER_MAP_MODE_DIRECT)) {
       uint32_t vertexCount = GetVertexCount(PrimitiveType, PrimitiveCount);
       TrackDirectlyMappedIndexBuffer(StartIndex, vertexCount);
-    } else if (unlikely(ibo->Desc()->Pool == D3DPOOL_SYSTEMMEM)) {
+    }
+    if (unlikely(ibo->Desc()->Pool == D3DPOOL_SYSTEMMEM || ibo->Desc()->Pool == D3DPOOL_SCRATCH)) {
       uint32_t vertexCount = GetVertexCount(PrimitiveType, PrimitiveCount);
       UploadAndBindSysmemIndexData(StartIndex, vertexCount);
     }
@@ -3335,7 +3336,7 @@ namespace dxvk {
     else
       m_directMappedVertexBuffers |= 1 << StreamNumber;
 
-    if (commonBuffer == nullptr || commonBuffer->Desc()->Pool != D3DPOOL_SYSTEMMEM)
+    if (commonBuffer == nullptr || (commonBuffer->Desc()->Pool != D3DPOOL_SYSTEMMEM || commonBuffer->Desc()->Pool != D3DPOOL_SCRATCH))
       m_sysMemVertexBuffers &= ~(1 << StreamNumber);
     else
       m_sysMemVertexBuffers |= 1 << StreamNumber;
