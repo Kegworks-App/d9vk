@@ -3327,6 +3327,8 @@ namespace dxvk {
       vbo.stride = Stride;
     }
 
+    needsUpdate = true;
+
     D3D9CommonBuffer* commonBuffer = GetCommonBuffer(buffer);
     if (likely(needsUpdate && (commonBuffer == nullptr || commonBuffer->GetBuffer<D3D9_COMMON_BUFFER_TYPE_REAL>() != nullptr)))
       BindVertexBuffer(StreamNumber, buffer, OffsetInBytes, Stride);
@@ -3336,7 +3338,7 @@ namespace dxvk {
     else
       m_directMappedVertexBuffers |= 1 << StreamNumber;
 
-    if (commonBuffer == nullptr || (commonBuffer->Desc()->Pool != D3DPOOL_SYSTEMMEM || commonBuffer->Desc()->Pool != D3DPOOL_SCRATCH))
+    if (commonBuffer == nullptr || (commonBuffer->Desc()->Pool != D3DPOOL_SYSTEMMEM && commonBuffer->Desc()->Pool != D3DPOOL_SCRATCH))
       m_sysMemVertexBuffers &= ~(1 << StreamNumber);
     else
       m_sysMemVertexBuffers |= 1 << StreamNumber;
@@ -3436,8 +3438,8 @@ namespace dxvk {
     if (unlikely(ShouldRecord()))
       return m_recorder->SetIndices(buffer);
 
-    if (buffer == m_state.indices.ptr())
-      return D3D_OK;
+    //if (buffer == m_state.indices.ptr())
+    //  return D3D_OK;
 
     m_state.indices = buffer;
 
@@ -5166,6 +5168,19 @@ namespace dxvk {
 
     pResource->SetMapFlags(Flags | oldFlags);
     pResource->IncrementLockCount();
+
+    if (unlikely(m_state.indices->GetCommonBuffer() == pResource)) {
+      BindIndices();
+    } else if (pResource->Desc()->Type == D3DRTYPE_VERTEXBUFFER) {
+      for (uint32_t i = 0; i < caps::MaxStreams; i++) {
+        const auto& vertexBufferBinding = m_state.vertexBuffers[i];
+        if (unlikely(vertexBufferBinding.vertexBuffer->GetCommonBuffer() == pResource)) {
+          BindVertexBuffer(
+            i, vertexBufferBinding.vertexBuffer.ptr(), vertexBufferBinding.offset, vertexBufferBinding.stride 
+          );
+        }
+      }
+    }
 
     UnmapTextures();
     return D3D_OK;
