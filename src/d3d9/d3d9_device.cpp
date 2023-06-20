@@ -5082,6 +5082,10 @@ namespace dxvk {
     if (unlikely(m_deviceLostState != D3D9DeviceLostState::Ok))
       Flags &= ~D3DLOCK_DISCARD;
 
+    // Subsequent locks of the same buffer return the same pointer.
+    if (unlikely(pResource->GetLockCount() != 0))
+      Flags &= ~D3DLOCK_DISCARD;
+
     // We only bounds check for MANAGED.
     // (TODO: Apparently this is meant to happen for DYNAMIC too but I am not sure
     //  how that works given it is meant to be a DIRECT access..?)
@@ -5132,7 +5136,7 @@ namespace dxvk {
       physSlice = pResource->GetMappedSlice();
 
       const bool needsReadback = pResource->NeedsReadback();
-      const bool directMapping = pResource->GetMapMode() == D3D9_COMMON_BUFFER_MAP_MODE_DIRECT;
+      const bool directMapping = pResource->GetMapMode() == D3D9_COMMON_BUFFER_MAP_MODE_DIRECT || (pResource->GetLockCount() != 0 && desc.Pool == D3DPOOL_DEFAULT);
       const bool skipWait = (!needsReadback && (readOnly || !directMapping || !pResource->GPUReadingRange().Overlaps(lockRange))) || noOverwrite;
       if (!skipWait) {
         Logger::warn(str::format("locking with vbo: ", (uint64_t) pResource, " ", OffsetToLock, "-", OffsetToLock+SizeToLock, " actual: ", offset, "-", offset+size, " tracked: ", pResource->GPUReadingRange().min, "-",  pResource->GPUReadingRange().max));
@@ -5226,6 +5230,19 @@ namespace dxvk {
       return D3D_OK;
 
     FlushBuffer(pResource);
+
+    if (unlikely(m_state.indices->GetCommonBuffer() == pResource)) {
+      BindIndices();
+    } else if (pResource->Desc()->Type == D3DRTYPE_VERTEXBUFFER) {
+      for (uint32_t i = 0; i < caps::MaxStreams; i++) {
+        const auto& vertexBufferBinding = m_state.vertexBuffers[i];
+        if (unlikely(vertexBufferBinding.vertexBuffer->GetCommonBuffer() == pResource)) {
+          BindVertexBuffer(
+            i, vertexBufferBinding.vertexBuffer.ptr(), vertexBufferBinding.offset, vertexBufferBinding.stride 
+          );
+        }
+      }
+    }
 
     return D3D_OK;
   }
@@ -6862,11 +6879,19 @@ namespace dxvk {
         D3D9VertexBuffer*                 pBuffer,
         UINT                              Offset,
         UINT                              Stride) {
+    D3D9CommonBuffer* buffer = pBuffer ? pBuffer->GetCommonBuffer() : nullptr;
+    DxvkBufferSlice slice;
+    if (likely(buffer != nullptr)) {
+      if (buffer->GetLockCount() == 0) {
+        slice = buffer->GetBufferSlice<D3D9_COMMON_BUFFER_TYPE_REAL>(Offset);
+      } else {
+        slice = buffer->GetBufferSlice<D3D9_COMMON_BUFFER_TYPE_MAPPING>(Offset);
+      }
+    }
+
     EmitCs([
       cSlotId       = Slot,
-      cBufferSlice  = pBuffer != nullptr ?
-          pBuffer->GetCommonBuffer()->GetBufferSlice<D3D9_COMMON_BUFFER_TYPE_REAL>(Offset)
-        : DxvkBufferSlice(),
+      cBufferSlice  = slice,
       cStride       = pBuffer != nullptr ? Stride : 0
     ] (DxvkContext* ctx) mutable {
       ctx->bindVertexBuffer(cSlotId, std::move(cBufferSlice), cStride);
@@ -6876,14 +6901,21 @@ namespace dxvk {
   void D3D9DeviceEx::BindIndices() {
     D3D9CommonBuffer* buffer = GetCommonBuffer(m_state.indices);
 
-    D3D9Format format = buffer != nullptr
-                      ? buffer->Desc()->Format
-                      : D3D9Format::INDEX32;
+    D3D9Format format = D3D9Format::INDEX32;
+    DxvkBufferSlice slice;
+    if (likely(buffer != nullptr)) {
+      format = buffer->Desc()->Format;
+      if (buffer->GetLockCount() == 0) {
+        slice = buffer->GetBufferSlice<D3D9_COMMON_BUFFER_TYPE_REAL>();
+      } else {
+        slice = buffer->GetBufferSlice<D3D9_COMMON_BUFFER_TYPE_MAPPING>();
+      }
+    }
 
     const VkIndexType indexType = DecodeIndexType(format);
 
     EmitCs([
-      cBufferSlice = buffer != nullptr ? buffer->GetBufferSlice<D3D9_COMMON_BUFFER_TYPE_REAL>() : DxvkBufferSlice(),
+      cBufferSlice = slice,
       cIndexType   = indexType
     ](DxvkContext* ctx) mutable {
       ctx->bindIndexBuffer(std::move(cBufferSlice), cIndexType);
