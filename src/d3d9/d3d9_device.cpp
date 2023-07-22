@@ -1072,7 +1072,7 @@ namespace dxvk {
         cLevelExtent);
     });
 
-    Logger::warn(str::format("Get RT Data ", reinterpret_cast<size_t>(dstTexInfo)));
+    Logger::warn(str::format("Get RT Data ", reinterpret_cast<size_t>(dstTexInfo), ", Frame: ", m_frameCounter));
     dstTexInfo->SetNeedsReadback(dst->GetSubresource(), true);
     TrackTextureMappingBufferSequenceNumber(dstTexInfo, dst->GetSubresource());
 
@@ -4628,7 +4628,7 @@ namespace dxvk {
         TrackTextureMappingBufferSequenceNumber(pResource, Subresource);
       }
 
-        std::string reason = str::format("Lock Image: ", reinterpret_cast<size_t>(pResource), ", pool: ", pResource->Desc()->Pool, " Usage : ", pResource->Desc()->Usage, " Flags : ", originalFlags, " Flags : ", Flags, " Format : ", pResource->Desc()->Format);
+        std::string reason = str::format("Lock Image: ", reinterpret_cast<size_t>(pResource), ", Frame: ", m_frameCounter, ", pool: ", pResource->Desc()->Pool, " Usage : ", pResource->Desc()->Usage, " Flags : ", originalFlags, " Flags : ", Flags, " Format : ", pResource->Desc()->Format);
         if (!WaitForResource(mappedBuffer, pResource->GetMappingBufferSequenceNumber(Subresource), Flags, reason))
           return D3DERR_WASSTILLDRAWING;
     }
@@ -5501,6 +5501,7 @@ namespace dxvk {
 
   void D3D9DeviceEx::EndFrame() {
     D3D9DeviceLock lock = LockDevice();
+    m_frameCounter++;
 
     EmitCs<false>([] (DxvkContext* ctx) {
       ctx->endFrame();

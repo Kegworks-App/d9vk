@@ -1384,6 +1384,8 @@ namespace dxvk {
     HWND                            m_fullscreenWindow         = NULL;
     std::atomic<uint32_t>           m_losableResourceCounter   = { 0 };
 
+    uint64_t m_frameCounter = 0;
+
 #ifdef D3D9_ALLOW_UNMAPPING
     lru_list<D3D9CommonTexture*>    m_mappedTextures;
 #endif
