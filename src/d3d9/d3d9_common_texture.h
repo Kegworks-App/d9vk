@@ -63,6 +63,12 @@ namespace dxvk {
     Rc<DxvkImageView> Srgb;
   };
 
+  enum class D3D9TextureHazardMode {
+    NotHazardous,
+    Hazardous,
+    DepthReadOnlyAndSample
+  };
+
   template <typename T>
   using D3D9SubresourceArray = std::array<T, caps::MaxSubresources>;
 
@@ -307,8 +313,8 @@ namespace dxvk {
       return util::computeMipLevelExtent(GetExtent(), MipLevel);
     }
 
-    bool MarkHazardous() {
-      return std::exchange(m_hazardous, true);
+    D3D9TextureHazardMode MarkHazardous(bool DepthReadOnly) {
+      return std::exchange(m_hazardous, DepthReadOnly ? D3D9TextureHazardMode::DepthReadOnlyAndSample : D3D9TextureHazardMode::Hazardous);
     }
 
     D3DRESOURCETYPE GetType() {
@@ -340,7 +346,7 @@ namespace dxvk {
     }
 
     VkImageLayout DetermineRenderTargetLayout(VkImageLayout hazardLayout) const {
-      if (unlikely(m_hazardous))
+      if (unlikely(m_hazardous != D3D9TextureHazardMode::NotHazardous))
         return hazardLayout;
 
       return m_image != nullptr &&
@@ -512,7 +518,7 @@ namespace dxvk {
 
     int64_t                       m_size = 0;
 
-    bool                          m_hazardous = false;
+    D3D9TextureHazardMode         m_hazardous = D3D9TextureHazardMode::NotHazardous;
 
     D3D9ColorView                 m_sampleView;
 

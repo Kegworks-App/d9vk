@@ -5592,8 +5592,7 @@ namespace dxvk {
 
     m_activeHazardsDS = m_activeHazardsDS & (~texMask);
     if (m_state.depthStencil != nullptr &&
-        m_state.depthStencil->GetBaseTexture() != nullptr &&
-        m_state.renderStates[D3DRS_ZWRITEENABLE]) {
+        m_state.depthStencil->GetBaseTexture() != nullptr) {
       for (uint32_t samplerIdx : bit::BitMask(masks.samplerMask)) {
         IDirect3DBaseTexture9* dsBase  = m_state.depthStencil->GetBaseTexture();
         IDirect3DBaseTexture9* texBase = m_state.textures[samplerIdx];
@@ -5640,7 +5639,7 @@ namespace dxvk {
     for (uint32_t samplerIdx : bit::BitMask(m_activeHazardsRT)) {
       // Guaranteed to not be nullptr...
       auto tex = GetCommonTexture(m_state.textures[samplerIdx]);
-      if (unlikely(!tex->MarkHazardous())) {
+      if (unlikely(tex->MarkHazardous(false) == D3D9TextureHazardMode::NotHazardous)) {
         TransitionImage(tex, m_hazardLayout);
         m_flags.set(D3D9DeviceFlag::DirtyFramebuffer);
       }
@@ -5649,7 +5648,14 @@ namespace dxvk {
     if (m_activeHazardsDS != 0) {
       // Guaranteed to not be nullptr...
       auto tex = m_state.depthStencil->GetCommonTexture();
-      if (unlikely(!tex->MarkHazardous())) {
+      bool zWriteEnabled = m_state.renderStates[D3DRS_ZWRITEENABLE];
+      D3D9TextureHazardMode oldHazardMode = tex->MarkHazardous(!zWriteEnabled);
+
+      if (unlikely(oldHazardMode == D3D9TextureHazardMode::NotHazardous)) {
+        m_flags.set(D3D9DeviceFlag::DirtyFramebuffer);
+      }
+
+      if (unlikely(zWriteEnabled && oldHazardMode != D3D9TextureHazardMode::Hazardous)) {
         TransitionImage(tex, m_hazardLayout);
         m_flags.set(D3D9DeviceFlag::DirtyFramebuffer);
       }
