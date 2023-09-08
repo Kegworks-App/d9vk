@@ -83,8 +83,6 @@ if platform == 'windows'
     )
   endif
 
-  dxvk_include_path = include_directories('./include')
-
   dxvk_wsi = 'win32'
   compiler_args += ['-DDXVK_WSI_WIN32']
 endif
@@ -93,6 +91,8 @@ add_project_arguments(cpp.get_supported_arguments(compiler_args), language: 'cpp
 add_project_arguments(cc.get_supported_arguments(compiler_args), language: 'c')
 add_project_link_arguments(cpp.get_supported_link_arguments(link_args), language: 'cpp')
 add_project_link_arguments(cc.get_supported_link_arguments(link_args), language: 'c')
+
+dxvk_include_path = include_directories(['./include', './include/vulkan/include', './include/spirv/include'])
 
 exe_ext = ''
 dll_ext = ''
