@@ -947,6 +947,67 @@ namespace dxvk {
     result = sign * intval;
     return true;
   }
+
+  bool Config::parseOptionValue(
+      const std::string& value,
+      float& result) {
+      if (value.size() == 0)
+          return false;
+
+      // Parse sign
+      size_t pos = 0;
+      bool negate = false;
+
+      if (value[0] == '-') {
+          negate = true;
+
+          if (++pos == value.size())
+              return false;
+      }
+
+      // Parse integer part
+      uint64_t intPart = 0;
+
+      if (value[pos] == '.')
+          return false;
+
+      while (pos < value.size()) {
+          if (value[pos] == '.') {
+              if (++pos == value.size())
+                  return false;
+              break;
+          }
+
+          if (value[pos] < '0' || value[pos] > '9')
+              return false;
+
+          intPart *= 10;
+          intPart += value[pos] - '0';
+          pos += 1;
+      }
+
+      // Parse fractional part
+      uint64_t fractPart = 0;
+      uint64_t fractDivisor = 1;
+
+      while (pos < value.size()) {
+          if (value[pos] < '0' || value[pos] > '9')
+              return false;
+
+          fractDivisor *= 10;
+          fractPart *= 10;
+          fractPart += value[pos] - '0';
+          pos += 1;
+      }
+
+      // Compute final number, not super accurate but this should do
+      result = float((double(fractPart) / double(fractDivisor)) + double(intPart));
+
+      if (negate)
+          result = -result;
+
+      return std::isfinite(result);
+  }
   
   
   bool Config::parseOptionValue(

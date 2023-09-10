@@ -634,7 +634,7 @@ namespace dxvk {
         // generate the exact vertex layout. In that case we'll
         // pack attributes on the same binding in the order they
         // are declared, aligning each attribute to four bytes.
-        const DxvkFormatInfo* formatInfo = imageFormatInfo(attrib.format);
+        const DxvkFormatInfo* formatInfo = lookupFormatInfo(attrib.format);
         VkDeviceSize alignment = std::min<VkDeviceSize>(formatInfo->elementSize, 4);
 
         if (attrib.offset == D3D11_APPEND_ALIGNED_ELEMENT) {
@@ -644,7 +644,7 @@ namespace dxvk {
             const DxvkVertexAttribute& prev = attrList.at(i - j);
             
             if (prev.binding == attrib.binding) {
-              attrib.offset = align(prev.offset + imageFormatInfo(prev.format)->elementSize, alignment);
+              attrib.offset = align(prev.offset + lookupFormatInfo(prev.format)->elementSize, alignment);
               break;
             }
           }
@@ -2076,7 +2076,7 @@ namespace dxvk {
       return E_FAIL;
     
     // Query Vulkan format properties and supported features for it
-    const DxvkFormatInfo* fmtProperties = imageFormatInfo(fmtMapping.Format);
+    const DxvkFormatInfo* fmtProperties = lookupFormatInfo(fmtMapping.Format);
 
     VkFormatProperties fmtSupport = fmtMapping.Format != VK_FORMAT_UNDEFINED
       ? m_dxvkAdapter->formatProperties(fmtMapping.Format)
@@ -2368,7 +2368,7 @@ namespace dxvk {
       texture->Desc()->Format,
       texture->GetFormatMode()).Format;
     
-    auto formatInfo = imageFormatInfo(packedFormat);
+    auto formatInfo = lookupFormatInfo(packedFormat);
     
     // Validate box against subresource dimensions
     Rc<DxvkImage> image = texture->GetImage();

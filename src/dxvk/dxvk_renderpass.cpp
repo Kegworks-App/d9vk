@@ -170,7 +170,7 @@ namespace dxvk {
       if (ops.depthOps.loadOpS == VK_ATTACHMENT_LOAD_OP_LOAD)
         loadAspects |= VK_IMAGE_ASPECT_STENCIL_BIT;
 
-      if (loadAspects & imageFormatInfo(m_format.depth.format)->aspectMask)
+      if (loadAspects & lookupFormatInfo(m_format.depth.format)->aspectMask)
         renderAccess |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
       
       if (m_format.depth.layout != VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL)

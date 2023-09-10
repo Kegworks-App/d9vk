@@ -213,7 +213,7 @@ namespace dxvk {
       | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 
     for (uint32_t i = 0; i < MaxNumRenderTargets; i++) {
-      auto formatInfo = imageFormatInfo(passFormat.color[i].format);
+      auto formatInfo = lookupFormatInfo(passFormat.color[i].format);
       omBlendAttachments[i] = state.omBlend[i].state();
 
       if (!(m_fsOut & (1 << i)) || !formatInfo) {

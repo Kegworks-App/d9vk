@@ -8,6 +8,7 @@
 #include "dxvk_objects.h"
 #include "dxvk_resource.h"
 #include "dxvk_util.h"
+#include "dxvk_marker.h"
 
 namespace dxvk {
   
@@ -561,6 +562,24 @@ namespace dxvk {
             VkDeviceSize      countOffset,
             uint32_t          maxCount,
             uint32_t          stride);
+
+    /**
+     * \brief Emits graphics barrier
+     *
+     * Needs to be used when the fragment shader reads a bound
+     * render target, or when subsequent draw calls access any
+     * given resource for writing. It is assumed that no hazards
+     * can happen between storage descriptors and other resources.
+     * \param [in] srcStages Source pipeline stages
+     * \param [in] srcAccess Source access
+     * \param [in] dstStages Destination pipeline stages
+     * \param [in] dstAccess Destination access
+     */
+    void emitGraphicsBarrier(
+            VkPipelineStageFlags      srcStages,
+            VkAccessFlags             srcAccess,
+            VkPipelineStageFlags      dstStages,
+            VkAccessFlags             dstAccess);
     
     /**
      * \brief Draws primitives using an index buffer
@@ -1034,7 +1053,16 @@ namespace dxvk {
      * Inserts an instantaneous debug label. Used by debugging/profiling
      * tools to mark different workloads within a frame.
      */
-    void insertDebugLabel(VkDebugUtilsLabelEXT *label);
+    void insertDebugLabel(VkDebugUtilsLabelEXT *label);    /**
+
+    /**
+     * \brief Inserts a marker object
+     * \param [in] marker The marker
+     */
+    template<typename T>
+    void insertMarker(const Rc<DxvkMarker<T>>& marker) {
+      m_cmd->trackResource<DxvkAccess::Write>(marker);
+    }
 
     /**
      * \brief Increments a given stat counter

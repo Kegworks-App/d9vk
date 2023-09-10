@@ -354,8 +354,8 @@ namespace dxvk {
        || SrcSubresource >= srcTexture->CountSubresources())
         return;
       
-      auto dstFormatInfo = imageFormatInfo(dstTexture->GetPackedFormat());
-      auto srcFormatInfo = imageFormatInfo(srcTexture->GetPackedFormat());
+      auto dstFormatInfo = lookupFormatInfo(dstTexture->GetPackedFormat());
+      auto srcFormatInfo = lookupFormatInfo(srcTexture->GetPackedFormat());
       
       auto dstLayers = vk::makeSubresourceLayers(dstTexture->GetSubresourceFromIndex(dstFormatInfo->aspectMask, DstSubresource));
       auto srcLayers = vk::makeSubresourceLayers(srcTexture->GetSubresourceFromIndex(srcFormatInfo->aspectMask, SrcSubresource));
@@ -432,8 +432,8 @@ namespace dxvk {
         return;
       }
 
-      auto dstFormatInfo = imageFormatInfo(dstTexture->GetPackedFormat());
-      auto srcFormatInfo = imageFormatInfo(srcTexture->GetPackedFormat());
+      auto dstFormatInfo = lookupFormatInfo(dstTexture->GetPackedFormat());
+      auto srcFormatInfo = lookupFormatInfo(srcTexture->GetPackedFormat());
 
       for (uint32_t i = 0; i < dstDesc->MipLevels; i++) {
         VkImageSubresourceLayers dstLayers = { dstFormatInfo->aspectMask, i, 0, dstDesc->ArraySize };
@@ -869,7 +869,7 @@ namespace dxvk {
     
     // We'll need the format info to determine the buffer
     // element size, and we also need it for depth images.
-    const DxvkFormatInfo* formatInfo = imageFormatInfo(format);
+    const DxvkFormatInfo* formatInfo = lookupFormatInfo(format);
 
     // Convert the clear color format. ClearView takes
     // the clear value for integer formats as a set of
@@ -1076,8 +1076,8 @@ namespace dxvk {
     const DXGI_VK_FORMAT_INFO dstFormatInfo = m_parent->LookupFormat(dstDesc.Format, DXGI_VK_FORMAT_MODE_ANY);
     const DXGI_VK_FORMAT_INFO srcFormatInfo = m_parent->LookupFormat(srcDesc.Format, DXGI_VK_FORMAT_MODE_ANY);
     
-    auto dstVulkanFormatInfo = imageFormatInfo(dstFormatInfo.Format);
-    auto srcVulkanFormatInfo = imageFormatInfo(srcFormatInfo.Format);
+    auto dstVulkanFormatInfo = lookupFormatInfo(dstFormatInfo.Format);
+    auto srcVulkanFormatInfo = lookupFormatInfo(srcFormatInfo.Format);
     
     if (DstSubresource >= dstTextureInfo->CountSubresources()
      || SrcSubresource >= srcTextureInfo->CountSubresources())
@@ -3375,8 +3375,8 @@ namespace dxvk {
           VkOffset3D                        SrcOffset,
           VkExtent3D                        SrcExtent) {
     // Image formats must be size-compatible
-    auto dstFormatInfo = imageFormatInfo(pDstTexture->GetPackedFormat());
-    auto srcFormatInfo = imageFormatInfo(pSrcTexture->GetPackedFormat());
+    auto dstFormatInfo = lookupFormatInfo(pDstTexture->GetPackedFormat());
+    auto srcFormatInfo = lookupFormatInfo(pSrcTexture->GetPackedFormat());
 
     if (dstFormatInfo->elementSize != srcFormatInfo->elementSize) {
       Logger::err("D3D11: CopyImage: Incompatible texel size");
@@ -3700,7 +3700,7 @@ namespace dxvk {
 
     VkFormat packedFormat = pDstTexture->GetPackedFormat();
 
-    auto formatInfo = imageFormatInfo(packedFormat);
+    auto formatInfo = lookupFormatInfo(packedFormat);
     auto subresource = pDstTexture->GetSubresourceFromIndex(
         formatInfo->aspectMask, DstSubresource);
 
@@ -3784,7 +3784,7 @@ namespace dxvk {
       VkExtent3D dstMipExtent = pDstTexture->MipLevelExtent(pDstSubresource->mipLevel);
 
       auto dstFormat = pDstTexture->GetPackedFormat();
-      auto dstFormatInfo = imageFormatInfo(dstFormat);
+      auto dstFormatInfo = lookupFormatInfo(dstFormat);
 
       uint32_t planeCount = 1;
 

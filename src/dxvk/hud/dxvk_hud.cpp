@@ -78,7 +78,7 @@ namespace dxvk::hud {
     const Rc<DxvkContext>&  ctx,
           VkSurfaceFormatKHR surfaceFormat,
           VkExtent2D        surfaceSize) {
-    bool isSrgb = imageFormatInfo(surfaceFormat.format)->flags.test(DxvkFormatFlag::ColorSpaceSrgb);
+    bool isSrgb = lookupFormatInfo(surfaceFormat.format)->flags.test(DxvkFormatFlag::ColorSpaceSrgb);
 
     VkViewport viewport;
     viewport.x = 0.0f;
