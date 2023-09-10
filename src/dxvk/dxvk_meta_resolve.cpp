@@ -405,7 +405,7 @@ namespace dxvk {
 
   VkRenderPass DxvkMetaResolveObjects::createRenderPass(
     const DxvkMetaResolvePipelineKey& key) {
-    auto formatInfo = imageFormatInfo(key.format);
+    auto formatInfo = lookupFormatInfo(key.format);
     bool isColorImage = (formatInfo->aspectMask & VK_IMAGE_ASPECT_COLOR_BIT);
 
     VkAttachmentDescription attachment;
@@ -459,7 +459,7 @@ namespace dxvk {
   
   VkDescriptorSetLayout DxvkMetaResolveObjects::createDescriptorSetLayout(
     const DxvkMetaResolvePipelineKey& key) {
-    auto formatInfo = imageFormatInfo(key.format);
+    auto formatInfo = lookupFormatInfo(key.format);
 
     std::array<VkDescriptorSetLayoutBinding, 2> bindings = {{
       { 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, &m_sampler },
@@ -510,7 +510,7 @@ namespace dxvk {
     const DxvkMetaResolvePipelineKey& key,
           VkPipelineLayout       pipelineLayout,
           VkRenderPass           renderPass) {
-    auto formatInfo = imageFormatInfo(key.format);
+    auto formatInfo = lookupFormatInfo(key.format);
     bool isColorImage = formatInfo->aspectMask & VK_IMAGE_ASPECT_COLOR_BIT;
 
     std::array<VkPipelineShaderStageCreateInfo, 3> stages;

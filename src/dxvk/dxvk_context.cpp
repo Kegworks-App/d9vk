@@ -390,7 +390,7 @@ namespace dxvk {
     
     // Query pipeline objects to use for this clear operation
     DxvkMetaClearPipeline pipeInfo = m_common->metaClear().getClearBufferPipeline(
-      imageFormatInfo(bufferView->info().format)->flags);
+      lookupFormatInfo(bufferView->info().format)->flags);
     
     // Create a descriptor set pointing to the view
     VkBufferView viewObject = bufferView->handle();
@@ -1168,8 +1168,8 @@ namespace dxvk {
 
     // Create temporary buffer for depth/stencil data
     VkDeviceSize pixelCount = dstExtent.width * dstExtent.height * dstSubresource.layerCount;
-    VkDeviceSize dataSizeD = align(pixelCount * imageFormatInfo(dataFormatD)->elementSize, 256);
-    VkDeviceSize dataSizeS = align(pixelCount * imageFormatInfo(dataFormatS)->elementSize, 256);
+    VkDeviceSize dataSizeD = align(pixelCount * lookupFormatInfo(dataFormatD)->elementSize, 256);
+    VkDeviceSize dataSizeS = align(pixelCount * lookupFormatInfo(dataFormatS)->elementSize, 256);
 
     DxvkBufferCreateInfo tmpBufferInfo;
     tmpBufferInfo.size    = dataSizeD + dataSizeS;
@@ -2165,7 +2165,7 @@ namespace dxvk {
           VkDeviceSize              pitchPerRow,
           VkDeviceSize              pitchPerLayer,
           VkFormat                  format) {
-    auto formatInfo = imageFormatInfo(format);
+    auto formatInfo = lookupFormatInfo(format);
     
     VkExtent3D extent3D;
     extent3D.width  = imageExtent.width;
@@ -3092,7 +3092,7 @@ namespace dxvk {
     
     // Query pipeline objects to use for this clear operation
     DxvkMetaClearPipeline pipeInfo = m_common->metaClear().getClearImagePipeline(
-      imageView->type(), imageFormatInfo(imageView->info().format)->flags);
+      imageView->type(), lookupFormatInfo(imageView->info().format)->flags);
     
     // Create a descriptor set pointing to the view
     VkDescriptorSet descriptorSet = allocateDescriptorSet(pipeInfo.dsetLayout);
@@ -5281,6 +5281,28 @@ namespace dxvk {
 
     this->initBuffer(m_zeroBuffer);
     return m_zeroBuffer;
+  }
+
+   void DxvkContext::emitGraphicsBarrier(
+          VkPipelineStageFlags      srcStages,
+          VkAccessFlags             srcAccess,
+          VkPipelineStageFlags      dstStages,
+          VkAccessFlags             dstAccess) {
+    // Emit barrier early so we can fold this into
+    // the spill render pass barrier if possible
+    if (srcStages | dstStages) {
+      m_execBarriers.accessMemory(
+        srcStages, srcAccess,
+        dstStages, dstAccess);
+    }
+
+    this->spillRenderPass(true);
+
+    // Flush barriers if there was no active render pass.
+    // This is necessary because there are no resources
+    // associated with the barrier to allow tracking.
+    if (srcStages | dstStages)
+      m_execBarriers.recordCommands(m_cmd);
   }
   
 }

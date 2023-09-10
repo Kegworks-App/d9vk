@@ -295,6 +295,10 @@ namespace dxvk {
 
     m_lastDialog = m_dialog;
 
+    const bool useGDIFallback = m_partialCopy && !HasFrontBuffer();
+    if (useGDIFallback)
+      return PresentImageGDI(m_window);
+
     try {
       if (recreate)
         CreatePresenter();
@@ -316,6 +320,44 @@ namespace dxvk {
     }
   }
 
+  #define DCX_USESTYLE 0x00010000
+
+  HRESULT D3D9SwapChainEx::PresentImageGDI(HWND Window) {
+    m_parent->EndFrame();
+    m_parent->Flush();
+
+    if (!std::exchange(m_warnedAboutGDIFallback, true))
+      Logger::warn("Using GDI for swapchain presentation. This will impact performance.");
+
+    HDC hDC;
+    HRESULT result = m_backBuffers[0]->GetDC(&hDC);
+    if (result) {
+      Logger::err("D3D9SwapChainEx::BlitGDI Surface GetDC failed");
+      return D3DERR_DEVICEREMOVED;
+    }
+
+    HDC dstDC = GetDCEx(Window, 0, DCX_CACHE | DCX_USESTYLE);
+    if (!dstDC) {
+      Logger::err("D3D9SwapChainEx::BlitGDI: GetDCEx failed");
+      m_backBuffers[0]->ReleaseDC(hDC);
+      return D3DERR_DEVICEREMOVED;
+    }
+
+    bool success = StretchBlt(dstDC, m_dstRect.left, m_dstRect.top, m_dstRect.right - m_dstRect.left,
+            m_dstRect.bottom - m_dstRect.top, hDC, m_srcRect.left, m_srcRect.top,
+            m_srcRect.right - m_srcRect.left, m_srcRect.bottom - m_srcRect.top, SRCCOPY);
+
+    m_backBuffers[0]->ReleaseDC(hDC);
+    ReleaseDC(Window, dstDC);
+
+    if (!success) {
+      Logger::err("D3D9SwapChainEx::BlitGDI: StretchBlt failed");
+      return D3DERR_DEVICEREMOVED;
+    }
+
+    return S_OK;
+  }
+
 
   HRESULT STDMETHODCALLTYPE D3D9SwapChainEx::GetFrontBufferData(IDirect3DSurface9* pDestSurface) {
     D3D9DeviceLock lock = m_parent->LockDevice();
@@ -330,19 +372,36 @@ namespace dxvk {
     // of src onto a temp image of dst's extents,
     // then copy buffer back to dst (given dst is subresource)
 
+    // For SWAPEFFECT_COPY and windowed SWAPEFFECT_DISCARD with 1 backbuffer, we just copy the backbuffer data instead.
+    // We just copy from the backbuffer instead of the front buffer to avoid having to do another blit.
+    // This mostly impacts windowed mode and our implementation was not accurate in that case anyway as Windows D3D9
+    // takes a screenshot of the entire screen.
+
     D3D9Surface* dst = static_cast<D3D9Surface*>(pDestSurface);
 
     if (unlikely(dst == nullptr))
       return D3DERR_INVALIDCALL;
 
     D3D9CommonTexture* dstTexInfo = dst->GetCommonTexture();
-    D3D9CommonTexture* srcTexInfo = m_backBuffers.back()->GetCommonTexture();
+    D3D9CommonTexture* srcTexInfo = GetFrontBuffer()->GetCommonTexture();
 
     if (unlikely(dstTexInfo->Desc()->Pool != D3DPOOL_SYSTEMMEM && dstTexInfo->Desc()->Pool != D3DPOOL_SCRATCH))
       return D3DERR_INVALIDCALL;
+    
+    if (unlikely(m_parent->IsDeviceLost())) {
+      return D3DERR_DEVICELOST;
+    }
 
-    Rc<DxvkBuffer> dstBuffer = dstTexInfo->GetBuffer(dst->GetSubresource());
-    Rc<DxvkImage>  srcImage  = srcTexInfo->GetImage();
+    VkExtent3D dstTexExtent = dstTexInfo->GetExtentMip(dst->GetMipLevel());
+    VkExtent3D srcTexExtent = srcTexInfo->GetExtentMip(0);
+
+    const bool clearDst = dstTexInfo->Desc()->MipLevels > 1
+                       || dstTexExtent.width > srcTexExtent.width
+                       || dstTexExtent.height > srcTexExtent.height;
+
+    dstTexInfo->CreateBuffer(clearDst);
+    DxvkBufferSlice dstBufferSlice = dstTexInfo->GetBufferSlice(dst->GetSubresource());
+    Rc<DxvkImage>   srcImage       = srcTexInfo->GetImage();
 
     if (srcImage->info().sampleCount != VK_SAMPLE_COUNT_1_BIT) {
       DxvkImageCreateInfo resolveInfo;
@@ -424,8 +483,8 @@ namespace dxvk {
       Rc<DxvkImage> blittedSrc = m_device->createImage(
         blitCreateInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-      const DxvkFormatInfo* dstFormatInfo = imageFormatInfo(blittedSrc->info().format);
-      const DxvkFormatInfo* srcFormatInfo = imageFormatInfo(srcImage->info().format);
+      const DxvkFormatInfo* dstFormatInfo = lookupFormatInfo(blittedSrc->info().format);
+      const DxvkFormatInfo* srcFormatInfo = lookupFormatInfo(srcImage->info().format);
 
       const VkImageSubresource dstSubresource = dstTexInfo->GetSubresourceFromIndex(dstFormatInfo->aspectMask, 0);
       const VkImageSubresource srcSubresource = srcTexInfo->GetSubresourceFromIndex(srcFormatInfo->aspectMask, 0);
@@ -467,7 +526,7 @@ namespace dxvk {
       srcImage = std::move(blittedSrc);
     }
 
-    const DxvkFormatInfo* srcFormatInfo = imageFormatInfo(srcImage->info().format);
+    const DxvkFormatInfo* srcFormatInfo = lookupFormatInfo(srcImage->info().format);
     const VkImageSubresource srcSubresource = srcTexInfo->GetSubresourceFromIndex(srcFormatInfo->aspectMask, 0);
     VkImageSubresourceLayers srcSubresourceLayers = {
       srcSubresource.aspectMask,
@@ -476,13 +535,14 @@ namespace dxvk {
     VkExtent3D srcExtent = srcImage->mipLevelExtent(srcSubresource.mipLevel);
 
     m_parent->EmitCs([
-      cBuffer       = dstBuffer,
-      cImage        = srcImage,
+      cBufferSlice  = std::move(dstBufferSlice),
+      cImage        = std::move(srcImage),
       cSubresources = srcSubresourceLayers,
       cLevelExtent  = srcExtent
     ] (DxvkContext* ctx) {
-      ctx->copyImageToBuffer(cBuffer, 0, 4, 0,
-        cImage, cSubresources, VkOffset3D { 0, 0, 0 },
+      ctx->copyImageToBuffer(cBufferSlice.buffer(),
+        cBufferSlice.offset(), 4, 0, cImage,
+        cSubresources, VkOffset3D { 0, 0, 0 },
         cLevelExtent);
     });
 
@@ -506,6 +566,13 @@ namespace dxvk {
     if (unlikely(iBackBuffer >= m_presentParams.BackBufferCount)) {
       Logger::err(str::format("D3D9: GetBackBuffer: Invalid back buffer index: ", iBackBuffer));
       return D3DERR_INVALIDCALL;
+    }
+
+    if (m_backBuffers.empty()) {
+      // The backbuffers were destroyed and not recreated.
+      // This can happen when a call to Reset fails.
+      *ppBackBuffer = nullptr;
+      return D3D_OK;
     }
 
     *ppBackBuffer = ref(m_backBuffers[iBackBuffer].ptr());
@@ -1019,7 +1086,7 @@ namespace dxvk {
     // creating a new one to free up resources
     DestroyBackBuffers();
 
-    int NumFrontBuffer = m_parent->GetOptions()->noExplicitFrontBuffer ? 0 : 1;
+    int NumFrontBuffer = HasFrontBuffer() ? 1 : 0;
     m_backBuffers.resize(NumBackBuffers + NumFrontBuffer);
 
     // Create new back buffer
@@ -1329,12 +1396,11 @@ namespace dxvk {
     else
       m_srcRect = *pSourceRect;
 
+    UINT width, height;
+    GetWindowClientSize(m_window, &width, &height);
+
     RECT dstRect;
     if (pDestRect == nullptr) {
-      // TODO: Should we hook WM_SIZE message for this?
-      UINT width, height;
-      GetWindowClientSize(m_window, &width, &height);
-
       dstRect.top    = 0;
       dstRect.left   = 0;
       dstRect.right  = LONG(width);
@@ -1343,21 +1409,24 @@ namespace dxvk {
     else
       dstRect = *pDestRect;
 
-    bool recreate = 
-       m_dstRect.left   != dstRect.left
-    || m_dstRect.top    != dstRect.top
-    || m_dstRect.right  != dstRect.right
-    || m_dstRect.bottom != dstRect.bottom;
+    m_partialCopy =
+       dstRect.left != 0
+    || dstRect.top != 0
+    || dstRect.right  - dstRect.left != LONG(width)
+    || dstRect.bottom - dstRect.top  != LONG(height);
 
+    bool recreate = m_presenter == nullptr
+    || m_presenter->info().imageExtent.width != width
+    || m_presenter->info().imageExtent.height != height;
+
+    m_swapchainExtent = { width, height };
     m_dstRect = dstRect;
 
     return recreate;
   }
 
-  VkExtent2D D3D9SwapChainEx::GetPresentExtent() {
-    return VkExtent2D {
-      std::max<uint32_t>(m_dstRect.right  - m_dstRect.left, 1u),
-      std::max<uint32_t>(m_dstRect.bottom - m_dstRect.top,  1u) };
+ VkExtent2D D3D9SwapChainEx::GetPresentExtent() {
+    return m_swapchainExtent;
   }
 
 

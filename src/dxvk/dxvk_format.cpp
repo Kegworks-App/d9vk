@@ -572,7 +572,7 @@ namespace dxvk {
   }};
   
   
-  const DxvkFormatInfo* imageFormatInfo(VkFormat format) {
+  const DxvkFormatInfo* lookupFormatInfoSlow(VkFormat format) {
     uint32_t indexOffset = 0;
     
     for (const auto& group : g_formatGroups) {

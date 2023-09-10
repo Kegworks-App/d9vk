@@ -17,21 +17,19 @@ namespace dxvk {
       const DxsoAnalysisInfo&     AnalysisInfo,
             DxsoModule*           pModule) {
     const uint32_t bytecodeLength = AnalysisInfo.bytecodeByteLength;
-    m_bytecode.resize(bytecodeLength);
-    std::memcpy(m_bytecode.data(), pShaderBytecode, bytecodeLength);
 
     const std::string name = Key.toString();
     Logger::debug(str::format("Compiling shader ", name));
     
     // If requested by the user, dump both the raw DXBC
     // shader and the compiled SPIR-V module to a file.
-    const std::string dumpPath = env::getEnvVar("DXVK_SHADER_DUMP_PATH");
+    const std::string& dumpPath = pDevice->GetOptions()->shaderDumpPath;
     
     if (dumpPath.size() != 0) {
       DxsoReader reader(
         reinterpret_cast<const char*>(pShaderBytecode));
 
-      reader.store(std::ofstream(str::tows(str::format(dumpPath, "/", name, ".dxso").c_str()).c_str(),
+      reader.store(std::ofstream(str::topath(str::format(dumpPath, "/", name, ".dxso").c_str()).c_str(),
         std::ios_base::binary | std::ios_base::trunc), bytecodeLength);
 
       char comment[2048];
@@ -43,7 +41,7 @@ namespace dxvk {
         &blob);
       
       if (SUCCEEDED(hr)) {
-        std::ofstream disassembledOut(str::tows(str::format(dumpPath, "/", name, ".dxso.dis").c_str()).c_str(), std::ios_base::binary | std::ios_base::trunc);
+        std::ofstream disassembledOut(str::topath(str::format(dumpPath, "/", name, ".dxso.dis").c_str()).c_str(), std::ios_base::binary | std::ios_base::trunc);
         disassembledOut.write(
           reinterpret_cast<const char*>(blob->GetBufferPointer()),
           blob->GetBufferSize());
@@ -79,6 +77,11 @@ namespace dxvk {
       // Lets lie about the shader key type for the state cache.
       m_shaders[1]->setShaderKey({ VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT, Key.sha1() });
     }
+
+    if (m_shaders[1] != nullptr) {
+      // Lets lie about the shader key type for the state cache.
+      m_shaders[1]->setShaderKey({ VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT, Key.sha1() });
+    }
     
     if (dumpPath.size() != 0) {
       std::ofstream dumpStream(
@@ -90,7 +93,7 @@ namespace dxvk {
 
     pDevice->GetDXVKDevice()->registerShader(m_shaders[0]);
 
-    if (m_shaders[1] != nullptr)
+        if (m_shaders[1] != nullptr)
       pDevice->GetDXVKDevice()->registerShader(m_shaders[1]);
   }
 
@@ -98,6 +101,7 @@ namespace dxvk {
   void D3D9ShaderModuleSet::GetShaderModule(
             D3D9DeviceEx*         pDevice,
             D3D9CommonShader*     pShaderModule,
+            uint32_t*             pLength,
             VkShaderStageFlagBits ShaderStage,
       const DxsoModuleInfo*       pDxbcModuleInfo,
       const void*                 pShaderBytecode) {
@@ -113,6 +117,7 @@ namespace dxvk {
       throw DxvkError("GetShaderModule: Bytecode does not match shader stage");
 
     DxsoAnalysisInfo info = module.analyze();
+    *pLength = info.bytecodeByteLength;
 
     DxvkShaderKey lookupKey = DxvkShaderKey(
       ShaderStage,

@@ -268,7 +268,8 @@ namespace dxvk {
     
     // Convert device name
     std::memset(pDesc->Description, 0, sizeof(pDesc->Description));
-    str::tows(description, pDesc->Description);
+    std::wstring descriptionWStr = str::tows(description);
+    std::memcpy(pDesc->Description, descriptionWStr.c_str(), descriptionWStr.size());
     
     // Get amount of video memory
     // based on the Vulkan heaps

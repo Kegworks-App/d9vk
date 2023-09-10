@@ -383,7 +383,7 @@ namespace dxvk {
 
   VkRenderPass DxvkMetaCopyObjects::createRenderPass(
     const DxvkMetaCopyPipelineKey&  key) const {
-    auto aspect = imageFormatInfo(key.format)->aspectMask;
+    auto aspect = lookupFormatInfo(key.format)->aspectMask;
 
     VkAttachmentDescription attachment;
     attachment.flags            = 0;
@@ -458,7 +458,7 @@ namespace dxvk {
     info.bindingCount           = 1;
     info.pBindings              = bindings.data();
 
-    auto format = imageFormatInfo(key.format);
+    auto format = lookupFormatInfo(key.format);
 
     if (format->aspectMask == (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT))
       info.bindingCount = 2;
@@ -497,7 +497,7 @@ namespace dxvk {
     const DxvkMetaCopyPipelineKey&  key,
           VkPipelineLayout          pipelineLayout,
           VkRenderPass              renderPass) {
-    auto aspect = imageFormatInfo(key.format)->aspectMask;
+    auto aspect = lookupFormatInfo(key.format)->aspectMask;
 
     std::array<VkPipelineShaderStageCreateInfo, 3> stages;
     uint32_t stageCount = 0;

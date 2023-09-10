@@ -1,24 +1,50 @@
 #pragma once
 
+#include <array>
+
 #include <cstdint>
+
+#include "../spirv/spirv_module.h"
+
+class D3D9DeviceEx;
 
 namespace dxvk {
 
   enum D3D9SpecConstantId : uint32_t {
-    AlphaCompareOp  = 0,
-    SamplerType     = 1,
-    FogEnabled      = 2,
-    VertexFogMode   = 3,
-    PixelFogMode    = 4,
+    SpecAlphaCompareOp  = 0,
+    SpecSamplerType     = 1,
+    SpecFogEnabled      = 2,
+    SpecVertexFogMode   = 3,
+    SpecPixelFogMode    = 4,
 
-    PointMode       = 5,
-    ProjectionType  = 6,
+    SpecPointMode       = 5,
+    SpecProjectionType  = 6,
 
-    VertexShaderBools = 7,
-    PixelShaderBools  = 8,
-    Fetch4            = 9,
+    SpecVertexShaderBools = 7,
+    SpecPixelShaderBools  = 8,
+    SpecFetch4            = 9,
 
-    SamplerDepthMode  = 10,
+    SpecSamplerDepthMode  = 10,
+    
+    SpecConstantCount,
+  };
+
+  struct D3D9SpecializationInfo {
+    template <D3D9SpecConstantId Id>
+    uint32_t set(uint32_t value) {
+      if (get<Id>() == value)
+        return false;
+
+      data[Id] = value;
+      return true;
+    }
+
+    template <D3D9SpecConstantId Id>
+    uint32_t get() const {
+      return data[Id];
+    }
+
+    std::array<uint32_t, SpecConstantCount> data = {};
   };
 
 }
