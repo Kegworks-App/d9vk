@@ -671,6 +671,73 @@ namespace dxvk {
     m_cmd->trackResource<DxvkAccess::Write>(dstImage);
     m_cmd->trackResource<DxvkAccess::Read>(srcBuffer);
   }
+
+  void DxvkContext::decodeBcBufferToImage(
+    const Rc<DxvkImage>&        dstImage,
+          VkImageSubresourceLayers dstSubresource,
+          VkOffset3D            dstOffset,
+          VkExtent3D            dstExtent,
+    const Rc<DxvkBuffer>&       srcBuffer,
+          VkDeviceSize          srcOffset,
+          VkDeviceSize          rowAlignment,
+          VkDeviceSize          sliceAlignment,
+          VkFormat              srcFormat) {
+    this->spillRenderPass(true);
+    this->prepareImage(m_execBarriers, dstImage, vk::makeSubresourceRange(dstSubresource));
+
+    auto srcSlice = srcBuffer->getSliceHandle(srcOffset, 0);
+
+    // We may copy to only one aspect at a time, but pipeline
+    // barriers need to have all available aspect bits set
+    auto dstFormatInfo = dstImage->formatInfo();
+
+    auto dstSubresourceRange = vk::makeSubresourceRange(dstSubresource);
+    dstSubresourceRange.aspectMask = dstFormatInfo->aspectMask;
+    
+    if (m_execBarriers.isImageDirty(dstImage, dstSubresourceRange, DxvkAccess::Write)
+     || m_execBarriers.isBufferDirty(srcSlice, DxvkAccess::Read))
+      m_execBarriers.recordCommands(m_cmd);
+
+    // Initialize the image if the entire subresource is covered
+    VkImageLayout dstImageLayoutInitial  = dstImage->info().layout;
+    VkImageLayout dstImageLayoutTransfer = dstImage->pickLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+
+    if (dstImage->isFullSubresource(dstSubresource, dstExtent))
+      dstImageLayoutInitial = VK_IMAGE_LAYOUT_UNDEFINED;
+
+    if (dstImageLayoutTransfer != dstImageLayoutInitial) {
+      m_execAcquires.accessImage(
+        dstImage, dstSubresourceRange,
+        dstImageLayoutInitial,
+        VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
+        dstImageLayoutTransfer,
+        VK_PIPELINE_STAGE_TRANSFER_BIT,
+        VK_ACCESS_TRANSFER_WRITE_BIT);
+    }
+      
+    m_execAcquires.recordCommands(m_cmd);
+
+    this->copyImageBufferData<true>(DxvkCmdBuffer::ExecBuffer, dstImage, dstSubresource,
+      dstOffset, dstExtent, dstImageLayoutTransfer, srcSlice, rowAlignment, sliceAlignment);
+
+    m_execBarriers.accessImage(
+      dstImage, dstSubresourceRange,
+      dstImageLayoutTransfer,
+      VK_PIPELINE_STAGE_TRANSFER_BIT,
+      VK_ACCESS_TRANSFER_WRITE_BIT,
+      dstImage->info().layout,
+      dstImage->info().stages,
+      dstImage->info().access);
+
+    m_execBarriers.accessBuffer(srcSlice,
+      VK_PIPELINE_STAGE_TRANSFER_BIT,
+      VK_ACCESS_TRANSFER_READ_BIT,
+      srcBuffer->info().stages,
+      srcBuffer->info().access);
+    
+    m_cmd->trackResource<DxvkAccess::Write>(dstImage);
+    m_cmd->trackResource<DxvkAccess::Read>(srcBuffer);
+  }
   
   
   void DxvkContext::copyImage(
