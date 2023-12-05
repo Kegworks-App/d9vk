@@ -11,8 +11,14 @@ namespace dxvk {
 
   enum class DxsoBindingType : uint32_t {
     ConstantBuffer,
-    Image,
+    Texture2D,
+    TextureShadow,
+    TextureCube,
+    TextureCubeShadow,
+    Texture3D,
   };
+
+  const uint32_t TextureTypes = 5;
 
   enum class DxsoConstantBufferType : uint32_t {
     Float,
@@ -35,17 +41,17 @@ namespace dxvk {
     PSShared         = 2,
     PSCount
   };
-
+  
   constexpr uint32_t computeResourceSlotId(
         DxsoProgramType shaderStage,
         DxsoBindingType bindingType,
         uint32_t        bindingIndex) {
-    const uint32_t stageOffset = (DxsoConstantBuffers::VSCount + caps::MaxTexturesVS) * uint32_t(shaderStage);
+    const uint32_t stageOffset = (DxsoConstantBuffers::VSCount + caps::MaxTexturesVS * TextureTypes) * uint32_t(shaderStage);
 
     if (bindingType == DxsoBindingType::ConstantBuffer)
       return bindingIndex + stageOffset;
-    else // if (bindingType == DxsoBindingType::Image)
-      return bindingIndex + stageOffset + (shaderStage == DxsoProgramType::PixelShader ? DxsoConstantBuffers::PSCount : DxsoConstantBuffers::VSCount);
+    else // bindingType is one of the texture ones
+      return bindingIndex * TextureTypes + (uint32_t(bindingType) - 1) + stageOffset + (shaderStage == DxsoProgramType::PixelShader ? DxsoConstantBuffers::PSCount : DxsoConstantBuffers::VSCount);
   }
 
   // TODO: Intergrate into compute resource slot ID/refactor all of this?

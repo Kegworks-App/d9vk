@@ -6261,19 +6261,43 @@ namespace dxvk {
 
     auto samplerInfo = RemapStateSamplerShader(Sampler);
 
-    const uint32_t slot = computeResourceSlotId(
-      samplerInfo.first, DxsoBindingType::Image,
-      samplerInfo.second);
-
     EmitCs([this,
-      cSlot = slot,
+      cSamplerInfo = samplerInfo,
       cKey  = key
     ] (DxvkContext* ctx) {
       VkShaderStageFlags stage = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 
       auto pair = m_samplers.find(cKey);
       if (pair != m_samplers.end()) {
-        ctx->bindResourceSampler(cSlot, pair->second);
+        uint32_t slot = computeResourceSlotId(
+          cSamplerInfo.first, DxsoBindingType::Texture2D,
+          cSamplerInfo.second);
+
+        ctx->bindResourceSampler(slot, pair->second);
+
+        slot = computeResourceSlotId(
+          cSamplerInfo.first, DxsoBindingType::Texture3D,
+          cSamplerInfo.second);
+
+        ctx->bindResourceSampler(slot, pair->second);
+
+        slot = computeResourceSlotId(
+          cSamplerInfo.first, DxsoBindingType::TextureCube,
+          cSamplerInfo.second);
+
+        ctx->bindResourceSampler(slot, pair->second);
+
+        slot = computeResourceSlotId(
+          cSamplerInfo.first, DxsoBindingType::TextureShadow,
+          cSamplerInfo.second);
+
+        ctx->bindResourceSampler(slot, pair->second);
+
+        slot = computeResourceSlotId(
+          cSamplerInfo.first, DxsoBindingType::TextureCubeShadow,
+          cSamplerInfo.second);
+
+        ctx->bindResourceSampler(slot, pair->second);
         return;
       }
 
@@ -6318,7 +6342,36 @@ namespace dxvk {
         auto sampler = m_dxvkDevice->createSampler(info);
 
         m_samplers.insert(std::make_pair(cKey, sampler));
-        ctx->bindResourceSampler(cSlot, std::move(sampler));
+        
+        uint32_t slot = computeResourceSlotId(
+          cSamplerInfo.first, DxsoBindingType::Texture2D,
+          cSamplerInfo.second);
+
+        ctx->bindResourceSampler(slot, sampler);
+
+        slot = computeResourceSlotId(
+          cSamplerInfo.first, DxsoBindingType::Texture3D,
+          cSamplerInfo.second);
+
+        ctx->bindResourceSampler(slot, sampler);
+
+        slot = computeResourceSlotId(
+          cSamplerInfo.first, DxsoBindingType::TextureCube,
+          cSamplerInfo.second);
+
+        ctx->bindResourceSampler(slot, sampler);
+
+        slot = computeResourceSlotId(
+          cSamplerInfo.first, DxsoBindingType::TextureShadow,
+          cSamplerInfo.second);
+
+        ctx->bindResourceSampler(slot, sampler);
+
+        slot = computeResourceSlotId(
+          cSamplerInfo.first, DxsoBindingType::TextureCubeShadow,
+          cSamplerInfo.second);
+
+        ctx->bindResourceSampler(slot, sampler);
 
         m_samplerCount++;
       }
@@ -6332,21 +6385,85 @@ namespace dxvk {
   void D3D9DeviceEx::BindTexture(DWORD StateSampler) {
     auto shaderSampler = RemapStateSamplerShader(StateSampler);
 
-    uint32_t slot = computeResourceSlotId(shaderSampler.first,
-      DxsoBindingType::Image, uint32_t(shaderSampler.second));
-
     const bool srgb =
       m_state.samplerStates[StateSampler][D3DSAMP_SRGBTEXTURE] & 0x1;
 
     D3D9CommonTexture* commonTex =
       GetCommonTexture(m_state.textures[StateSampler]);
 
+    Rc<DxvkImageView> view = commonTex->GetSampleView(srgb);
+
     EmitCs([
-      cSlot = slot,
-      cImageView = commonTex->GetSampleView(srgb)
+      cImageView = std::move(view),
+      cShaderSampler = shaderSampler
     ](DxvkContext* ctx) {
-      VkShaderStageFlags stage = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-      ctx->bindResourceView(cSlot, cImageView, nullptr);
+      switch (cImageView->type()) {
+        case VK_IMAGE_VIEW_TYPE_2D: {
+          uint32_t slot = computeResourceSlotId(cShaderSampler.first,
+          DxsoBindingType::Texture2D, uint32_t(cShaderSampler.second));
+          ctx->bindResourceView(slot, cImageView, nullptr);
+
+          slot = computeResourceSlotId(cShaderSampler.first,
+          DxsoBindingType::TextureShadow, uint32_t(cShaderSampler.second));
+          ctx->bindResourceView(slot, cImageView, nullptr);
+
+          slot = computeResourceSlotId(cShaderSampler.first,
+          DxsoBindingType::TextureCube, uint32_t(cShaderSampler.second));
+          ctx->bindResourceView(slot, nullptr, nullptr);
+          
+          slot = computeResourceSlotId(cShaderSampler.first,
+          DxsoBindingType::TextureCubeShadow, uint32_t(cShaderSampler.second));
+          ctx->bindResourceView(slot, nullptr, nullptr);
+          
+          slot = computeResourceSlotId(cShaderSampler.first,
+          DxsoBindingType::Texture3D, uint32_t(cShaderSampler.second));
+          ctx->bindResourceView(slot, nullptr, nullptr);
+        } break;
+
+        case VK_IMAGE_VIEW_TYPE_3D: {
+          uint32_t slot = computeResourceSlotId(cShaderSampler.first,
+          DxsoBindingType::Texture3D, uint32_t(cShaderSampler.second));
+          ctx->bindResourceView(slot, cImageView, nullptr);
+          
+          slot = computeResourceSlotId(cShaderSampler.first,
+          DxsoBindingType::TextureShadow, uint32_t(cShaderSampler.second));
+          ctx->bindResourceView(slot, nullptr, nullptr);
+
+          slot = computeResourceSlotId(cShaderSampler.first,
+          DxsoBindingType::TextureCube, uint32_t(cShaderSampler.second));
+          ctx->bindResourceView(slot, nullptr, nullptr);
+          
+          slot = computeResourceSlotId(cShaderSampler.first,
+          DxsoBindingType::TextureCubeShadow, uint32_t(cShaderSampler.second));
+          ctx->bindResourceView(slot, nullptr, nullptr);
+          
+          slot = computeResourceSlotId(cShaderSampler.first,
+          DxsoBindingType::Texture2D, uint32_t(cShaderSampler.second));
+          ctx->bindResourceView(slot, nullptr, nullptr);
+        } break;
+
+        case VK_IMAGE_VIEW_TYPE_CUBE: {
+          uint32_t slot = computeResourceSlotId(cShaderSampler.first,
+          DxsoBindingType::TextureCube, uint32_t(cShaderSampler.second));
+          ctx->bindResourceView(slot, cImageView, nullptr);
+          
+          slot = computeResourceSlotId(cShaderSampler.first,
+          DxsoBindingType::TextureCubeShadow, uint32_t(cShaderSampler.second));
+          ctx->bindResourceView(slot, cImageView, nullptr);
+
+          slot = computeResourceSlotId(cShaderSampler.first,
+          DxsoBindingType::Texture3D, uint32_t(cShaderSampler.second));
+          ctx->bindResourceView(slot, nullptr, nullptr);
+          
+          slot = computeResourceSlotId(cShaderSampler.first,
+          DxsoBindingType::TextureShadow, uint32_t(cShaderSampler.second));
+          ctx->bindResourceView(slot, nullptr, nullptr);
+          
+          slot = computeResourceSlotId(cShaderSampler.first,
+          DxsoBindingType::Texture2D, uint32_t(cShaderSampler.second));
+          ctx->bindResourceView(slot, nullptr, nullptr);
+        } break;
+      }
     });
   }
 
@@ -6359,9 +6476,28 @@ namespace dxvk {
         auto shaderSampler = RemapStateSamplerShader(i);
 
         uint32_t slot = computeResourceSlotId(shaderSampler.first,
-          DxsoBindingType::Image, uint32_t(shaderSampler.second));
+          DxsoBindingType::Texture2D, uint32_t(shaderSampler.second));
 
-        VkShaderStageFlags stage = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+        ctx->bindResourceView(slot, nullptr, nullptr);
+
+        slot = computeResourceSlotId(shaderSampler.first,
+          DxsoBindingType::Texture3D, uint32_t(shaderSampler.second));
+
+        ctx->bindResourceView(slot, nullptr, nullptr);
+
+        slot = computeResourceSlotId(shaderSampler.first,
+          DxsoBindingType::TextureCube, uint32_t(shaderSampler.second));
+
+        ctx->bindResourceView(slot, nullptr, nullptr);
+
+        slot = computeResourceSlotId(shaderSampler.first,
+          DxsoBindingType::TextureShadow, uint32_t(shaderSampler.second));
+
+        ctx->bindResourceView(slot, nullptr, nullptr);
+
+        slot = computeResourceSlotId(shaderSampler.first,
+          DxsoBindingType::TextureCubeShadow, uint32_t(shaderSampler.second));
+
         ctx->bindResourceView(slot, nullptr, nullptr);
       }
     });
@@ -7493,7 +7629,19 @@ namespace dxvk {
 
       for (uint32_t i = 0; i < cSize; i++) {
         auto samplerInfo = RemapStateSamplerShader(DWORD(i));
-        uint32_t slot = computeResourceSlotId(samplerInfo.first, DxsoBindingType::Image, uint32_t(samplerInfo.second));
+        uint32_t slot = computeResourceSlotId(samplerInfo.first, DxsoBindingType::Texture2D, uint32_t(samplerInfo.second));
+        ctx->bindResourceView(slot, nullptr, nullptr);
+
+        slot = computeResourceSlotId(samplerInfo.first, DxsoBindingType::Texture3D, uint32_t(samplerInfo.second));
+        ctx->bindResourceView(slot, nullptr, nullptr);
+
+        slot = computeResourceSlotId(samplerInfo.first, DxsoBindingType::TextureCube, uint32_t(samplerInfo.second));
+        ctx->bindResourceView(slot, nullptr, nullptr);
+
+        slot = computeResourceSlotId(samplerInfo.first, DxsoBindingType::TextureShadow, uint32_t(samplerInfo.second));
+        ctx->bindResourceView(slot, nullptr, nullptr);
+
+        slot = computeResourceSlotId(samplerInfo.first, DxsoBindingType::TextureCubeShadow, uint32_t(samplerInfo.second));
         ctx->bindResourceView(slot, nullptr, nullptr);
       }
     });

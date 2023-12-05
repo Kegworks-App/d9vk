@@ -756,21 +756,28 @@ namespace dxvk {
     m_usedSamplers |= (1u << idx);
 
     VkImageViewType viewType = VK_IMAGE_VIEW_TYPE_MAX_ENUM;
+    DxsoSampler& dxsoSampler = m_samplers[idx];
+    dxsoSampler.type = type;
 
-    auto DclSampler = [this, &viewType](
-      uint32_t        idx,
-      uint32_t        bindingId,
+    auto DclSampler = [this,
+      &viewType, cTextureType = type,
+      &cDxsoSampler = dxsoSampler,
+      cIdx = idx
+      ](
       DxsoSamplerType type,
-      bool            depth,
-      bool            implicit) {
+      bool            depth) {
       // Setup our combines sampler.
       DxsoSamplerInfo& sampler = !depth
-        ? m_samplers[idx].color[type]
-        : m_samplers[idx].depth[type];
+        ? cDxsoSampler.color[type]
+        : cDxsoSampler.depth[type];
 
       spv::Dim dimensionality;
 
       const char* suffix = "_2d";
+
+      DxsoBindingType bindingType;
+
+      uint32_t* boundConstPtr;
 
       switch (type) {
         default:
@@ -778,6 +785,8 @@ namespace dxvk {
           sampler.dimensions = 2;
           dimensionality = spv::Dim2D;
           viewType = VK_IMAGE_VIEW_TYPE_2D;
+          bindingType = depth ? DxsoBindingType::TextureShadow : DxsoBindingType::Texture2D;
+          boundConstPtr = depth ? &cDxsoSampler.boundConst2DShadow : &cDxsoSampler.boundConst2D;
           break;
 
         case SamplerTypeTextureCube:
@@ -785,6 +794,8 @@ namespace dxvk {
           sampler.dimensions = 3;
           dimensionality = spv::DimCube;
           viewType = VK_IMAGE_VIEW_TYPE_CUBE;
+          bindingType = depth ? DxsoBindingType::TextureCubeShadow : DxsoBindingType::TextureCube;
+          boundConstPtr = depth ? &cDxsoSampler.boundConstCubeShadow : &cDxsoSampler.boundConstCube;
           break;
 
         case SamplerTypeTexture3D:
@@ -792,6 +803,8 @@ namespace dxvk {
           sampler.dimensions = 3;
           dimensionality = spv::Dim3D;
           viewType = VK_IMAGE_VIEW_TYPE_3D;
+          bindingType = DxsoBindingType::Texture3D;
+          boundConstPtr = &cDxsoSampler.boundConst3D;
           break;
       }
 
@@ -807,58 +820,56 @@ namespace dxvk {
           sampler.typeId, spv::StorageClassUniformConstant),
         spv::StorageClassUniformConstant);
 
-      std::string name = str::format("s", idx, suffix, depth ? "_shadow" : "");
+      std::string name = str::format("s", cIdx, suffix, depth ? "_shadow" : "");
       m_module.setDebugName(sampler.varId, name.c_str());
+
+      const uint32_t bindingId = computeResourceSlotId(m_programInfo.type(),
+        bindingType, cIdx);
 
       m_module.decorateDescriptorSet(sampler.varId, 0);
       m_module.decorateBinding      (sampler.varId, bindingId);
-    };
+      
 
-    const uint32_t binding = computeResourceSlotId(m_programInfo.type(),
-      DxsoBindingType::Image,
-      idx);
+      *boundConstPtr = m_module.specConstBool(true);
+      m_module.decorateSpecId(*boundConstPtr, bindingId);
+      m_module.setDebugName(*boundConstPtr,
+        str::format("s", cIdx, suffix, (depth ? "_shadow" : ""), "_bound").c_str());
+
+      // Store descriptor info for the shader interface
+      DxvkResourceSlot resource;
+      resource.slot   = bindingId;
+      resource.type   = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+      resource.view   = viewType;
+      resource.access = VK_ACCESS_SHADER_READ_BIT;
+      m_resourceSlots.push_back(resource);
+    };
 
     const bool implicit = m_programInfo.majorVersion() < 2 || m_moduleInfo.options.forceSamplerTypeSpecConstants;
 
     if (!implicit) {
       DxsoSamplerType samplerType = 
-        SamplerTypeFromTextureType(type);
+      SamplerTypeFromTextureType(type);
 
-      DclSampler(idx, binding, samplerType, false, implicit);
+    DclSampler(samplerType, false);
 
-      if (samplerType != SamplerTypeTexture3D) {
-        // We could also be depth compared!
-        DclSampler(idx, binding, samplerType, true, implicit);
-      }
+    if (samplerType != SamplerTypeTexture3D) {
+      // We could also be depth compared!
+      DclSampler(samplerType, true);
     }
-    else {
+  }
+  else {
       // Could be any of these!
       // We will check with the spec constant at sample time.
       for (uint32_t i = 0; i < SamplerTypeCount; i++) {
         auto samplerType = static_cast<DxsoSamplerType>(i);
 
-        DclSampler(idx, binding, samplerType, false, implicit);
+        DclSampler(samplerType, false);
 
         if (samplerType != SamplerTypeTexture3D)
-          DclSampler(idx, binding, samplerType, true, implicit);
+          DclSampler(samplerType, true);
       }
     }
-
-    DxsoSampler& sampler = m_samplers[idx];
-    sampler.boundConst = m_module.specConstBool(true);
-    sampler.type = type;
-    m_module.decorateSpecId(sampler.boundConst, binding);
-    m_module.setDebugName(sampler.boundConst,
-      str::format("s", idx, "_bound").c_str());
-
-    // Store descriptor info for the shader interface
-    DxvkResourceSlot resource;
-    resource.slot   = binding;
-    resource.type   = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    resource.view   = implicit ? VK_IMAGE_VIEW_TYPE_MAX_ENUM : viewType;
-    resource.access = VK_ACCESS_SHADER_READ_BIT;
-    m_resourceSlots.push_back(resource);
-  }
+    }
 
 
   uint32_t DxsoCompiler::emitArrayIndex(
@@ -3070,18 +3081,18 @@ void DxsoCompiler::emitControlFlowGenericLoop(
         m_module.opBranchConditional(isDepth, depthLabel, colorLabel);
 
         m_module.opLabel(colorLabel);
-        SampleImage(texcoordVar, sampler.color[samplerType], false, samplerType, sampler.boundConst);
+
+        SampleImage(texcoordVar, sampler.color[samplerType], false, samplerType, samplerType != SamplerTypeTexture2D ? sampler.boundConstCube : sampler.boundConst2D);
         m_module.opBranch(endLabel);
 
         m_module.opLabel(depthLabel);
-        // No spec constant as if we are unbound we always fall down the color path.
         SampleImage(texcoordVar, sampler.depth[samplerType], true, samplerType, 0);
         m_module.opBranch(endLabel);
 
         m_module.opLabel(endLabel);
       }
       else
-        SampleImage(texcoordVar, sampler.color[samplerType], false, samplerType, sampler.boundConst);
+        SampleImage(texcoordVar, sampler.color[samplerType], false, samplerType, sampler.boundConst3D);
     };
 
     if (m_programInfo.majorVersion() >= 2 && !m_moduleInfo.options.forceSamplerTypeSpecConstants) {

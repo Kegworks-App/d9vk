@@ -129,7 +129,11 @@ namespace dxvk {
     DxsoSamplerInfo color[SamplerTypeCount];
     DxsoSamplerInfo depth[SamplerTypeCount];
 
-    uint32_t boundConst;
+    uint32_t boundConst2D = 0;
+    uint32_t boundConst3D = 0;
+    uint32_t boundConstCube = 0;
+    uint32_t boundConst2DShadow = 0;
+    uint32_t boundConstCubeShadow = 0;
 
     DxsoTextureType type;
   };

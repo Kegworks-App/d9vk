@@ -2074,7 +2074,8 @@ namespace dxvk {
       D3DRESOURCETYPE type = D3DRESOURCETYPE(m_fsKey.Stages[i].Contents.Type + D3DRTYPE_TEXTURE);
 
       spv::Dim dimensionality;
-      VkImageViewType viewType;
+      VkImageViewType viewType;      
+      DxsoBindingType bindingType;
 
       switch (type) {
         default:
@@ -2082,16 +2083,19 @@ namespace dxvk {
           dimensionality = spv::Dim2D;
           sampler.texcoordCnt = 2;
           viewType       = VK_IMAGE_VIEW_TYPE_2D;
+          bindingType = DxsoBindingType::Texture2D;
           break;
         case D3DRTYPE_CUBETEXTURE:
           dimensionality = spv::DimCube;
           sampler.texcoordCnt = 3;
           viewType       = VK_IMAGE_VIEW_TYPE_CUBE;
+          bindingType = DxsoBindingType::TextureCube;
           break;
         case D3DRTYPE_VOLUMETEXTURE:
           dimensionality = spv::Dim3D;
           sampler.texcoordCnt = 3;
           viewType       = VK_IMAGE_VIEW_TYPE_3D;
+          bindingType = DxsoBindingType::Texture3D;
           break;
       }
 
@@ -2111,7 +2115,7 @@ namespace dxvk {
       m_module.setDebugName(sampler.varId, name.c_str());
 
       const uint32_t bindingId = computeResourceSlotId(DxsoProgramType::PixelShader,
-        DxsoBindingType::Image, i);
+        bindingType, i);
 
       sampler.bound = m_module.specConstBool(true);
       m_module.decorateSpecId(sampler.bound, bindingId);
