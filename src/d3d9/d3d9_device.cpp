@@ -2772,6 +2772,9 @@ namespace dxvk {
           IDirect3DVertexBuffer9*      pDestBuffer,
           IDirect3DVertexDeclaration9* pVertexDecl,
           DWORD                        Flags) {
+    Logger::err("D3D9DeviceEx::ProcessVertices: SWVP emu unsupported: (geometry shaders)");
+    return D3D_OK;
+
     D3D9DeviceLock lock = LockDevice();
 
     if (unlikely(pDestBuffer == nullptr))
@@ -4106,7 +4109,7 @@ namespace dxvk {
     DxvkDeviceFeatures enabled = {};
 
     // Geometry shaders are used for some meta ops
-    enabled.core.features.geometryShader = VK_TRUE;
+    enabled.core.features.geometryShader = VK_FALSE;
     enabled.core.features.robustBufferAccess = VK_TRUE;
     enabled.extRobustness2.robustBufferAccess2 = supported.extRobustness2.robustBufferAccess2;
 

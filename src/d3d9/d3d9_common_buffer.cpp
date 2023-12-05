@@ -103,7 +103,8 @@ namespace dxvk {
       info.stages |= VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
       info.access |= VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
 
-      if (m_parent->SupportsSWVP()) {
+      if (m_parent->SupportsSWVP() && false) {
+        // no geometry shader support on moltenvk
         info.usage  |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
         info.stages |= VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT;
         info.access |= VK_ACCESS_SHADER_WRITE_BIT;
