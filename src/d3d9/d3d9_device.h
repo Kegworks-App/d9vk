@@ -890,7 +890,7 @@ namespace dxvk {
     
     uint32_t GetInstanceCount() const;
 
-    void PrepareDraw(D3DPRIMITIVETYPE PrimitiveType);
+    void PrepareDraw(D3DPRIMITIVETYPE PrimitiveType, bool UploadBuffers);
 
     template <DxsoProgramType ShaderStage>
     void BindShader(
