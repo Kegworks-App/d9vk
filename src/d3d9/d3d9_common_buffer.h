@@ -206,6 +206,10 @@ namespace dxvk {
         : DxvkCsThread::SynchronizeAll;
     }
 
+    bool IsSysmemDynamic() const {
+      return m_desc.Pool == D3DPOOL_SYSTEMMEM && (m_desc.Usage & D3DUSAGE_DYNAMIC) != 0;
+    }
+
   private:
 
     Rc<DxvkBuffer> CreateBuffer() const;
