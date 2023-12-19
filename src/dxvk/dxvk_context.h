@@ -330,16 +330,15 @@ namespace dxvk {
             VkDeviceSize          rowAlignment,
             VkDeviceSize          sliceAlignment);
     
-    void decodeBcBufferToImage(
+    void decodePackedBcBufferToImage(
       const Rc<DxvkImage>&        dstImage,
             VkImageSubresourceLayers dstSubresource,
             VkOffset3D            dstOffset,
             VkExtent3D            dstExtent,
       const Rc<DxvkBuffer>&       srcBuffer,
-            VkDeviceSize          srcOffset,
-            VkDeviceSize          rowAlignment,
-            VkDeviceSize          sliceAlignment,
-            VkFormat              srcFormat);
+            VkDeviceSize          srcBufferOffset,
+            VkExtent3D            srcOffset,
+            VkFormat              format);
     
     /**
      * \brief Copies data from one image to another

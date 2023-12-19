@@ -27,12 +27,15 @@ layout(local_size_x = 4, local_size_y = 4, local_size_z = 4) in;
 #include "rgtc.h"
 
 layout(set = 0, binding = 0, rgba8) writeonly uniform image2D uOutput;
-layout(set = 0, binding = 1) uniform utexture2D uInput;
+layout(set = 0, binding = 1) uniform usamplerBuffer u_input;
 
-layout(push_constant) uniform Registers
-{
-    ivec2 resolution;
-} registers;
+layout(push_constant)
+uniform u_info_t {
+  uvec2 src_offset;
+  uvec2 src_extent;
+  uvec2 dst_offset;
+  uvec2 dst_extent;
+} u_info;
 
 layout(constant_id = 0) const bool USE_ALPHA = false;
 layout(constant_id = 1) const int BC_VERSION = 1;
@@ -105,13 +108,14 @@ ivec2 build_coord()
 void main()
 {
     ivec2 coord = build_coord();
-    if (any(greaterThanEqual(coord, registers.resolution)))
+    ivec2 src_coord = coord + u_info.src_offset;
+    if (any(greaterThanEqual(src_coord, u_info.src_extent)))
         return;
 
-    ivec2 tile_coord = coord >> 2;
-    ivec2 pixel_coord = coord & 3;
+    ivec2 tile_coord = src_coord >> 2;
+    ivec2 pixel_coord = src_coord & 3;
     int linear_pixel = 4 * pixel_coord.y + pixel_coord.x;
-    uvec4 payload = texelFetch(uInput, tile_coord, 0);
+    uvec4 payload = texelFetch(u_input, tile_coord, 0);
 
     uvec2 color_payload, alpha_payload;
     if (BC_VERSION == 1)
@@ -138,5 +142,6 @@ void main()
     else if (BC_VERSION > 1)
         decoded.a = alpha;
 
-    imageStore(uOutput, coord, decoded);
+    ivec2 dst_coord = coord + u_info.dst_offset;
+    imageStore(uOutput, dst_coord, decoded);
 }

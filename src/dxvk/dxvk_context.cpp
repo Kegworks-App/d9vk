@@ -672,20 +672,44 @@ namespace dxvk {
     m_cmd->trackResource<DxvkAccess::Read>(srcBuffer);
   }
 
-  void DxvkContext::decodeBcBufferToImage(
+  void DxvkContext::decodePackedBcBufferToImage(
     const Rc<DxvkImage>&        dstImage,
           VkImageSubresourceLayers dstSubresource,
           VkOffset3D            dstOffset,
           VkExtent3D            dstExtent,
     const Rc<DxvkBuffer>&       srcBuffer,
-          VkDeviceSize          srcOffset,
-          VkDeviceSize          rowAlignment,
-          VkDeviceSize          sliceAlignment,
-          VkFormat              srcFormat) {
+          VkDeviceSize          srcBufferOffset,
+          VkExtent3D            srcOffset,
+          VkFormat              format) {
     this->spillRenderPass(true);
     this->prepareImage(m_execBarriers, dstImage, vk::makeSubresourceRange(dstSubresource));
 
-    auto srcSlice = srcBuffer->getSliceHandle(srcOffset, 0);
+    auto srcSlice = srcBuffer->getSliceHandle(srcBufferOffset, 0);
+
+    auto srcFormatInfo = lookupFormatInfo(format);
+    
+    DxvkBufferViewCreateInfo viewInfo;
+    viewInfo.rangeOffset = srcBufferOffset;
+    viewInfo.rangeLength = align(util::flattenImageExtent(dstExtent) * srcFormatInfo->elementSize, 256);
+    switch (srcFormatInfo->blockSize.width) {
+      case 4:
+        viewInfo.format = VK_FORMAT_R32_UINT;
+        break;
+
+      case 8:
+        viewInfo.format = VK_FORMAT_R32G32_UINT;
+        break;
+
+      case 16:
+        viewInfo.format = VK_FORMAT_R32G32B32A32_UINT;
+        break;
+
+      default:
+        Logger::err(str::format("DxvkContext::decodePackedBcBufferToImage: Unsupported format: ", format));
+        viewInfo.format = VK_FORMAT_UNDEFINED;
+        break;
+    }
+    Rc<DxvkBufferView> srcView = m_device->createBufferView(srcBuffer, viewInfo);
 
     // We may copy to only one aspect at a time, but pipeline
     // barriers need to have all available aspect bits set
