@@ -5019,7 +5019,7 @@ namespace dxvk {
       const bool skipWait = (!needsReadback && (readOnly || !directMapping)) || noOverwrite;
       if (!skipWait) {
         const Rc<DxvkBuffer> mappingBuffer = pResource->GetBuffer<D3D9_COMMON_BUFFER_TYPE_MAPPING>();
-        std::string reason = str::format("Lock Buffer, pool: ", pResource->Desc()->Pool, " Usage: ", pResource->Desc()->Usage, " originalFlags: ", originalFlags, " Flags: ", Flags);
+        std::string reason = str::format("Lock Buffer, pool: ", pResource->Desc()->Pool, " Usage: ", pResource->Desc()->Usage, " originalFlags: ", originalFlags, " Flags: ", Flags, " OFfset to lock: ", OffsetToLock, " size to lock: ", SizeToLock, " total size: ", pResource->Desc()->Size);
         if (!WaitForResource(mappingBuffer, pResource->GetMappingBufferSequenceNumber(), Flags, reason))
           return D3DERR_WASSTILLDRAWING;
 
