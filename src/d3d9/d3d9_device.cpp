@@ -3233,6 +3233,11 @@ namespace dxvk {
 
       vbo.offset = OffsetInBytes;
       vbo.stride = Stride;
+    } else {
+      // D3D9 doesn't actually unbind any vertex buffer when passing null.
+      // Operation Flashpoint: Red River relies on this behavior.
+      needsUpdate = false;
+      vbo.offset = 0;
     }
 
     if (needsUpdate)
@@ -3338,7 +3343,8 @@ namespace dxvk {
 
     m_state.indices = buffer;
 
-    BindIndices();
+    if (buffer != nullptr)
+      BindIndices();
 
     return D3D_OK;
   }
