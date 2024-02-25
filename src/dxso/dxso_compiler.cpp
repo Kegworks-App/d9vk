@@ -2914,14 +2914,19 @@ void DxsoCompiler::emitControlFlowGenericLoop(
         imageOperands.flags |= spv::ImageOperandsLodMask;
       }
 
-      if (opcode == DxsoOpcode::TexLdl) {
+      // MSL only supports dref with a LOD that's known at compile-time.
+      // So just do implicit LOD for TexLdl & TexLdd.
+      // Those driver hacks are somewhat rare anyway and I hope nobody relies on combining it with
+      // explicit LOD.
+
+      if (opcode == DxsoOpcode::TexLdl && !depth) {
         uint32_t w = 3;
         imageOperands.sLod = m_module.opCompositeExtract(
           m_module.defFloatType(32), texcoordVar.id, 1, &w);
         imageOperands.flags |= spv::ImageOperandsLodMask;
       }
 
-      if (opcode == DxsoOpcode::TexLdd) {
+      if (opcode == DxsoOpcode::TexLdd && !depth) {
         DxsoRegMask gradMask(true, true, sampler.dimensions == 3, false);
         imageOperands.flags |= spv::ImageOperandsGradMask;
         imageOperands.sGradX = emitRegisterLoad(ctx.src[2], gradMask).id;
