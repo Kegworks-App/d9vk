@@ -5207,7 +5207,7 @@ namespace dxvk {
           cStream      = i,
           cBufferSlice = std::move(vboSlice),
           cStride      = vertexStride
-        ](DxvkContext* ctx) mutable {
+        ](DxvkContext* ctx) {
           ctx->bindVertexBuffer(cStream, std::move(cBufferSlice), cStride);
         });
         m_flags.set(D3D9DeviceFlag::DirtyVertexBuffers);
@@ -5235,12 +5235,12 @@ namespace dxvk {
         uint8_t* data = reinterpret_cast<uint8_t*>(upSlice.mapPtr) + iboUPBufferOffset;
         uint8_t* src = reinterpret_cast<uint8_t*>(ibo->GetMappedSlice().mapPtr) + offset;
         std::memcpy(data, src, iboUPBufferSize);
-        
+
         auto iboSlice = upSlice.slice.subSlice(iboUPBufferOffset, iboUPBufferSize);
         EmitCs([
           cBufferSlice = std::move(iboSlice),
           cIndexType = indexType
-        ](DxvkContext* ctx) mutable {
+        ](DxvkContext* ctx) {
           ctx->bindIndexBuffer(std::move(cBufferSlice), cIndexType);
         });
         m_flags.set(D3D9DeviceFlag::DirtyIndexBuffer);
