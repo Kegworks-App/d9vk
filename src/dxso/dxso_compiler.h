@@ -102,10 +102,13 @@ namespace dxvk {
   struct DxsoSamplerInfo {
     uint32_t dimensions = 0;
 
-    uint32_t varId = 0;
-    uint32_t typeId = 0;
-
+    uint32_t imageVarId = 0;
     uint32_t imageTypeId = 0;
+
+    uint32_t samplerVarId = 0;
+    uint32_t samplerTypeId = 0;
+
+    uint32_t sampledImageTypeId = 0;
   };
 
   enum DxsoSamplerType : uint32_t {

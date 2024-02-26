@@ -10,6 +10,7 @@
 #include "dxso_util.h"
 
 #include "../dxvk/dxvk_spec_const.h"
+#include "spirv/unified1/spirv.hpp"
 
 #include <cfloat>
 
@@ -759,10 +760,31 @@ namespace dxvk {
     DxsoSampler& dxsoSampler = m_samplers[idx];
     dxsoSampler.type = type;
 
-    auto DclSampler = [this,
-      &viewType, cTextureType = type,
+    const uint32_t samplerType = m_module.defSamplerType();
+    const uint32_t samplerPtrType = m_module.defPointerType(samplerType, spv::StorageClassUniformConstant);
+
+    const uint32_t samplerId = m_module.newVar(samplerPtrType, spv::StorageClassUniformConstant);
+    std::string name = str::format("s", idx);
+    m_module.setDebugName(samplerId, name.c_str());
+
+    const uint32_t samplerBindingId = computeResourceSlotId(m_programInfo.type(), DxsoBindingType::Sampler, idx);
+    m_module.decorateDescriptorSet(samplerId, 0);
+    m_module.decorateBinding(samplerId, samplerBindingId);
+
+    // Store descriptor info for the shader interface
+    DxvkResourceSlot resource;
+    resource.slot   = samplerBindingId;
+    resource.type   = VK_DESCRIPTOR_TYPE_SAMPLER;
+    resource.view   = VK_IMAGE_VIEW_TYPE_MAX_ENUM;
+    resource.access = 0;
+    m_resourceSlots.push_back(resource);
+
+    auto DclImage = [this,
+      &viewType,
       &cDxsoSampler = dxsoSampler,
-      cIdx = idx
+      cIdx = idx,
+      cSamplerId = samplerId,
+      cSamplerTypeId = samplerType
       ](
       DxsoSamplerType type,
       bool            depth) {
@@ -770,6 +792,9 @@ namespace dxvk {
       DxsoSamplerInfo& sampler = !depth
         ? cDxsoSampler.color[type]
         : cDxsoSampler.depth[type];
+
+      sampler.samplerVarId = cSamplerId;
+      sampler.samplerTypeId = cSamplerTypeId;
 
       spv::Dim dimensionality;
 
@@ -813,32 +838,31 @@ namespace dxvk {
         dimensionality, depth ? 1 : 0, 0, 0, 1,
         spv::ImageFormatUnknown);
 
-      sampler.typeId = m_module.defSampledImageType(sampler.imageTypeId);
+      sampler.sampledImageTypeId = m_module.defSampledImageType(sampler.imageTypeId);
 
-      sampler.varId = m_module.newVar(
-        m_module.defPointerType(
-          sampler.typeId, spv::StorageClassUniformConstant),
-        spv::StorageClassUniformConstant);
+      const uint32_t imagePtrTypeId = m_module.defPointerType(
+          sampler.imageTypeId, spv::StorageClassUniformConstant);
 
-      std::string name = str::format("s", cIdx, suffix, depth ? "_shadow" : "");
-      m_module.setDebugName(sampler.varId, name.c_str());
+      sampler.imageVarId = m_module.newVar(imagePtrTypeId, spv::StorageClassUniformConstant);
+
+      std::string name = str::format("t", cIdx, suffix, depth ? "_shadow" : "");
+      m_module.setDebugName(sampler.imageVarId, name.c_str());
 
       const uint32_t bindingId = computeResourceSlotId(m_programInfo.type(),
         bindingType, cIdx);
 
-      m_module.decorateDescriptorSet(sampler.varId, 0);
-      m_module.decorateBinding      (sampler.varId, bindingId);
-      
+      m_module.decorateDescriptorSet(sampler.imageVarId, 0);
+      m_module.decorateBinding      (sampler.imageVarId, bindingId);
 
       *boundConstPtr = m_module.specConstBool(true);
       m_module.decorateSpecId(*boundConstPtr, bindingId);
       m_module.setDebugName(*boundConstPtr,
-        str::format("s", cIdx, suffix, (depth ? "_shadow" : ""), "_bound").c_str());
+        str::format("t", cIdx, suffix, (depth ? "_shadow" : ""), "_bound").c_str());
 
       // Store descriptor info for the shader interface
       DxvkResourceSlot resource;
       resource.slot   = bindingId;
-      resource.type   = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+      resource.type   = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
       resource.view   = viewType;
       resource.access = VK_ACCESS_SHADER_READ_BIT;
       m_resourceSlots.push_back(resource);
@@ -850,26 +874,26 @@ namespace dxvk {
       DxsoSamplerType samplerType = 
       SamplerTypeFromTextureType(type);
 
-    DclSampler(samplerType, false);
+      DclImage(samplerType, false);
 
-    if (samplerType != SamplerTypeTexture3D) {
-      // We could also be depth compared!
-      DclSampler(samplerType, true);
+      if (samplerType != SamplerTypeTexture3D) {
+        // We could also be depth compared!
+        DclImage(samplerType, true);
+      }
     }
-  }
-  else {
+    else {
       // Could be any of these!
       // We will check with the spec constant at sample time.
       for (uint32_t i = 0; i < SamplerTypeCount; i++) {
         auto samplerType = static_cast<DxsoSamplerType>(i);
 
-        DclSampler(samplerType, false);
+        DclImage(samplerType, false);
 
         if (samplerType != SamplerTypeTexture3D)
-          DclSampler(samplerType, true);
+          DclImage(samplerType, true);
       }
     }
-    }
+  }
 
 
   uint32_t DxsoCompiler::emitArrayIndex(
@@ -2906,7 +2930,7 @@ void DxsoCompiler::emitControlFlowGenericLoop(
     }
 
     // SM < 1.x does not have dcl sampler type.
-    if (m_programInfo.majorVersion() < 2 && m_samplers[samplerIdx].color[SamplerTypeTexture2D].varId == 0)
+    if (m_programInfo.majorVersion() < 2 && m_samplers[samplerIdx].color[SamplerTypeTexture2D].imageVarId == 0)
       emitDclSampler(samplerIdx, DxsoTextureType::Texture2D);
 
     DxsoSampler sampler = m_samplers.at(samplerIdx);
@@ -3303,7 +3327,10 @@ void DxsoCompiler::emitControlFlowGenericLoop(
        (operands.flags & spv::ImageOperandsLodMask)
     || (operands.flags & spv::ImageOperandsGradMask);
 
-    const uint32_t sampledImage = m_module.opLoad(samplerInfo.typeId, samplerInfo.varId);
+    const uint32_t sampledImage = m_module.opSampledImage(samplerInfo.sampledImageTypeId,
+      m_module.opLoad(samplerInfo.imageTypeId, samplerInfo.imageVarId),
+      m_module.opLoad(samplerInfo.samplerTypeId, samplerInfo.samplerVarId)
+    );
 
     uint32_t val;
 

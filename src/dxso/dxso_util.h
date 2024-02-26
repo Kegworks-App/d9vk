@@ -16,9 +16,10 @@ namespace dxvk {
     TextureCube,
     TextureCubeShadow,
     Texture3D,
+    Sampler,
   };
 
-  const uint32_t TextureTypes = 5;
+  const uint32_t TextureTypes = 6;
 
   enum class DxsoConstantBufferType : uint32_t {
     Float,

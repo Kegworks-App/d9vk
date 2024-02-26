@@ -6452,36 +6452,10 @@ namespace dxvk {
       cSamplerInfo = samplerInfo,
       cKey  = key
     ] (DxvkContext* ctx) {
-      VkShaderStageFlags stage = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-
       auto pair = m_samplers.find(cKey);
       if (pair != m_samplers.end()) {
         uint32_t slot = computeResourceSlotId(
-          cSamplerInfo.first, DxsoBindingType::Texture2D,
-          cSamplerInfo.second);
-
-        ctx->bindResourceSampler(slot, pair->second);
-
-        slot = computeResourceSlotId(
-          cSamplerInfo.first, DxsoBindingType::Texture3D,
-          cSamplerInfo.second);
-
-        ctx->bindResourceSampler(slot, pair->second);
-
-        slot = computeResourceSlotId(
-          cSamplerInfo.first, DxsoBindingType::TextureCube,
-          cSamplerInfo.second);
-
-        ctx->bindResourceSampler(slot, pair->second);
-
-        slot = computeResourceSlotId(
-          cSamplerInfo.first, DxsoBindingType::TextureShadow,
-          cSamplerInfo.second);
-
-        ctx->bindResourceSampler(slot, pair->second);
-
-        slot = computeResourceSlotId(
-          cSamplerInfo.first, DxsoBindingType::TextureCubeShadow,
+          cSamplerInfo.first, DxsoBindingType::Sampler,
           cSamplerInfo.second);
 
         ctx->bindResourceSampler(slot, pair->second);
@@ -6531,31 +6505,7 @@ namespace dxvk {
         m_samplers.insert(std::make_pair(cKey, sampler));
         
         uint32_t slot = computeResourceSlotId(
-          cSamplerInfo.first, DxsoBindingType::Texture2D,
-          cSamplerInfo.second);
-
-        ctx->bindResourceSampler(slot, sampler);
-
-        slot = computeResourceSlotId(
-          cSamplerInfo.first, DxsoBindingType::Texture3D,
-          cSamplerInfo.second);
-
-        ctx->bindResourceSampler(slot, sampler);
-
-        slot = computeResourceSlotId(
-          cSamplerInfo.first, DxsoBindingType::TextureCube,
-          cSamplerInfo.second);
-
-        ctx->bindResourceSampler(slot, sampler);
-
-        slot = computeResourceSlotId(
-          cSamplerInfo.first, DxsoBindingType::TextureShadow,
-          cSamplerInfo.second);
-
-        ctx->bindResourceSampler(slot, sampler);
-
-        slot = computeResourceSlotId(
-          cSamplerInfo.first, DxsoBindingType::TextureCubeShadow,
+          cSamplerInfo.first, DxsoBindingType::Sampler,
           cSamplerInfo.second);
 
         ctx->bindResourceSampler(slot, sampler);
