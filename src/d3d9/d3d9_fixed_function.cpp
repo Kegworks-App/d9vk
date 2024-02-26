@@ -540,6 +540,9 @@ namespace dxvk {
       uint32_t texcoordCnt;
       uint32_t typeId;
       uint32_t varId;
+      uint32_t sampledTypeId;
+      uint32_t samplerTypeId;
+      uint32_t samplerVarId;
       uint32_t bound;
     } samplers[8];
 
@@ -1604,6 +1607,7 @@ namespace dxvk {
         if (!processedTexture) {
           SpirvImageOperands imageOperands;
           uint32_t imageVarId = m_module.opLoad(m_ps.samplers[i].typeId, m_ps.samplers[i].varId);
+          uint32_t samplerVarId = m_module.opLoad(m_ps.samplers[i].samplerTypeId, m_ps.samplers[i].samplerVarId);
 
           uint32_t texcoordCnt = m_ps.samplers[i].texcoordCnt;
 
@@ -1648,10 +1652,15 @@ namespace dxvk {
             shouldProject = false;
           }
 
+          const uint32_t sampledImageVarId = m_module.opSampledImage(m_ps.samplers[i].sampledTypeId,
+            samplerVarId,
+            imageVarId
+          );
+
           if (shouldProject)
-            texture = m_module.opImageSampleProjImplicitLod(m_vec4Type, imageVarId, texcoord, imageOperands);
+            texture = m_module.opImageSampleProjImplicitLod(m_vec4Type, sampledImageVarId, texcoord, imageOperands);
           else
-            texture = m_module.opImageSampleImplicitLod(m_vec4Type, imageVarId, texcoord, imageOperands);
+            texture = m_module.opImageSampleImplicitLod(m_vec4Type, sampledImageVarId, texcoord, imageOperands);
 
           if (i != 0 && m_fsKey.Stages[i - 1].Contents.ColorOp == D3DTOP_BUMPENVMAPLUMINANCE) {
             uint32_t index = m_module.constu32(D3D9SharedPSStages_Count * (i - 1) + D3D9SharedPSStages_BumpEnvLScale);
@@ -2068,15 +2077,15 @@ namespace dxvk {
 
     m_ps.constants.textureFactor = LoadConstant(m_vec4Type, uint32_t(D3D9FFPSMembers::TextureFactor));
 
-    // Samplers
+// Samplers
     for (uint32_t i = 0; i < caps::TextureStageCount; i++) {
       auto& sampler = m_ps.samplers[i];
       D3DRESOURCETYPE type = D3DRESOURCETYPE(m_fsKey.Stages[i].Contents.Type + D3DRTYPE_TEXTURE);
 
       spv::Dim dimensionality;
-      VkImageViewType viewType;      
-      DxsoBindingType bindingType;
+      VkImageViewType viewType;
 
+      DxsoBindingType bindingType;
       switch (type) {
         default:
         case D3DRTYPE_TEXTURE:
@@ -2104,33 +2113,50 @@ namespace dxvk {
         dimensionality, 0, 0, 0, 1,
         spv::ImageFormatUnknown);
 
-      sampler.typeId = m_module.defSampledImageType(sampler.typeId);
+      sampler.sampledTypeId = m_module.defSampledImageType(sampler.typeId);
 
       sampler.varId = m_module.newVar(
         m_module.defPointerType(
           sampler.typeId, spv::StorageClassUniformConstant),
         spv::StorageClassUniformConstant);
 
-      std::string name = str::format("s", i);
+      std::string name = str::format("t", i);
       m_module.setDebugName(sampler.varId, name.c_str());
 
       const uint32_t bindingId = computeResourceSlotId(DxsoProgramType::PixelShader,
         bindingType, i);
+
+      m_module.decorateDescriptorSet(sampler.varId, 0);
+      m_module.decorateBinding(sampler.varId, bindingId);
 
       sampler.bound = m_module.specConstBool(true);
       m_module.decorateSpecId(sampler.bound, bindingId);
       m_module.setDebugName(sampler.bound,
         str::format("s", i, "_bound").c_str());
 
-      m_module.decorateDescriptorSet(sampler.varId, 0);
-      m_module.decorateBinding(sampler.varId, bindingId);
+      sampler.samplerTypeId = m_module.defSamplerType();
+      const uint32_t samplerPtrType = m_module.defPointerType(sampler.samplerTypeId, spv::StorageClassUniformConstant);
+
+      sampler.samplerVarId = m_module.newVar(samplerPtrType, spv::StorageClassUniformConstant);
+      name = str::format("s", i);
+      m_module.setDebugName(sampler.samplerVarId, name.c_str());
+
+      const uint32_t samplerBindingId = computeResourceSlotId(DxsoProgramType::PixelShader, DxsoBindingType::Sampler, i);
+      m_module.decorateDescriptorSet(sampler.samplerVarId, 0);
+      m_module.decorateBinding(sampler.samplerVarId, samplerBindingId);
 
       // Store descriptor info for the shader interface
       DxvkResourceSlot resource;
       resource.slot   = bindingId;
-      resource.type   = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+      resource.type   = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
       resource.view   = viewType;
       resource.access = VK_ACCESS_SHADER_READ_BIT;
+      m_resourceSlots.push_back(resource);
+
+      resource.slot   = samplerBindingId;
+      resource.type   = VK_DESCRIPTOR_TYPE_SAMPLER;
+      resource.view   = VK_IMAGE_VIEW_TYPE_MAX_ENUM;
+      resource.access = 0;
       m_resourceSlots.push_back(resource);
     }
 
