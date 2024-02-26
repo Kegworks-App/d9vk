@@ -6528,11 +6528,14 @@ namespace dxvk {
     D3D9CommonTexture* commonTex =
       GetCommonTexture(m_state.textures[StateSampler]);
 
+    const bool isShadow = commonTex->IsShadow();
+
     Rc<DxvkImageView> view = commonTex->GetSampleView(srgb);
 
     EmitCs([
       cImageView = std::move(view),
-      cShaderSampler = shaderSampler
+      cShaderSampler = shaderSampler,
+      cIsShadow = isShadow
     ](DxvkContext* ctx) {
       switch (cImageView->type()) {
         case VK_IMAGE_VIEW_TYPE_2D: {
@@ -6542,7 +6545,7 @@ namespace dxvk {
 
           slot = computeResourceSlotId(cShaderSampler.first,
           DxsoBindingType::TextureShadow, uint32_t(cShaderSampler.second));
-          ctx->bindResourceView(slot, cImageView, nullptr);
+          ctx->bindResourceView(slot, cIsShadow ? cImageView : nullptr, nullptr);
 
           slot = computeResourceSlotId(cShaderSampler.first,
           DxsoBindingType::TextureCube, uint32_t(cShaderSampler.second));
@@ -6586,7 +6589,7 @@ namespace dxvk {
           
           slot = computeResourceSlotId(cShaderSampler.first,
           DxsoBindingType::TextureCubeShadow, uint32_t(cShaderSampler.second));
-          ctx->bindResourceView(slot, cImageView, nullptr);
+          ctx->bindResourceView(slot, cIsShadow ? cImageView : nullptr, nullptr);
 
           slot = computeResourceSlotId(cShaderSampler.first,
           DxsoBindingType::Texture3D, uint32_t(cShaderSampler.second));
