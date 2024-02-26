@@ -227,6 +227,8 @@ namespace dxvk {
 
     m_device->waitForSubmission(&m_presentStatus);
     m_device->waitForIdle();
+
+    m_parent->DecrementLosableCounter();
   }
 
 
@@ -1105,8 +1107,10 @@ namespace dxvk {
     desc.IsBackBuffer       = TRUE;
     desc.IsAttachmentOnly   = FALSE;
 
-    for (uint32_t i = 0; i < m_backBuffers.size(); i++)
+    for (uint32_t i = 0; i < m_backBuffers.size(); i++) {
       m_backBuffers[i] = new D3D9Surface(m_parent, &desc, this, nullptr);
+      m_parent->IncrementLosableCounter();
+    }
 
     auto swapImage = m_backBuffers[0]->GetCommonTexture()->GetImage();
 
